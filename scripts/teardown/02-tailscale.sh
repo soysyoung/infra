@@ -13,6 +13,7 @@ confirm "Tailscale 연결을 해제하고 제거합니다. tailnet 을 통한 �
 
 run sudo tailscale logout || true
 run sudo systemctl disable --now tailscaled
-run sudo apt-get purge -y tailscale
+# tailscale-archive-keyring 은 tailscale 의 의존 패키지라 함께 지워야 남지 않는다.
+run sudo apt-get purge -y tailscale tailscale-archive-keyring
 run sudo rm -rf /var/lib/tailscale /etc/apt/sources.list.d/tailscale.list /usr/share/keyrings/tailscale-archive-keyring.gpg
 log "완료. 관리 콘솔에서 이 장치를 직접 삭제하세요."
