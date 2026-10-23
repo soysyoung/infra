@@ -174,3 +174,13 @@ deployment.apps/seaweedfs condition met
 - 로그인 흐름은 `/oauth2/start` 가 Dex(`/dex/auth`)로 리다이렉트하는지로 본다.
 - **로그인 전 `/` 는 `HTTP 403` 이 정상이다.** 응답 본문이 oauth2-proxy 의 "Sign In" 페이지이고 게이트웨이 로그에 `ext_authz_denied` 가 찍힌다. 처음에는 이 403 을 실패로 판정하는 검증을 썼다가 고쳤다 ([troubleshooting.md](../../docs/troubleshooting.md) 15번).
 - `Running/Completed 가 아닌 파드가 있습니다` 이면 `kubectl get pods -A` 로 확인한다. `Init:Error` 면 [troubleshooting.md](../../docs/troubleshooting.md) 10번이다 (`06-kubeflow.sh` 를 다시 실행하면 정리된다).
+
+## 07-expose.sh
+
+```bash
+bash scripts/verify/07-expose.sh
+```
+
+tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지를 방식 A (포트 8080, `07-expose.sh`) 와 방식 C (포트 30080, kind `extraPortMappings`) 각각 확인하고, 하나라도 되면 통과한다. 두 방식의 비교는 [ADR 0009](../../docs/decisions/0009-tailnet-exposure-a-vs-c.md).
+
+실제 출력: **아직 실행하지 않았다.** 실행한 뒤 이 자리에 붙인다.

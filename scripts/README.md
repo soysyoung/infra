@@ -40,6 +40,8 @@ bash scripts/05-3-device-plugin.sh    # device plugin (GPU 노드에만)
 bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드)
 bash scripts/06-kubeflow.sh           # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
 bash scripts/verify/06-kubeflow.sh
+bash scripts/07-expose.sh            # (선택) tailnet 주소로 상시 접속: systemd 로 감싼 port-forward (방식 A)
+bash scripts/verify/07-expose.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
@@ -50,7 +52,16 @@ bash scripts/verify/06-kubeflow.sh
 kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80   # http://localhost:8080
 ```
 
-기본 로그인은 `user@example.com` / `12341234` 로 공개된 값이다. 비밀번호를 바꾸기 전에는 외부에 노출하지 않는다 ([ADR 0005](../docs/decisions/0005-kubeflow-26.03.1.md)). 파드는 `kubectl get po -A` 로 본다 (Kubeflow 는 `default` 가 아닌 네임스페이스에 있다).
+로그인은 `user@example.com` 이고, 비밀번호는 저장소 루트의 `.env` (git 제외) 의 `KUBEFLOW_PASSWORD` 다. 바꾼 뒤 `bash scripts/06-kubeflow.sh` 를 다시 실행하면 dex 에 반영된다. `.env` 가 없으면 공개된 기본값 `12341234` 이므로 바꾸기 전에는 외부에 노출하지 않는다 ([ADR 0005](../docs/decisions/0005-kubeflow-26.03.1.md)). 파드는 `kubectl get po -A` 로 본다 (Kubeflow 는 `default` 가 아닌 네임스페이스에 있다).
+
+## 상시 접속 (tailnet)
+
+`port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 쓰려면 두 방식이 있고 차이는 [ADR 0009](../docs/decisions/0009-tailnet-exposure-a-vs-c.md) 에 정리했다.
+
+- **A**: `bash scripts/07-expose.sh` -> `http://<tailnet 주소>:8080` (`tailscale ip -4`). 기존 클러스터에도 바로 된다.
+- **C**: 클러스터를 만들 때 `kind-config.yaml` 이 포트를 열고 `06` 이 게이트웨이를 NodePort 로 바꾼다 -> `http://<tailnet 주소>:30080`. 별도 스크립트가 없고, 이미 만든 클러스터에는 지우고 `05-1` 부터 다시 해야 한다.
+
+둘 다 `.env` 의 비밀번호를 바꾼 뒤에 연다. 아직 시험하지 못했다.
 
 ## 삭제
 

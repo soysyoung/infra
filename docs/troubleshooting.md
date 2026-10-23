@@ -26,10 +26,13 @@
 | 17 | 삭제 스크립트에 `yes` 를 입력했는데 `오류: 취소했습니다.` | 입력 앞에 공백이 섞여(`' yes'`) `confirm` 이 정확히 `yes` 일 때만 통과시켰음 (스크립트 버그) | 앞뒤 공백을 제거하고 대소문자를 무시. `y`, `yess`, 빈 입력은 파괴적 작업이라 계속 취소. 취소 메시지에 받은 입력을 표시. PowerShell 쪽도 `.Trim()` | 해결 | - |
 | 18 | 삭제 후 점검에서 패키지 `docker-ce-rootless-extras`, `tailscale-archive-keyring` 와 네트워크 장치 `docker0` 가 남아 있음 | 03 삭제 목록에 추천/의존 패키지가 빠져 있었고, 브리지 인터페이스는 데몬을 지워도 WSL 재시작 전까지 커널에 남음 | 두 패키지를 purge 목록에 추가, `ip link delete docker0` 추가. 이번 실행은 배포판을 통째로 지워서 영향 없음. **고친 경로는 시험하지 못함** (이미 지워져 가드가 건너뜀) | 해결 (미시험) | - |
 | 19 | README 에 `scripts<탭>eardown<NUL>-windows-wsl.ps1` 로 깨진 경로가 이미 push 됨. 편집기가 "NUL 바이트가 있는 이진 파일"이라며 편집을 거부 | AI 가 파이썬 문자열로 README 끝에 삭제 절을 덧붙일 때 Windows 경로의 백슬래시 시퀀스 두 개가 이스케이프(탭, NUL)로 해석됨 | README 를 새로 작성하고, 추적 파일 전체를 NUL/탭/제어문자로 검사해 다른 파일은 정상임을 확인 (49개 중 1개). 경로를 파이썬 문자열에 쓸 때는 원문 문자열이나 `chr(92)` 를 쓰고 쓴 뒤 바이트를 검사한다 | 해결 | - |
+| 20 | `06` 중 `no matches for kind "ClusterStorageContainer" in version "serving.kserve.io/v1alpha1"`, `ensure CRDs are installed first`, 이어서 `적용 재시도 1/10` | CRD 와 그 CRD 를 쓰는 리소스가 한 묶음으로 적용되는데 API 서버가 CRD 를 등록하기 전에 리소스가 먼저 도착함. 오류 문구와 `06` 의 주석(공식 설치도 재시도 루프)으로 판단했고 설치 로그 전체는 보지 못했다 | 정상 동작이다. `06` 의 재시도 루프(최대 10회, 20초 간격)가 처리한다. 10/10 에서도 같은 오류면 `kubectl get crd` 로 kserve CRD 를 확인한다 | 해결 | - |
+| 21 | `kubectl port-forward ... 8080:80` 이 `address already in use` | 포트 8080 을 `kubectl --context kind-mlops -n istio-system port-forward svc/is...` 프로세스(pid 39675)가 이미 잡고 있었음. `ss -ltnp` 와 `ps` 로 확인. **누가 띄웠는지는 모른다.** `verify/06` 의 `trap` 이 프로세스를 남기는지 같은 구조로 재현해 봤으나 남지 않았다 | 그 프로세스를 그대로 쓰거나 `kill` 후 다시 실행. 포트를 바꾸면 로그인 리다이렉트가 깨질 수 있어 권하지 않음 | 해결 | - |
 
 ## 열린 항목
 
 - 재부팅 후 tailscaled 와 Docker 의 기동 순서. API 서버가 tailnet 주소에 바인딩되어 있어서 tailscaled 가 늦으면 노드 컨테이너가 시작에 실패할 수 있다. `windows/autostart.ps1` 단계에서 확인한다.
 - `/etc/sysctl.d` 의 inotify 설정이 재부팅 후에도 유지되는지 (systemd 가 켜져 있어 유지될 것으로 보나 확인하지 않았다).
 - 클러스터를 지우면 GPU 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-2` 가 매번 다시 하지만 외부 apt 저장소가 필요하다.
-- Kubeflow 기본 로그인(user@example.com / 12341234)의 비밀번호 변경. 로그인 후 기능(Pipelines 실행, Notebook 생성, GPU Notebook)은 아직 시험하지 않았다.
+- Kubeflow 로그인 비밀번호는 `.env` 로 바꾸고 `06` 이 반영하도록 했다. 바꾼 비밀번호로 로그인되는지는 아직 확인하지 못했다 (파이썬이 만드는 해시는 `$2b$`, dex 기본값은 `$2y$` 라 dex 가 읽는지가 확인 대상). 로그인 후 기능(Pipelines 실행, Notebook 생성, GPU Notebook)은 아직 시험하지 않았다.
+- tailnet 상시 접속 방식 A (`07-expose.sh`) 와 C (kind `extraPortMappings` + NodePort) 모두 아직 실행해 보지 못했다. 비교와 미검증 항목은 [ADR 0009](decisions/0009-tailnet-exposure-a-vs-c.md). tailnet 주소(http)로 실제 로그인이 되는지도 확인 대상이다.
