@@ -25,3 +25,13 @@ require_cmd() { type -P "$1" >/dev/null || die "$1 가 필요합니다. ${2:-}";
 require_systemd() {
   [ -d /run/systemd/system ] || die "systemd 가 실행 중이 아닙니다. 01-wsl-systemd.sh 와 'wsl --shutdown' 을 먼저 하세요."
 }
+
+# --- 삭제 스크립트(scripts/teardown/)용 ---
+# DRY_RUN=1 이면 실행하지 않고 명령만 출력한다.
+run() { if [ "${DRY_RUN:-}" = 1 ]; then echo "[dry-run] $*"; else "$@"; fi; }
+# ASSUME_YES=1 이나 DRY_RUN=1 이 아니면 'yes' 를 입력해야 진행한다.
+confirm() {
+  [ "${ASSUME_YES:-}" = 1 ] || [ "${DRY_RUN:-}" = 1 ] && return 0
+  read -r -p "$1 계속하려면 'yes' 를 입력: " answer || die "입력이 없어 취소했습니다."
+  [ "$answer" = yes ] || die "취소했습니다."
+}
