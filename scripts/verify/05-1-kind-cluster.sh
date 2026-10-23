@@ -6,8 +6,8 @@ source "$(dirname "$0")/../lib/common.sh"
 export KUBECONFIG="$KUBECONFIG_FILE"
 EXPECTED_NODES=$((2 + CPU_WORKERS))   # control-plane + GPU 워커 + CPU 워커 (cluster.env)
 
-[ "$(sysctl -n fs.inotify.max_user_instances)" -ge 512 ] \
-  || die "fs.inotify.max_user_instances 가 512 미만입니다 (Istio CNI 가 'too many open files' 로 죽습니다). 05-1-kind-cluster.sh 를 다시 실행하세요."
+[ "$(sysctl -n fs.inotify.max_user_instances)" -ge "$INOTIFY_MAX_USER_INSTANCES" ] \
+  || die "fs.inotify.max_user_instances 가 ${INOTIFY_MAX_USER_INSTANCES} 미만입니다 (Istio CNI 가 'too many open files' 로 죽습니다). 05-1-kind-cluster.sh 를 다시 실행하세요."
 
 kubectl wait --for=condition=Ready node --all --timeout=120s
 kubectl get nodes -L nvidia.com/gpu.present

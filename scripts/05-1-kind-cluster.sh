@@ -5,7 +5,7 @@
 #     GPU 노드 1개와 CPU 노드를 나눠 GPU 작업만 GPU 노드로 보내는 스케줄링을 실습한다.
 # 하는 일:
 #   1) kind, kubectl 을 체크섬 검증 후 /usr/local/bin 에 설치 (버전은 versions.env)
-#   0) WSL 의 inotify 인스턴스 한도를 512 로 올림 (kind 노드가 커널을 공유해서 기본값 128 은 부족)
+#   0) WSL 의 inotify 인스턴스 한도를 cluster.env 의 INOTIFY_MAX_USER_INSTANCES 로 올림 (kind 노드가 커널을 공유해서 기본값 128 은 부족)
 #   2) k8s/kind-config.yaml 로 클러스터 생성 (control-plane 1 + GPU 워커 1 + CPU 워커 CPU_WORKERS 개, cluster.env)
 #   3) GPU 워커(mlops-worker)에 라벨 nvidia.com/gpu.present=true 와 taint nvidia.com/gpu=present:NoSchedule
 #   kubeconfig 는 ~/.kube/kind-mlops.yaml 에 따로 쓴다 (기존 ~/.kube/config 는 건드리지 않음)
@@ -28,8 +28,8 @@ require_cmd envsubst "sudo apt-get install -y gettext-base"
 
 # kind 노드 컨테이너는 WSL 커널을 공유한다. 기본 inotify 인스턴스 한도(128)로는 4노드 + Istio CNI 가
 # 'too many open files' 로 죽는다. systemd 가 켜져 있어 /etc/sysctl.d 설정은 재부팅 후에도 유지된다.
-if [ "$(sysctl -n fs.inotify.max_user_instances)" -lt 512 ]; then
-  echo 'fs.inotify.max_user_instances = 512' | sudo tee /etc/sysctl.d/99-kind-inotify.conf >/dev/null
+if [ "$(sysctl -n fs.inotify.max_user_instances)" -lt "$INOTIFY_MAX_USER_INSTANCES" ]; then
+  echo "fs.inotify.max_user_instances = $INOTIFY_MAX_USER_INSTANCES" | sudo tee /etc/sysctl.d/99-kind-inotify.conf >/dev/null
   sudo sysctl --system >/dev/null
 fi
 
