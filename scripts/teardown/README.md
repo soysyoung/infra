@@ -34,6 +34,63 @@ powershell -ExecutionPolicy Bypass -File .\scripts\teardown\00-windows-wsl.ps1
 - 이 저장소의 파일, NVIDIA 드라이버(Windows 쪽), `~/.bashrc` 의 사용자 설정.
 - `sysctl` 의 inotify 값은 설치 전 이 PC 의 기본값(128)으로 되돌린다. 다른 PC 에서는 기본값이 다를 수 있다.
 
+## 삭제 확인
+
+삭제가 끝났는지 명령으로 확인한다. 아래 "기대 결과"가 나오면 정상이다.
+
+### WSL 안 (`all.sh` 직후)
+
+```bash
+docker --version; kind version; kubectl version --client; kustomize version; tailscale version
+dpkg -l | grep -E 'docker|nvidia-container|tailscale'
+ls /etc/docker /var/lib/docker /var/lib/containerd /var/lib/tailscale ~/.cache/infra
+sysctl -n fs.inotify.max_user_instances
+ip link show docker0
+grep -c kind-mlops ~/.kube/config
+```
+
+| 명령 | 기대 결과 |
+|---|---|
+| `docker`, `kind`, `kubectl`, `kustomize`, `tailscale` 실행 | 모두 `command not found` |
+| `dpkg -l \| grep ...` | 출력 없음 |
+| `ls /etc/docker ...` | 모두 `No such file or directory` |
+| `sysctl -n fs.inotify.max_user_instances` | `128` |
+| `ip link show docker0` | `Device "docker0" does not exist` |
+| `grep -c kind-mlops ~/.kube/config` | `0` |
+
+**실제로 확인한 상태 (2026-10-23, 첫 삭제 직후)**: 실행 파일, 디렉터리, apt 저장소 파일, inotify(128), kind 항목(0)은 위 기대 결과와 같았다. 다만 패키지 `docker-ce-rootless-extras`, `tailscale-archive-keyring` 가 남았고 `docker0` 장치가 `active` 로 남아 있었다. 이 잔재는 삭제 스크립트를 고쳤지만 **고친 경로는 아직 시험하지 못했다.** 위 표는 수정 후의 기대 결과이고, 다음 삭제 때 실제 출력으로 교체한다.
+
+### Windows (`00-windows-wsl.ps1` 직후)
+
+```powershell
+wsl --list --verbose
+Test-Path $env:USERPROFILE\.wslconfig
+Get-ChildItem $env:USERPROFILE\.wslconfig.bak-* | Select-Object Name
+```
+
+**실제 출력 (2026-10-23):**
+
+```text
+PS> wsl --list --verbose
+(설치된 배포가 없다는 안내. 'wsl.exe --list --online' 으로 목록을 보고 'wsl.exe --install <Distro>' 로 설치하라는 내용)
+(종료 코드: -1)
+
+PS> Test-Path $env:USERPROFILE\.wslconfig
+False
+
+PS> Get-ChildItem $env:USERPROFILE\.wslconfig.bak-* | Select-Object Name
+Name
+----
+.wslconfig.bak-20261023-193007
+```
+
+- 배포판이 하나도 없으면 `wsl --list --verbose` 는 **빈 표가 아니라 안내 메시지를 내고 종료 코드 -1** 로 끝난다. 이것이 정상이다. (배포판이 남아 있으면 `Ubuntu-24.04` 가 표에 나온다.)
+- 안내 메시지의 한글 원문은 콘솔 인코딩 문제로 정확히 옮기지 못해 내용만 적었다.
+
+### 직접 확인할 것
+
+Tailscale 관리 콘솔(https://login.tailscale.com/admin/machines)에서 이 장치가 사라졌는지 본다. 명령으로 확인할 수 없다.
+
 ## 출력 예시
 
 아래는 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04)에서 2026-10-23 에 실행한 결과다. **실제 삭제를 실행한 출력은 아직 없다** (작동 중인 환경이라 드라이런과 취소 경로만 시험했다). 실제로 지운 뒤에 그 출력을 채운다.
@@ -108,25 +165,9 @@ $ bash scripts/teardown/06-kubeflow.sh < /dev/null
 
 `.wslconfig` 는 지우지 않고 `.bak-<날짜-시간>` 으로 이름만 바꾼다.
 
-## 공식 문서와의 대조 (2026-10-23)
+## 설계 근거와 공식 문서 대조
 
-삭제 명령은 처음에 제가 알던 지식으로 썼고, 삭제를 실행한 **뒤에** 공식 문서와 대조했다. 결과:
-
-| 대상 | 공식 문서 | 이 스크립트 | 판정 |
-|---|---|---|---|
-| Docker 패키지 | `apt purge docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras` ([문서](https://docs.docker.com/engine/install/ubuntu/#uninstall-docker-engine)) | 동일 (`docker-ce-rootless-extras` 는 처음에 빠졌다가 삭제 점검에서 발견해 추가) | 일치 |
-| Docker 데이터 | `rm -rf /var/lib/docker /var/lib/containerd` | 동일 | 일치 |
-| Docker apt 저장소 | `docker.sources`(deb822), 키링 `/etc/apt/keyrings/docker.asc` | `03-docker.sh` 가 만드는 `docker.list` 와 `docker.sources` **둘 다** 삭제 | **차이**: 설치 스크립트가 옛 형식(`docker.list`)을 쓴다. 동작은 하지만 현재 문서와 다르다 |
-| Docker 설정 파일 | "편집한 설정 파일은 직접 지운다" | `/etc/docker` 삭제 | 일치 |
-| Tailscale | `apt-get remove tailscale`, 완전 삭제는 `/var/lib/tailscale/tailscaled.state` 제거 ([문서](https://tailscale.com/docs/features/client/uninstall)) | `purge` + `/var/lib/tailscale` 통째로 삭제 | 상위 집합 (문서보다 더 지운다) |
-| Tailscale 로그아웃, 저장소/키링 제거, `tailscale-archive-keyring` 패키지 | 문서에 없음 | 스크립트가 추가로 수행 | **문서 근거 없음** (제 판단) |
-| kind 클러스터 | `kind delete cluster [--name]`, 없는 클러스터는 오류 없이 넘어감(멱등) ([문서](https://kind.sigs.k8s.io/docs/user/quick-start/)) | 동일 (`kind get clusters` 가드는 중복이지만 무해) | 일치 |
-| kubeconfig 정리 | 해당 페이지에 설명 없음 | 이 PC 에서 삭제 후 `~/.kube/config` 의 kind 항목이 0개임을 **관찰** | 문서 근거 없음 (관찰로만 확인) |
-| WSL 배포판 | `wsl --terminate`, `wsl --unregister` 는 "모든 데이터, 설정, 소프트웨어가 영구히 사라진다", `wsl --list --quiet` ([문서](https://learn.microsoft.com/en-us/windows/wsl/basic-commands)) | 동일, 같은 경고를 출력 | 일치 |
-| NVIDIA Container Toolkit | 설치 안내서의 패키지 4개와 `nvidia-container-toolkit.list` 이름은 일치. **삭제 절차는 찾지 못했다** (안내서 페이지 추출이 비어 있어 확인 불가) | `daemon.json` 복원 후 4개 패키지 purge, 저장소 파일/키링 삭제 | **문서 근거 없음** (제 추론: 복원 후 삭제 순서) |
-| inotify 복원(128), `apt-mark unhold`, `ip link delete docker0`, `gpasswd -d` | 해당 문서 없음 (일반 리눅스 관리 명령) | 수행 | 문서 근거 없음 |
-
-정리: **핵심 삭제 명령은 공식 문서와 일치**한다. 문서에 없는 부분(NVIDIA 삭제 순서, Tailscale 로그아웃, 인터페이스 정리 등)은 제 추론이거나 이 PC 에서의 관찰이고, 위 표에 그렇게 표시했다. NVIDIA 삭제는 가장 근거가 약하다.
+순서와 안전장치의 이유, 그리고 각 삭제 명령을 공식 문서와 대조한 결과는 [ADR 0008](../../docs/decisions/0008-teardown-order-and-doc-check.md) 에 있다.
 
 ## 문제가 생기면
 
