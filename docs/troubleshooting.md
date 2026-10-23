@@ -51,6 +51,17 @@
 - 해결: NVIDIA nvkind 소스(`pkg/nvkind/node.go`)에서 노드 후처리를 확인했다. 노드 안에 toolkit 을 설치하고 `nvidia-ctk runtime configure --runtime=containerd --config-source=file --set-as-default --cdi.enabled` 후 containerd 를 재시작한다. `05-kind.sh` 에 넣었다. 클러스터를 지우고 처음부터 다시 만들어 검증했다.
 - 이어서 생긴 문제: 새 클러스터에서 device plugin 이 Ready 가 된 직후 `verify/05` 가 다시 실패했다. kubelet 이 GPU 용량을 반영하기까지 몇 초 걸리는 타이밍 문제였고, 검증에 최대 60초 대기를 넣었다.
 
+## 9. Kubeflow 설치 중 `istio-cni-node` 가 죽고 파드들이 `Init:Error` (inotify 한도)
+
+- 증상: `06-kubeflow.sh` 의 적용 재시도 로그에 `failed calling webhook "clusterservingruntime.kserve-webhook-server.validator" ... connection refused`.
+- 진단: 웹훅 오류는 증상이다 (kserve 컨트롤러가 인증서 Secret 이 생기기 전이라 늦게 떴다). 더 근본적으로 `kube-system` 의 `istio-cni-node` 가 4개 노드 전부에서 `CrashLoopBackOff` 였다.
+  - `kubectl -n kube-system logs <istio-cni-node-...> --previous` -> `installer failed: ... couldn't initialize inotify: too many open files`
+  - 사이드카가 붙는 파드의 `istio-validation` 초기화 컨테이너: `iptables validation failed; workload is not ready for Istio` (CNI 가 없는 노드에 먼저 스케줄됨)
+  - `sysctl fs.inotify.max_user_instances` = **128** (WSL 기본값, kind 노드 컨테이너 안에서도 같은 값)
+- 원인: kind 노드 컨테이너는 WSL 커널을 공유한다. 4노드와 kubelet/containerd 가 inotify 인스턴스 한도(128)를 소진했다.
+- 해결: `fs.inotify.max_user_instances = 1024` 를 `/etc/sysctl.d/99-kind-inotify.conf` 에 두어 영구 적용하고 (`05-1-kind-cluster.sh` 에 넣었다, `verify/05-1` 이 값을 확인), `istio-cni-node` 를 재시작한 뒤 CNI 없이 만들어진 파드를 지워 다시 만들게 했다. Istio CNI 설정에 `cni.repair.deletePods=true` 가 없으면 이런 파드는 수동으로 지워야 한다.
+- 교훈: 노드 수를 늘리기 전의 단일 노드 검증(`verify/05-*`)으로는 이 한도 문제가 드러나지 않았다. Kubeflow 가 처음으로 Istio CNI 를 올리면서 드러났다.
+
 ## 미해결 / 확인 필요
 
 - 재부팅 후 tailscaled 와 Docker 의 기동 순서 (API 서버가 tailnet 주소에 바인딩되어 있다). `windows/autostart.ps1` 단계에서 확인한다.
