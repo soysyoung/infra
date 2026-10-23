@@ -22,6 +22,7 @@
 | 13 | `git add` 마다 `LF will be replaced by CRLF` 경고 | Windows 의 `core.autocrlf` 가 체크아웃 시 CRLF 로 바꿈. WSL 의 bash 는 CRLF 스크립트를 못 읽음 | `.gitattributes` 로 `*.sh`, `*.env` 를 LF 로 고정 | 해결 | - |
 | 14 | `wsl.exe -u root` 에서 `Failed to start the systemd user session for 'root'` 경고 | 모름 (출력은 정상이었고 영향은 확인하지 못함) | 없음 | 우회 | - |
 | 15 | `verify/06` 이 `HTTP 403` 으로 실패 | 로그인 전 `/` 의 403 (`UAEX ext_authz_denied`)은 oauth2-proxy 의 Sign In 페이지로 가는 정상 응답. 검증 기대값(200/30x)이 틀렸음 | `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지로 확인 | 해결 | - |
+| 16 | 새 WSL 셸에서 `kubectl get po` 가 멈추거나 `No resources found in default namespace` | `~/.kube/config` 가 없고 `KUBECONFIG` 도 설정되지 않아 기본 `localhost:8080` 으로 접속을 시도함. 연결이 되어도 `default` 네임스페이스에는 파드가 없음 (Kubeflow 는 `kubeflow` 등 다른 네임스페이스) | `05-1` 이 `~/.bashrc` 에 `export KUBECONFIG=$HOME/.kube/kind-mlops.yaml` 을 한 번만 추가함 (재실행해도 중복되지 않음). 파드는 `kubectl get po -A` | 해결 | - |
 
 ## 열린 항목
 
