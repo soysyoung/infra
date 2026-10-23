@@ -8,7 +8,9 @@ source "$ROOT/versions.env"
 source "$ROOT/cluster.env"
 
 CLUSTER=mlops
-KUBECONFIG_FILE="$HOME/.kube/kind-$CLUSTER.yaml"
+# kind 는 접속 정보를 공식 기본값(~/.kube/config)에 병합하고 current-context 를 바꾼다.
+# 나중에 다른 클러스터가 생겨도 엉뚱한 곳에 적용하지 않도록 kubectl 은 항상 이 클러스터의 컨텍스트를 명시한다.
+kubectl() { command kubectl --context "kind-$CLUSTER" "$@"; }
 GPU_LABEL=nvidia.com/gpu.present=true   # GPU 노드에만 붙는 라벨 (05-1 이 부여)
 
 log() { echo "==> $*"; }
@@ -17,7 +19,8 @@ log() { echo "==> $*"; }
 gpu_node() { kubectl get node -l "$GPU_LABEL" -o jsonpath='{.items[0].metadata.name}'; }
 die() { echo "오류: $*" >&2; exit 1; }
 
-require_cmd() { command -v "$1" >/dev/null || die "$1 가 필요합니다. ${2:-}"; }
+# type -P: 위에서 정의한 kubectl 함수가 아니라 실제 실행 파일이 있는지 본다.
+require_cmd() { type -P "$1" >/dev/null || die "$1 가 필요합니다. ${2:-}"; }
 
 require_systemd() {
   [ -d /run/systemd/system ] || die "systemd 가 실행 중이 아닙니다. 01-wsl-systemd.sh 와 'wsl --shutdown' 을 먼저 하세요."

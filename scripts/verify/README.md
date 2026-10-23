@@ -145,7 +145,6 @@ pod "gpu-smoke" deleted from default namespace
 노드 컨테이너에서는 GPU 가 보이는데(`05-2` 통과) 광고가 안 되는 상태다. device plugin 로그를 본다.
 
 ```bash
-export KUBECONFIG=$HOME/.kube/kind-mlops.yaml
 kubectl -n kube-system get pods -l name=nvidia-device-plugin-ds
 kubectl -n kube-system logs -l name=nvidia-device-plugin-ds --tail=10
 ```

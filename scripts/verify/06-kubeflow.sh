@@ -3,8 +3,6 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
-export KUBECONFIG="$KUBECONFIG_FILE"
-
 for ns in cert-manager istio-system auth oauth2-proxy knative-serving kubeflow-system kubeflow; do
   # kubeflow-system 처럼 Deployment 가 없는 네임스페이스에는 kubectl wait 가 실패하므로 건너뛴다.
   [ -n "$(kubectl -n "$ns" get deploy -o name)" ] || continue

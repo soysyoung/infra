@@ -3,7 +3,6 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
-export KUBECONFIG="$KUBECONFIG_FILE"
 NODE=$(gpu_node)
 [ -n "$NODE" ] || die "라벨 $GPU_LABEL 이 붙은 노드가 없습니다."
 

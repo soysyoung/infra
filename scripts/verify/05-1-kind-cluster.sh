@@ -3,7 +3,6 @@
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
-export KUBECONFIG="$KUBECONFIG_FILE"
 EXPECTED_NODES=$((2 + CPU_WORKERS))   # control-plane + GPU 워커 + CPU 워커 (cluster.env)
 
 [ "$(sysctl -n fs.inotify.max_user_instances)" -ge "$INOTIFY_MAX_USER_INSTANCES" ] \

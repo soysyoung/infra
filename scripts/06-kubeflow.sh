@@ -21,7 +21,6 @@
 set -euo pipefail
 source "$(dirname "$0")/lib/common.sh"
 
-export KUBECONFIG="$KUBECONFIG_FILE"
 require_cmd kubectl "05-1-kind-cluster.sh 를 먼저 하세요."
 require_cmd git
 kubectl get nodes >/dev/null || die "클러스터에 접속할 수 없습니다. 05-1-kind-cluster.sh 를 먼저 하세요."

@@ -13,8 +13,6 @@
 set -euo pipefail
 source "$(dirname "$0")/lib/common.sh"
 
-export KUBECONFIG="$KUBECONFIG_FILE"
-
 kubectl apply -f "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/$DEVICE_PLUGIN_VERSION/deployments/static/nvidia-device-plugin.yml"
 kubectl -n kube-system patch ds nvidia-device-plugin-daemonset --type merge \
   -p "{\"spec\":{\"template\":{\"spec\":{\"nodeSelector\":{\"${GPU_LABEL%%=*}\":\"${GPU_LABEL#*=}\"}}}}}"
