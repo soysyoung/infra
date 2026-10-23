@@ -33,7 +33,7 @@
 - `sleep infinity` 프로세스가 유휴 종료를 막는지.
 - 재부팅 후 `tailscaled` 가 Docker 보다 늦게 떠서 kind API 서버(tailnet 주소 바인딩)나 노드 컨테이너가 시작에 실패하는지 ([troubleshooting.md](../troubleshooting.md) 열린 항목).
 - 재시작 뒤 kind 노드의 IP 가 바뀌어 클러스터가 깨지는지.
-- 덮개를 닫았을 때의 동작: 이 PC 의 전원 구성표에서 `powercfg` 로 덮개 설정이 조회되지 않았다 (`SUB_BUTTONS` 아래에는 시작 메뉴 전원 단추뿐). 제어판 '덮개를 닫을 때 수행할 작업' 을 직접 확인해야 한다.
+- 덮개를 닫았을 때의 동작: 제어판에서 '아무 것도 안 함' 으로 직접 바꿨고, `powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` 으로 AC/DC 모두 `0x00000000`(아무 것도 안 함)임을 확인했다 (2026-10-23). 숨김 설정이라 `/query` 에는 나오지 않고 `/qh` 로 조회된다. 스크립트가 설정하지는 않는다. 덮개를 닫은 채 재부팅 시험에서 동작하는지는 시험 전이다.
 
 ## 시험 절차
 1. 관리자 PowerShell: `windows\autostart.ps1`, `windows\power-settings.ps1`

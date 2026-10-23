@@ -9,7 +9,7 @@
 
 - [ ] 관리자 PowerShell: `windows\autostart.ps1` (부팅 때 WSL 을 띄우는 예약 작업 `wsl-keepalive`)
 - [ ] 관리자 PowerShell: `windows\power-settings.ps1` (AC 절전 끄기). 실행 후 `powercfg /query` 로 값 확인
-- [ ] 제어판 '덮개를 닫을 때 수행할 작업' 직접 확인 (이 PC 에서는 `powercfg` 로 덮개 설정이 조회되지 않았다)
+- [x] 덮개 닫기 동작: 제어판에서 '아무 것도 안 함' 으로 설정, `powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` 으로 AC/DC 모두 0 확인 (2026-10-23). 덮개를 닫은 채로도 접속되는지는 재부팅 시험 때 같이 본다
 - [ ] WSL: `bash scripts/05-1-kind-cluster.sh` (노드 재시작 정책 `unless-stopped` 적용, 멱등)
 - [ ] Windows 재부팅, **로그인하지 않고** 몇 분 대기 -> 핸드폰에서 `http://<tailnet 주소>:8080` 접속
 - [ ] 로그인 후 WSL: `bash scripts/verify/08-reboot.sh`, 출력을 [verify/README.md](../scripts/verify/README.md) 에 붙인다
