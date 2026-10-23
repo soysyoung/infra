@@ -160,6 +160,18 @@ kubectl -n kube-system logs -l name=nvidia-device-plugin-ds --tail=10
 bash scripts/verify/06-kubeflow.sh
 ```
 
-7개 네임스페이스(`cert-manager`, `istio-system`, `auth`, `oauth2-proxy`, `knative-serving`, `kubeflow-system`, `kubeflow`)의 Deployment 가 Available 인지, `Running`/`Completed` 가 아닌 파드가 없는지, Istio 게이트웨이가 HTTP 로 응답하는지(로그인 화면으로 리다이렉트되는 200/30x)를 순서대로 확인한다.
+```text
+deployment.apps/profiles-deployment condition met
+deployment.apps/pvcviewer-controller-manager condition met
+deployment.apps/seaweedfs condition met
+...
+==> /oauth2/start 의 리다이렉트: http://localhost:8080/dex/auth?client_id=kubeflow-oidc-authservice&...
+==> OK: Kubeflow 구성요소가 Available 이고 로그인 흐름(oauth2-proxy -> Dex)이 동작함
+```
 
-**아직 설치를 실행하지 않아 실제 출력은 없다.** 설치 후 이 자리에 실제 출력을 채운다.
+7개 네임스페이스(`cert-manager`, `istio-system`, `auth`, `oauth2-proxy`, `knative-serving`, `kubeflow-system`, `kubeflow`)의 Deployment 가 Available 인지(Deployment 가 없는 네임스페이스는 건너뜀), `Running`/`Completed` 가 아닌 파드가 없는지, 로그인 흐름이 이어지는지를 순서대로 확인한다.
+
+- `condition met` 줄은 Deployment 마다 한 줄씩이라 길다.
+- 로그인 흐름은 `/oauth2/start` 가 Dex(`/dex/auth`)로 리다이렉트하는지로 본다.
+- **로그인 전 `/` 는 `HTTP 403` 이 정상이다.** 응답 본문이 oauth2-proxy 의 "Sign In" 페이지이고 게이트웨이 로그에 `ext_authz_denied` 가 찍힌다. 처음에는 이 403 을 실패로 판정하는 검증을 썼다가 고쳤다 ([troubleshooting.md](../../docs/troubleshooting.md) 15번).
+- `Running/Completed 가 아닌 파드가 있습니다` 이면 `kubectl get pods -A` 로 확인한다. `Init:Error` 면 [troubleshooting.md](../../docs/troubleshooting.md) 10번이다 (`06-kubeflow.sh` 를 다시 실행하면 정리된다).

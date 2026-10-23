@@ -17,6 +17,10 @@
 - **kind 대 k3s**: AI 가 처음에 k3s 를 권했으나 사용자가 "containerd 와 Docker 엔진을 같이 쓰는 건 이 프로젝트에서 중요한 문제"라고 지적했다. 분석 결과 사용자 지적이 맞았고, Kubeflow 가 kind 를 공식 테스트 환경으로 쓴다는 근거도 확인되어 kind 로 변경했다 ([0002](decisions/0002-kind-over-k3s.md)).
 - **Home 에디션의 Hyper-V**: 사용자가 Hyper-V 안내가 없다고 지적했다. Home 에는 Hyper-V 관리자가 없고 Virtual Machine Platform 만 필요해서, `00` 스크립트에 확인 단계를 추가했다.
 - AI 가 만든 `[Console]::OutputEncoding` 설정이 스크립트 전체 출력을 깨뜨린 것을 실행해 보고 발견해 범위를 좁혔다 ([troubleshooting.md](troubleshooting.md) 3번).
+- **근거 없는 값**: AI 가 inotify 한도를 근거 없이 1024 로 정했고, "답변이 불확실해서 신뢰가 안 간다"는 지적을 받았다. kind 공식 문서와 이 PC 실측(uid 0 이 131개 사용, 한도 128)으로 다시 확인해 공식 권장값 512 로 바로잡고, 메모리 비용처럼 확인하지 못한 부분은 모른다고 명시했다 ([troubleshooting.md](troubleshooting.md) 9번).
+- **반복되는 수동 명령**: 복구 절차를 명령 여러 줄로 반복 안내하다가 "하나씩 치기 싫어서 스크립트화하는 것"이라는 지적을 받았다. 일회성 복구 스크립트를 따로 만들지 않고, 같은 경합이 inotify 없이도 생길 수 있다는 점을 근거로 `06` 의 정상 단계(Istio CNI 자가 복구)로 넣었다 (10번).
+- **틀린 검증 기준**: AI 가 만든 `verify/06` 이 로그인 전 `/` 의 `HTTP 403` 을 실패로 판정했다. 응답 본문(Sign In 페이지)과 게이트웨이 로그(`ext_authz_denied`)를 읽어 정상 응답임을 확인하고 기준을 `/oauth2/start` 의 Dex 리다이렉트로 고쳤다 (15번).
+- **사용자 설계 제안 반영**: 노드 수와 inotify 한도를 `cluster.env` 로 인자화하자는 제안을 받아들였다. AI 가 제안한 Kubeflow 스크립트 5단계 분리는 사용자가 철회해서 `kustomization.yaml` 하나를 유지했다.
 
 ## 검증 방식
 

@@ -40,4 +40,12 @@ bash scripts/verify/06-kubeflow.sh
 
 ## 상태 (2026-10-23)
 
-00~05 완료. kind 4노드(GPU 1, CPU 2, control-plane 1), GPU 2차 관문 통과 (GPU 노드의 파드에서 RTX 5080 확인). 06 Kubeflow 는 스크립트와 빌드 검증까지 끝났고 설치는 아직이다.
+00~05 완료. kind 4노드(GPU 1, CPU 2, control-plane 1), GPU 2차 관문 통과 (GPU 노드의 파드에서 RTX 5080 확인). 06 Kubeflow 26.03.1 설치와 로그인 흐름 검증 통과. 다음: 로그인 후 기능 시험, autostart, 재부팅 시험, IaC.
+
+## Kubeflow 접속
+
+```bash
+kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80   # http://localhost:8080
+```
+
+기본 로그인은 `user@example.com` / `12341234` 로 공개된 값이다. 비밀번호를 바꾸기 전에는 외부에 노출하지 않는다 ([ADR 0005](docs/decisions/0005-kubeflow-26.03.1.md)).
