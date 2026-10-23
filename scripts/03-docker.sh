@@ -24,6 +24,7 @@ sudo apt-get update
 sudo apt-get install -y ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
   | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt-get update
@@ -34,18 +35,21 @@ if [ -z "$DOCKER_VERSION" ]; then
   die "versions.env 의 DOCKER_VERSION 을 정하고 다시 실행하세요."
 fi
 
-sudo apt-get install -y \
+# 버전을 올리거나 내릴 때 이전 hold 가 막지 않도록 먼저 푼다.
+sudo apt-mark unhold docker-ce docker-ce-cli
+sudo apt-get install -y --allow-downgrades \
   "docker-ce=$DOCKER_VERSION" "docker-ce-cli=$DOCKER_VERSION" \
   containerd.io docker-buildx-plugin docker-compose-plugin
 sudo apt-mark hold docker-ce docker-ce-cli
 
 # Docker 29 는 containerd 이미지 스토어가 기본이라 'kind load docker-image' 가 실패할 수 있다.
 # (kubernetes-sigs/kind#3795) 그래서 끈다. 04 의 nvidia-ctk 는 이 파일에 설정을 병합한다.
-if [ -s /etc/docker/daemon.json ]; then
+if [ ! -s /etc/docker/daemon.json ]; then
+  sudo mkdir -p /etc/docker
+  echo '{"features": {"containerd-snapshotter": false}}' | sudo tee /etc/docker/daemon.json >/dev/null
+elif ! grep -q '"containerd-snapshotter": *false' /etc/docker/daemon.json; then
   die "/etc/docker/daemon.json 이 이미 있습니다. features.containerd-snapshotter=false 를 직접 병합하세요."
 fi
-sudo mkdir -p /etc/docker
-echo '{"features": {"containerd-snapshotter": false}}' | sudo tee /etc/docker/daemon.json >/dev/null
 
 sudo systemctl enable docker
 sudo systemctl restart docker

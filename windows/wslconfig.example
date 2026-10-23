@@ -9,6 +9,5 @@ swap=8GB
 # Windows 와 네트워크 인터페이스 공유. Windows 11 22H2 이상, WSL 2.0 이상 필요.
 networkingMode=mirrored
 
-# 서버 단계(autostart.ps1)에서 켠다. WSL 이 유휴 시 꺼지는 것을 막는 옵션이다.
-# 값의 의미(-1 이 무제한인지)는 공식 문서로 확인한 뒤 주석을 푼다.
-# vmIdleTimeout=-1
+# vmIdleTimeout 은 밀리초 단위(기본 60000)이고 -1 이 "끄기"라는 문서는 없다 (-1 은 [general] instanceIdleTimeout 에만 문서화됨).
+# 상시 구동은 이 옵션 대신 Windows 로그온/시작 작업으로 배포판을 띄우는 방식(autostart.ps1)으로 하고 동작을 확인한다.

@@ -38,6 +38,7 @@ if ((Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform).Sta
 wslx --version | Out-Null
 if ($LASTEXITCODE -ne 0) {
     wslx --install --no-distribution
+    if ($LASTEXITCODE -ne 0) { throw "wsl --install 실패 (exit $LASTEXITCODE)" }
     Write-Host "WSL 플랫폼을 설치했습니다. 재부팅한 뒤 이 스크립트를 다시 실행하세요."
     exit 0
 }
@@ -54,6 +55,7 @@ if ((wslx --list --quiet) -contains $distro) {
     Write-Host "$distro 가 이미 설치되어 있습니다."
 } else {
     wslx --install --distribution $distro
+    if ($LASTEXITCODE -ne 0) { throw "$distro 설치 실패 (exit $LASTEXITCODE)" }
 }
 
 Write-Host "다음: WSL 안에서 scripts/01-wsl-systemd.sh 부터 순서대로 실행하세요."

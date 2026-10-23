@@ -22,7 +22,8 @@ if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
 # wsl.exe 는 UTF-16 으로 출력하므로 wsl 호출 동안에만 콘솔 인코딩을 바꾼다.
 $old = [Console]::OutputEncoding
 [Console]::OutputEncoding = [Text.Encoding]::Unicode
-wsl --version
-if ($LASTEXITCODE -ne 0) { $missing = $true } else { wsl --list --verbose }
-[Console]::OutputEncoding = $old
+try {
+    wsl --version
+    if ($LASTEXITCODE -ne 0) { $missing = $true } else { wsl --list --verbose }
+} finally { [Console]::OutputEncoding = $old }
 if ($missing) { "   WSL 미설치 -> scripts\00-windows-wsl.ps1 실행" }
