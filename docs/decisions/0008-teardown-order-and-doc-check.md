@@ -19,7 +19,7 @@
 |---|---|---|---|
 | Docker 패키지 | `apt purge docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras` ([문서](https://docs.docker.com/engine/install/ubuntu/#uninstall-docker-engine)) | 동일 (`docker-ce-rootless-extras` 는 처음에 빠졌다가 삭제 점검에서 발견해 추가) | 일치 |
 | Docker 데이터 | `rm -rf /var/lib/docker /var/lib/containerd` | 동일 | 일치 |
-| Docker apt 저장소 | `docker.sources`(deb822), 키링 `/etc/apt/keyrings/docker.asc` | `03-docker.sh` 가 만드는 `docker.list` 와 `docker.sources` **둘 다** 삭제 | **차이**: 설치 스크립트가 옛 형식(`docker.list`)을 쓴다. 동작은 하지만 현재 문서와 다르다 |
+| Docker apt 저장소 | `docker.sources`(deb822), 키링 `/etc/apt/keyrings/docker.asc` | `03-docker.sh` 가 만드는 `docker.list` 와 `docker.sources` **둘 다** 삭제 | 일치 (설치 스크립트를 문서의 `docker.sources` 형식으로 맞췄다. 예전 `docker.list` 가 남은 환경을 위해 삭제는 둘 다 지운다) |
 | Docker 설정 파일 | "편집한 설정 파일은 직접 지운다" | `/etc/docker` 삭제 | 일치 |
 | Tailscale | `apt-get remove tailscale`, 완전 삭제는 `/var/lib/tailscale/tailscaled.state` 제거 ([문서](https://tailscale.com/docs/features/client/uninstall)) | `purge` + `/var/lib/tailscale` 통째로 삭제 | 상위 집합 (문서보다 더 지운다) |
 | Tailscale 로그아웃, 저장소/키링 제거, `tailscale-archive-keyring` 패키지 | 문서에 없음 | 스크립트가 추가로 수행 | **문서 근거 없음** (제 판단) |
@@ -34,7 +34,7 @@
 ## 한계
 - 실제 삭제는 한 번 실행했고, 그 점검에서 발견한 잔재(패키지 2개, `docker0`)를 고친 경로는 **아직 시험하지 못했다.**
 - NVIDIA 삭제 순서와 Tailscale 로그아웃 등은 문서 근거가 없는 제 판단이다.
-- `03-docker.sh` (설치)는 옛 형식의 `docker.list` 를 만든다. 현재 공식 문서는 `docker.sources` (deb822) 이다. 동작은 하지만 문서와 다르다.
+- `03-docker.sh` (설치)의 저장소 등록을 현재 공식 문서의 `docker.sources` (deb822) 로 맞췄지만 **재설치로 실행해 보지 못했다.** 생성되는 파일은 문서의 블록과 줄 단위로 대조했다.
 
 ## 재검토 시점
 재설치 후 다시 삭제할 때 고친 경로와 "삭제 확인" 기대 결과를 실제 출력으로 확인한다.
