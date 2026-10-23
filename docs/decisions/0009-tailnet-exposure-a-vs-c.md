@@ -1,6 +1,6 @@
 # 0009. Kubeflow 를 tailnet 에 여는 방식: A (port-forward 서비스) 와 C (NodePort 직결)
 
-- 상태: 두 방식 모두 구성함. **A 는 시험함** (2026-10-23: `06` 재실행 -> `07-expose.sh` -> `verify/07-expose.sh` 를 실행했고 핸드폰에서 `http://<tailnet 주소>:8080` 접속을 확인했다). **C 는 아직 시험하지 못했다** (클러스터를 다시 만들어야 한다)
+- 상태: 두 방식 모두 구성함. **A 는 시험함** (2026-10-23: `06` 재실행 -> `07-expose.sh` -> `verify/07-expose.sh` 를 실행했고 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 `.env` 의 새 비밀번호로 로그인을 확인했다). **C 는 아직 시험하지 못했다** (클러스터를 다시 만들어야 한다)
 
 ## 상황
 `kubectl port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 tailnet 주소로 Kubeflow 를 상시 쓰려면 tailnet 주소에서 받아 주는 경로가 필요하다. 접속은 Tailscale 하나로 일원화하고 공유기 포트포워딩은 쓰지 않는다 ([architecture.md](../architecture.md)).
@@ -19,7 +19,7 @@
 | 공식 구성과의 차이 | 없음 | 게이트웨이 Service 의 type 과 nodePort 를 바꾼다 (patch 한 곳) |
 | 삭제 | `teardown/07-expose.sh` 가 서비스를 지운다 | 클러스터와 함께 사라진다 |
 
-공통: 둘 다 tailnet 주소에만 바인딩한다 (`0.0.0.0` 이 아니므로 LAN 에 열리지 않는다). 로그인 쿠키는 `FORCE_HTTPS=false` 라서 `Secure` 속성이 없고 http 로 로그인할 수 있다 (oauth2-proxy 매니페스트에서 확인). 콜백 주소(`/oauth2/callback`)는 상대 경로다. 다만 localhost 가 아닌 tailnet 주소로 실제 로그인이 되는지는 시험하지 못했다.
+공통: 둘 다 tailnet 주소에만 바인딩한다 (`0.0.0.0` 이 아니므로 LAN 에 열리지 않는다). 로그인 쿠키는 `FORCE_HTTPS=false` 라서 `Secure` 속성이 없고 http 로 로그인할 수 있다 (oauth2-proxy 매니페스트에서 확인). 콜백 주소(`/oauth2/callback`)는 상대 경로다. tailnet 주소(http)로 실제 로그인이 되는 것은 A 로 확인했다 (핸드폰, 2026-10-23).
 
 ## 검토했으나 쓰지 않은 것
 `tailscale serve` 로 로컬 8080 을 노출하는 방법. 명령 하나로 되지만 결국 port-forward 가 떠 있어야 해서 A 의 문제가 그대로 남고, 동작과 재부팅 후 유지 여부를 확인하지 못했다.
