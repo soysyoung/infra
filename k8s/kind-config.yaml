@@ -1,0 +1,22 @@
+# 05-kind.sh 가 envsubst 로 ${TAILNET_IP}, ${KIND_NODE_IMAGE} 를 채워서 kind 에 넘긴다.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  # API 서버를 tailnet 주소에만 연다 (0.0.0.0 이면 LAN 에도 노출된다).
+  # shortcut: tailscaled 가 Docker 보다 늦게 뜨면 재부팅 후 노드 컨테이너가 시작 실패할 수 있다. 서버 단계(autostart)에서 순서를 확인한다.
+  apiServerAddress: "${TAILNET_IP}"
+  apiServerPort: 6443
+kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+      certSANs:
+        - "${TAILNET_IP}"
+nodes:
+  - role: control-plane
+    image: ${KIND_NODE_IMAGE}
+    extraMounts:
+      # NVIDIA 마커 마운트: Docker 의 nvidia 런타임이 이 경로를 보고 노드에 GPU 와 WSL 라이브러리를 넣어 준다.
+      # /dev/dxg, /usr/lib/wsl 을 직접 bind mount 하지 않는다 (nvkind 방식).
+      - hostPath: /dev/null
+        containerPath: /var/run/nvidia-container-devices/all
