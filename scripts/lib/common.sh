@@ -33,5 +33,6 @@ run() { if [ "${DRY_RUN:-}" = 1 ]; then echo "[dry-run] $*"; else "$@"; fi; }
 confirm() {
   [ "${ASSUME_YES:-}" = 1 ] || [ "${DRY_RUN:-}" = 1 ] && return 0
   read -r -p "$1 계속하려면 'yes' 를 입력: " answer || die "입력이 없어 취소했습니다."
-  [ "$answer" = yes ] || die "취소했습니다."
+  answer=${answer//[[:space:]]/}   # 앞뒤 공백이 섞여 들어와도 허용한다
+  [ "${answer,,}" = yes ] || die "취소했습니다 (입력: '$answer')."
 }

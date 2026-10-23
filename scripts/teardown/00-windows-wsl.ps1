@@ -24,7 +24,7 @@ function Run($desc, [scriptblock]$action) {
 
 if (-not ($Yes -or $DryRun)) {
     Write-Host "$distro 배포판과 그 안의 모든 데이터를 삭제하고 .wslconfig 를 백업(이름 변경)합니다."
-    if ((Read-Host "계속하려면 'yes' 를 입력") -ne 'yes') { throw '취소했습니다.' }
+    if ((Read-Host "계속하려면 'yes' 를 입력").Trim() -ne 'yes') { throw '취소했습니다.' }   # -ne 는 대소문자를 구분하지 않는다
 }
 
 if ((wslx --list --quiet) -contains $distro) {

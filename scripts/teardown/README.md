@@ -87,7 +87,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\teardown\00-windows-wsl.ps1
 
 ### 취소
 
-확인 입력이 `yes` 가 아니면 아무것도 지우지 않고 종료 코드 1 로 끝난다.
+확인 입력이 `yes` 가 아니면 아무것도 지우지 않고 종료 코드 1 로 끝난다. 앞뒤 공백과 대소문자는 무시하지만 `y` 같은 약식은 받지 않는다 (파괴적 작업이라 일부러 엄격하게 두었다).
 
 ```text
 $ echo no | bash scripts/teardown/06-kubeflow.sh
