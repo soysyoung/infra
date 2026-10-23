@@ -1,1 +1,34 @@
-# kind
+# infra
+
+> 이 브랜치(`main`)에는 아직 README 만 있다. 스크립트와 문서는 검증을 마친 뒤 합치며, 그때까지 아래 링크는 [`dev` 브랜치](https://github.com/soysyoung/infra/tree/dev)를 가리킨다.
+
+노트북(Windows 11 + WSL2 + RTX 5080)을 원격 MLOps 서버로 만드는 프로젝트. Tailscale, Docker, kind, Kubeflow 를 셸 스크립트로 설치하고, 이후 Terraform 으로 코드화한다. 모든 버전은 최신이 아니라 안정성 기준으로 골랐고, 근거는 문서에 남긴다.
+
+## 시작
+
+- 설치: [scripts/README.md](https://github.com/soysyoung/infra/blob/dev/scripts/README.md) (사전 요구, 실행 순서, Kubeflow 접속)
+- 검증: [scripts/verify/README.md](https://github.com/soysyoung/infra/blob/dev/scripts/verify/README.md)
+- 삭제: [scripts/teardown/README.md](https://github.com/soysyoung/infra/blob/dev/scripts/teardown/README.md)
+
+## 상태
+
+- 2026-10-23 (1차 설치): `00` ~ `06` 전체 설치와 검증 통과 (kind 4노드, GPU 노드의 파드에서 RTX 5080 확인, Kubeflow 26.03.1 로그인 흐름). 이어서 삭제 스크립트로 WSL 까지 지웠다.
+- 2026-10-23 (재설치, **진행 중**): 처음부터 다시 설치해 `06` 까지 실행했다. 각 단계의 검증 결과는 아직 기록하지 않았다 (`scripts/verify/README.md` 에 실행 후 반영). 로그인 비밀번호는 `.env` 로 정한다.
+- 2026-10-23: `.env` 비밀번호 반영(`06`)과 tailnet 상시 접속 방식 A (`07-expose.sh`)를 실행했고, 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 새 비밀번호 로그인을 확인했다 ([ADR 0009](https://github.com/soysyoung/infra/blob/dev/docs/decisions/0009-tailnet-exposure-a-vs-c.md)).
+- **아직 시험하지 못한 것**: 방식 C (kind `extraPortMappings` + NodePort, 클러스터 재생성 필요), 재부팅 후 A 의 동작, `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
+- 다음: 재설치 검증 마무리, 로그인 후 기능 시험, autostart 와 재부팅 시험, IaC (Terraform).
+
+## 문서
+
+| 문서 | 내용 |
+|---|---|
+| [docs/architecture.md](https://github.com/soysyoung/infra/blob/dev/docs/architecture.md) | 구성도와 설계 원칙 |
+| [docs/versions.md](https://github.com/soysyoung/infra/blob/dev/docs/versions.md) | 버전 표와 선택 근거, 미검증 항목 |
+| [docs/decisions/](https://github.com/soysyoung/infra/tree/dev/docs/decisions/) | 결정 기록 (ADR 0001 ~ 0009) |
+| [docs/troubleshooting.md](https://github.com/soysyoung/infra/blob/dev/docs/troubleshooting.md) | 막힌 곳과 해결 (표). 상세 기록은 [docs/archive/](https://github.com/soysyoung/infra/tree/dev/docs/archive/) |
+| [docs/ai-usage.md](https://github.com/soysyoung/infra/blob/dev/docs/ai-usage.md) | 생성형 AI 사용 기록, AI 의 판단을 바로잡은 사례 |
+| [docs/commit-convention.md](https://github.com/soysyoung/infra/blob/dev/docs/commit-convention.md) | 커밋 규칙 |
+
+## 브랜치
+
+작업은 `dev` 에서 하고, `main` 은 검증을 마친 뒤 합친다.
