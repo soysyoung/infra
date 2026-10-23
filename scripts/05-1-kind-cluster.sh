@@ -8,7 +8,7 @@
 #   0) WSL 의 inotify 인스턴스 한도를 cluster.env 의 INOTIFY_MAX_USER_INSTANCES 로 올림 (kind 노드가 커널을 공유해서 기본값 128 은 부족)
 #   2) k8s/kind-config.yaml 로 클러스터 생성 (control-plane 1 + GPU 워커 1 + CPU 워커 CPU_WORKERS 개, cluster.env)
 #   3) GPU 워커(mlops-worker)에 라벨 nvidia.com/gpu.present=true 와 taint nvidia.com/gpu=present:NoSchedule
-#   kubeconfig 는 ~/.kube/kind-mlops.yaml 에 따로 쓴다 (기존 ~/.kube/config 는 건드리지 않음)
+#   kubeconfig 는 ~/.kube/kind-mlops.yaml 에 따로 쓰고 (기존 ~/.kube/config 는 건드리지 않음), ~/.bashrc 에 KUBECONFIG export 를 한 번만 추가한다
 #
 # 선행: 02-tailscale.sh (인증서 SAN 에 tailnet 주소가 들어간다), 03-docker.sh, 04-nvidia-toolkit.sh
 # 다음: 05-2-gpu-node.sh -> 05-3-device-plugin.sh
@@ -72,6 +72,9 @@ kubectl label node "$CLUSTER-worker" "$GPU_LABEL" --overwrite
 kubectl taint node "$CLUSTER-worker" nvidia.com/gpu=present:NoSchedule --overwrite
 kubectl wait --for=condition=Ready node --all --timeout=180s
 
-log "완료. 다음 줄을 ~/.bashrc 에 추가하세요:"
-echo "  export KUBECONFIG=\$HOME/.kube/kind-mlops.yaml"
+# 새 셸에서도 kubectl 이 이 클러스터를 보도록 한 번만 추가한다 (기존 ~/.kube/config 는 건드리지 않음).
+line="export KUBECONFIG=\$HOME/.kube/kind-$CLUSTER.yaml"
+grep -qxF "$line" "$HOME/.bashrc" || echo "$line" >> "$HOME/.bashrc"
+
+log "완료. 현재 셸에는 'source ~/.bashrc' 로 적용하세요 (새 셸은 자동). 파드는 'kubectl get po -A' 로 봅니다."
 echo "다음: scripts/05-2-gpu-node.sh"
