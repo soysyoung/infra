@@ -108,6 +108,26 @@ $ bash scripts/teardown/06-kubeflow.sh < /dev/null
 
 `.wslconfig` 는 지우지 않고 `.bak-<날짜-시간>` 으로 이름만 바꾼다.
 
+## 공식 문서와의 대조 (2026-10-23)
+
+삭제 명령은 처음에 제가 알던 지식으로 썼고, 삭제를 실행한 **뒤에** 공식 문서와 대조했다. 결과:
+
+| 대상 | 공식 문서 | 이 스크립트 | 판정 |
+|---|---|---|---|
+| Docker 패키지 | `apt purge docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras` ([문서](https://docs.docker.com/engine/install/ubuntu/#uninstall-docker-engine)) | 동일 (`docker-ce-rootless-extras` 는 처음에 빠졌다가 삭제 점검에서 발견해 추가) | 일치 |
+| Docker 데이터 | `rm -rf /var/lib/docker /var/lib/containerd` | 동일 | 일치 |
+| Docker apt 저장소 | `docker.sources`(deb822), 키링 `/etc/apt/keyrings/docker.asc` | `03-docker.sh` 가 만드는 `docker.list` 와 `docker.sources` **둘 다** 삭제 | **차이**: 설치 스크립트가 옛 형식(`docker.list`)을 쓴다. 동작은 하지만 현재 문서와 다르다 |
+| Docker 설정 파일 | "편집한 설정 파일은 직접 지운다" | `/etc/docker` 삭제 | 일치 |
+| Tailscale | `apt-get remove tailscale`, 완전 삭제는 `/var/lib/tailscale/tailscaled.state` 제거 ([문서](https://tailscale.com/docs/features/client/uninstall)) | `purge` + `/var/lib/tailscale` 통째로 삭제 | 상위 집합 (문서보다 더 지운다) |
+| Tailscale 로그아웃, 저장소/키링 제거, `tailscale-archive-keyring` 패키지 | 문서에 없음 | 스크립트가 추가로 수행 | **문서 근거 없음** (제 판단) |
+| kind 클러스터 | `kind delete cluster [--name]`, 없는 클러스터는 오류 없이 넘어감(멱등) ([문서](https://kind.sigs.k8s.io/docs/user/quick-start/)) | 동일 (`kind get clusters` 가드는 중복이지만 무해) | 일치 |
+| kubeconfig 정리 | 해당 페이지에 설명 없음 | 이 PC 에서 삭제 후 `~/.kube/config` 의 kind 항목이 0개임을 **관찰** | 문서 근거 없음 (관찰로만 확인) |
+| WSL 배포판 | `wsl --terminate`, `wsl --unregister` 는 "모든 데이터, 설정, 소프트웨어가 영구히 사라진다", `wsl --list --quiet` ([문서](https://learn.microsoft.com/en-us/windows/wsl/basic-commands)) | 동일, 같은 경고를 출력 | 일치 |
+| NVIDIA Container Toolkit | 설치 안내서의 패키지 4개와 `nvidia-container-toolkit.list` 이름은 일치. **삭제 절차는 찾지 못했다** (안내서 페이지 추출이 비어 있어 확인 불가) | `daemon.json` 복원 후 4개 패키지 purge, 저장소 파일/키링 삭제 | **문서 근거 없음** (제 추론: 복원 후 삭제 순서) |
+| inotify 복원(128), `apt-mark unhold`, `ip link delete docker0`, `gpasswd -d` | 해당 문서 없음 (일반 리눅스 관리 명령) | 수행 | 문서 근거 없음 |
+
+정리: **핵심 삭제 명령은 공식 문서와 일치**한다. 문서에 없는 부분(NVIDIA 삭제 순서, Tailscale 로그아웃, 인터페이스 정리 등)은 제 추론이거나 이 PC 에서의 관찰이고, 위 표에 그렇게 표시했다. NVIDIA 삭제는 가장 근거가 약하다.
+
 ## 문제가 생기면
 
 - **`apt-get purge` 가 잠금 오류**: 다른 apt 가 실행 중이다. 잠시 뒤 다시 실행한다 (이미 지운 항목은 건너뛴다).
