@@ -7,6 +7,7 @@ Kubeflow 를 올리기 전에 노드 구성을 정한다. 단일 노드에서는
 
 ## 결정
 - 노드: control-plane 1 + **GPU 워커 1** + **CPU 워커 2** (Docker 컨테이너 4개).
+- CPU 워커 수는 [`cluster.env`](../../cluster.env)의 `CPU_WORKERS`(기본 2)로 정한다. `05-1` 이 `kind-config.yaml` 뒤에 그 개수만큼 워커를 붙이고, `verify/05-1` 은 `2 + CPU_WORKERS` 로 노드 수를 확인한다. 같은 값이 한 곳에서만 정해진다. kind 는 생성 후에 노드를 추가할 수 없어서 값을 바꾸면 클러스터를 지우고 다시 만든다. GPU 워커는 1개로 고정한다.
 - GPU 워커(`mlops-worker`)에만 NVIDIA 마커 마운트, 라벨 `nvidia.com/gpu.present=true`, taint `nvidia.com/gpu=present:NoSchedule`.
 - 스크립트를 수명이 다른 세 단계로 나눈다: `05-1` 클러스터, `05-2` GPU 노드 설정, `05-3` device plugin. Kubeflow 는 06 그대로 둔다.
 
