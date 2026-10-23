@@ -66,6 +66,10 @@ else
   } | kind create cluster --name "$CLUSTER" --config -
 fi
 
+# kind 노드의 재시작 정책은 on-failure:1 이라 Docker 데몬이 재시작(재부팅)되면 노드가 올라오지 않는다 (Docker 문서).
+# unless-stopped 로 바꾸면 재부팅 후 노드가 자동으로 시작된다. 이미 만든 클러스터에도 적용된다.
+docker update --restart unless-stopped $(kind get nodes --name "$CLUSTER") >/dev/null
+
 # kubeadm 설정 버전(v1beta3/v1beta4)에 따라 kubeletExtraArgs 형식이 달라서, 라벨과 taint 는 생성 후 kubectl 로 건다.
 kubectl label node "$CLUSTER-worker" "$GPU_LABEL" --overwrite
 kubectl taint node "$CLUSTER-worker" nvidia.com/gpu=present:NoSchedule --overwrite

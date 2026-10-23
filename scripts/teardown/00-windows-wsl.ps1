@@ -1,4 +1,4 @@
-﻿# 삭제 00. Windows 쪽: Ubuntu 배포판 제거, .wslconfig 백업
+﻿# 삭제 00. Windows 쪽: 자동 시작 작업(wsl-keepalive) 제거, Ubuntu 배포판 제거, .wslconfig 백업
 #
 # 주의: 배포판을 지우면 그 안의 모든 데이터(홈 디렉터리, ~/.kube, Docker 데이터 등)가 사라진다. 먼저 WSL 안의
 # scripts/teardown/all.sh 를 실행했는지 확인한다. 이 저장소는 /mnt/c 의 Windows 폴더에 있어서 지워지지 않는다.
@@ -25,6 +25,14 @@ function Run($desc, [scriptblock]$action) {
 if (-not ($Yes -or $DryRun)) {
     Write-Host "$distro 배포판과 그 안의 모든 데이터를 삭제하고 .wslconfig 를 백업(이름 변경)합니다."
     if ((Read-Host "계속하려면 'yes' 를 입력").Trim() -ne 'yes') { throw '취소했습니다.' }   # -ne 는 대소문자를 구분하지 않는다
+}
+
+if (Get-ScheduledTask -TaskName wsl-keepalive -ErrorAction SilentlyContinue) {
+    # 관리자 권한으로 등록한 작업이라 일반 권한에서는 지워지지 않을 수 있다.
+    Run "Unregister-ScheduledTask wsl-keepalive" {
+        try { Unregister-ScheduledTask -TaskName wsl-keepalive -Confirm:$false }
+        catch { Write-Warning "wsl-keepalive 작업을 지우지 못했습니다. 관리자 PowerShell 에서 Unregister-ScheduledTask wsl-keepalive 를 실행하세요." }
+    }
 }
 
 if ((wslx --list --quiet) -contains $distro) {
