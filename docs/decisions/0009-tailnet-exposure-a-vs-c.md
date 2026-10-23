@@ -24,6 +24,22 @@
 ## 검토했으나 쓰지 않은 것
 `tailscale serve` 로 로컬 8080 을 노출하는 방법. 명령 하나로 되지만 결국 port-forward 가 떠 있어야 해서 A 의 문제가 그대로 남고, 동작과 재부팅 후 유지 여부를 확인하지 못했다.
 
+## 공식 문서 대조 (2026-10-23)
+
+이 ADR 의 구성은 처음에 클론한 Kubeflow 매니페스트와 제 기억으로 썼고, 쓴 **뒤에** 공식 문서와 대조했다.
+
+| 대상 | 공식 문서가 말하는 것 | 이 구성 | 판정 |
+|---|---|---|---|
+| kind `extraPortMappings` | `containerPort`, `hostPort`, `listenAddress`(호스트 바인드 주소, 기본 0.0.0.0), `protocol` ([kind 설정](https://kind.sigs.k8s.io/docs/user/configuration/#extra-port-mappings)) | `containerPort`/`hostPort` 30080, `listenAddress` 를 tailnet 주소로 | 일치 |
+| NodePort | 기본 범위 30000-32767, `nodePort` 로 직접 지정하면 할당되거나 실패, 충돌은 직접 관리 ([Service](https://kubernetes.io/docs/concepts/services-networking/service/)) | 30080 지정 | 일치 |
+| `kubectl port-forward --address` | 쉼표로 여러 주소, IP 또는 localhost 만 허용, 기본 `localhost`(127.0.0.1 과 ::1) ([문서](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_port-forward/)) | tailnet IP 하나 | 일치 |
+| systemd `Restart=always` | 정상/비정상 종료, 시그널, 타임아웃 모두 재시작. systemd 가 직접 멈춘 경우는 제외 ([systemd.service](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html)) | `Restart=always`, `RestartSec=5` | 일치 |
+| dex 정적 비밀번호 | `hash` 는 bcrypt 해시, 예시는 `htpasswd -BinC 10` ([dex 문서](https://dexidp.io/docs/connectors/local/)) | `06` 이 파이썬 bcrypt 로 만들고 접두사를 `$2y$` 로 맞춤 | 형식은 일치. 같은 문서에 `$2b$` 허용 여부는 없어서 접두사를 맞췄다 |
+| `hashFromEnv`, `dex-passwords` 시크릿 | 이 문서 확인 못 함. 클론한 Kubeflow 매니페스트의 `config-map.yaml`, `dex-passwords.yaml` 에서 읽음 | 그 시크릿을 patch | 매니페스트 기준 (공식 문서 아님) |
+| `FORCE_HTTPS=false`, 쿠키 `Secure` 없음 | 클론한 oauth2-proxy 매니페스트에서 읽음 | http 로그인 가능 | 매니페스트 기준 |
+
+문서에서 확인하지 못한 것: kind 의 `extraPortMappings` 를 생성 후 바꿀 수 없다는 점(위 표의 kind 문서에 그런 문장이 없다. 노드가 컨테이너이고 포트 퍼블리시가 컨테이너 생성 시점에 정해지는 구조에서 나온 추론), `tailscale serve` 의 동작.
+
 ## 미검증
 - `scripts/verify/07-expose.sh` 를 아직 실행하지 않았다 (A 와 C 를 각각 확인하고 하나라도 되면 통과한다).
 - 위 표의 "파드가 바뀌면", "재부팅 후" 행은 구조에서 나온 추론이다.
