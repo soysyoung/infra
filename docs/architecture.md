@@ -44,7 +44,7 @@
 | 05-1 | WSL | kind 4노드 클러스터, GPU 노드에 라벨/taint |
 | 05-2 | WSL | GPU 노드 컨테이너에 toolkit 설치, containerd 설정 |
 | 05-3 | WSL | device plugin (GPU 노드에만) |
-| 06 | WSL | Kubeflow (예정) |
+| 06 | WSL | Kubeflow 26.03.1: Pipelines, Notebooks, KServe (+ Istio, Knative, cert-manager, Dex) |
 
 ## IaC 전환 계획 (설치 완료 후)
 

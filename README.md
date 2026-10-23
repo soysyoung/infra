@@ -31,8 +31,13 @@ bash scripts/05-3-device-plugin.sh  # device plugin (GPU 노드에만)
 bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드). 단계마다 verify/05-N-*.sh 가 있다
 ```
 
-06 (Kubeflow) 는 2차 관문 통과 후 추가한다. 단계별 확인은 `scripts/verify/`.
+```bash
+bash scripts/06-kubeflow.sh          # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
+bash scripts/verify/06-kubeflow.sh
+```
+
+단계별 확인은 `scripts/verify/`.
 
 ## 상태 (2026-10-23)
 
-00~05 완료. kind 4노드(GPU 1, CPU 2, control-plane 1), GPU 2차 관문 통과 (GPU 노드의 파드에서 RTX 5080 확인). 다음: 06 Kubeflow.
+00~05 완료. kind 4노드(GPU 1, CPU 2, control-plane 1), GPU 2차 관문 통과 (GPU 노드의 파드에서 RTX 5080 확인). 06 Kubeflow 는 스크립트와 빌드 검증까지 끝났고 설치는 아직이다.
