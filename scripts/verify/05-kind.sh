@@ -10,7 +10,13 @@ NODE=mlops-control-plane
 kubectl wait --for=condition=Ready node --all --timeout=120s
 docker exec "$NODE" nvidia-smi -L
 
-gpus=$(kubectl get node -o jsonpath='{.items[0].status.allocatable.nvidia\.com/gpu}')
+# device plugin 이 Ready 가 된 뒤에도 kubelet 이 GPU 용량을 반영하기까지 몇 초 걸린다.
+for _ in $(seq 30); do
+  gpus=$(kubectl get node -o jsonpath='{.items[0].status.allocatable.nvidia\.com/gpu}')
+  [ "${gpus:-0}" -ge 1 ] && break
+  sleep 2
+done
+log "노드가 광고하는 GPU: ${gpus:-0}"
 [ "${gpus:-0}" -ge 1 ] || die "노드가 nvidia.com/gpu 를 광고하지 않습니다 (device plugin 로그 확인)."
 
 kubectl delete pod gpu-smoke --ignore-not-found

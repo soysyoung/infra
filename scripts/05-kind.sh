@@ -5,7 +5,8 @@
 # 하는 일:
 #   1) kind, kubectl 을 체크섬 검증 후 /usr/local/bin 에 설치 (버전은 versions.env)
 #   2) k8s/kind-config.yaml 로 클러스터 'mlops' 생성 (API 서버는 tailnet 주소에 바인딩)
-#   3) NVIDIA device plugin 설치
+#   3) 노드 컨테이너 안에 NVIDIA toolkit 설치 + 노드의 containerd 를 nvidia 런타임으로 설정
+#   4) NVIDIA device plugin 설치
 #   kubeconfig 는 ~/.kube/kind-mlops.yaml 에 따로 쓴다 (기존 ~/.kube/config 는 건드리지 않음)
 #
 # 선행: 02-tailscale.sh (인증서 SAN 에 tailnet 주소가 들어간다), 03-docker.sh, 04-nvidia-toolkit.sh
@@ -56,6 +57,27 @@ else
 fi
 chmod 600 "$KUBECONFIG_FILE"
 export KUBECONFIG="$KUBECONFIG_FILE"
+
+# 호스트 Docker 설정만으로는 노드 안의 containerd 가 파드에 GPU 라이브러리를 넣지 못한다
+# (device plugin 이 NVML 을 못 찾고 죽는다). nvkind 처럼 노드 안에도 toolkit 을 설치하고 containerd 를 설정한다.
+NODE="$CLUSTER-control-plane"
+if ! docker exec "$NODE" test -f /etc/containerd/conf.d/99-nvidia.toml; then
+  docker exec -i -e V="$NVIDIA_TOOLKIT_VERSION-1" -e DEBIAN_FRONTEND=noninteractive "$NODE" bash -s <<'EOS'
+set -e
+apt-get update -qq
+apt-get install -y -qq ca-certificates curl gnupg >/dev/null
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+  | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+  > /etc/apt/sources.list.d/nvidia-container-toolkit.list
+apt-get update -qq
+apt-get install -y -qq "nvidia-container-toolkit=$V" "nvidia-container-toolkit-base=$V" \
+  "libnvidia-container-tools=$V" "libnvidia-container1=$V" >/dev/null
+nvidia-ctk runtime configure --runtime=containerd --config-source=file --set-as-default --cdi.enabled
+systemctl restart containerd
+EOS
+  kubectl wait --for=condition=Ready node --all --timeout=120s
+fi
 
 kubectl apply -f "https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/$DEVICE_PLUGIN_VERSION/deployments/static/nvidia-device-plugin.yml"
 kubectl -n kube-system rollout status daemonset/nvidia-device-plugin-daemonset --timeout=180s
