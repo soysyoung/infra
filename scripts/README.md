@@ -78,6 +78,21 @@ bash scripts/05-1-kind-cluster.sh   # 이미 만든 클러스터라면 다시 �
 bash scripts/verify/08-reboot.sh
 ```
 
+## 클러스터만 다시 만들기
+
+`kind-config.yaml` 이나 `cluster.env` 를 바꾸면(예: 방식 C 의 포트 매핑, CPU 워커 수) 클러스터를 지우고 `05-1` 부터 다시 해야 한다. kind 는 만든 뒤에 노드나 포트 매핑을 바꿀 수 없다. Windows 와 WSL 설치(`00`~`04`)와 `07` 서비스는 그대로 둔다.
+
+```bash
+kind delete cluster --name mlops       # Kubeflow 와 그 안의 데이터(PV)가 사라진다
+bash scripts/05-1-kind-cluster.sh
+bash scripts/05-2-gpu-node.sh          # GPU 노드 컨테이너의 설정은 클러스터와 함께 사라지므로 다시 한다
+bash scripts/05-3-device-plugin.sh
+bash scripts/06-kubeflow.sh            # .env 의 비밀번호도 다시 반영된다
+bash scripts/verify/07-expose.sh
+```
+
+`teardown/05-kind-cluster.sh` 로 지워도 되지만 kind 와 kubectl 바이너리와 inotify 설정까지 지우고, `05-1` 이 다시 설치한다. 클러스터만 지우려면 위 한 줄이 가볍다. 클러스터가 없는 동안 `07` 서비스는 5초마다 재시작을 반복할 뿐 해가 없고, 새 클러스터가 뜨면 다시 연결된다 (추론, 시험 전).
+
 ## 삭제
 
 설치의 역순으로 지운다. 되돌릴 수 없으므로 먼저 `DRY_RUN=1` 로 확인한다. 사용법은 [teardown/README.md](teardown/README.md).

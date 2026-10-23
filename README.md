@@ -15,7 +15,7 @@
 - 2026-10-23: `.env` 비밀번호 반영(`06`)과 tailnet 상시 접속 방식 A (`07-expose.sh`)를 실행했고, 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 새 비밀번호 로그인을 확인했다 ([ADR 0009](docs/decisions/0009-tailnet-exposure-a-vs-c.md)).
 - **아직 시험하지 못한 것**: 방식 C (kind `extraPortMappings` + NodePort, 클러스터 재생성 필요), 재부팅 후 A 의 동작, `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
 - 2026-10-23: 재부팅 후 자동 복구를 구성했다: `windows/autostart.ps1`(부팅 때 WSL 유지), `windows/power-settings.ps1`, kind 노드 재시작 정책(`05-1`), `scripts/verify/08-reboot.sh` ([ADR 0010](docs/decisions/0010-reboot-recovery.md)). **재부팅 시험은 아직 하지 않았다.**
-- 다음: 재부팅 시험, 로그인 후 기능 시험, IaC (Terraform).
+- 다음 할 일과 시험 목록은 [docs/todo.md](docs/todo.md).
 
 ## 문서
 
@@ -24,6 +24,7 @@
 | [docs/architecture.md](docs/architecture.md) | 구성도와 설계 원칙 |
 | [docs/versions.md](docs/versions.md) | 버전 표와 선택 근거, 미검증 항목 |
 | [docs/decisions/](docs/decisions/) | 결정 기록 (ADR 0001 ~ 0010) |
+| [docs/todo.md](docs/todo.md) | 앞으로 할 일과 시험 순서 |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | 막힌 곳과 해결 (표). 상세 기록은 [docs/archive/](docs/archive/) |
 | [docs/ai-usage.md](docs/ai-usage.md) | 생성형 AI 사용 기록, AI 의 판단을 바로잡은 사례 |
 | [docs/commit-convention.md](docs/commit-convention.md) | 커밋 규칙 |
