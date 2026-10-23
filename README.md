@@ -25,12 +25,14 @@ bash scripts/02-tailscale.sh
 bash scripts/03-docker.sh        # DOCKER_VERSION 이 비어 있으면 목록을 보여주고 멈춘다
 bash scripts/04-nvidia-toolkit.sh
 bash scripts/verify/04-gpu.sh    # GPU 1차 관문 (Docker 컨테이너)
-bash scripts/05-kind.sh          # kind 클러스터 + device plugin
-bash scripts/verify/05-kind.sh   # GPU 2차 관문 (kind 노드 안의 파드)
+bash scripts/05-1-kind-cluster.sh   # kind 4노드 (GPU 1, CPU 2, control-plane 1)
+bash scripts/05-2-gpu-node.sh       # GPU 노드 컨테이너에 toolkit, containerd 설정
+bash scripts/05-3-device-plugin.sh  # device plugin (GPU 노드에만)
+bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드). 단계마다 verify/05-N-*.sh 가 있다
 ```
 
 06 (Kubeflow) 는 2차 관문 통과 후 추가한다. 단계별 확인은 `scripts/verify/`.
 
 ## 상태 (2026-10-23)
 
-00~05 완료. GPU 2차 관문 통과 (kind 노드 안의 파드에서 RTX 5080 확인). 다음: 06 Kubeflow.
+00~05 완료. kind 4노드(GPU 1, CPU 2, control-plane 1), GPU 2차 관문 통과 (GPU 노드의 파드에서 RTX 5080 확인). 다음: 06 Kubeflow.

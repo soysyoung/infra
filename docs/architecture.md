@@ -15,8 +15,8 @@
 |  |  Docker Engine 29.8.2                                  [완료: 03]  |  |
 |  |  NVIDIA Container Toolkit 1.20.1 (기본 런타임 nvidia)  [완료: 04]  |  |
 |  |     |                                                              |  |
-|  |     +-- kind 클러스터 (노드 = Docker 컨테이너)         [완료: 05]  |  |
-|  |           kindest/node v1.36.4, GPU 파드 검증됨                    |  |
+|  |     +-- kind 클러스터, 노드 4개 = Docker 컨테이너      [완료: 05]  |  |
+|  |           control-plane / GPU 워커 / CPU 워커 x2 (v1.36.4)         |  |
 |  |           +-- Kubeflow 26.03.1                         [예정: 06]  |  |
 |  +--------------------------------------------------------------------+  |
 +--------------------------------------------------------------------------+
@@ -41,7 +41,9 @@
 | 02 | WSL | Tailscale 가입 (`--ssh`) |
 | 03 | WSL | Docker Engine (버전 고정, containerd 이미지 스토어 끔) |
 | 04 | WSL | NVIDIA Container Toolkit, Docker 런타임 설정 |
-| 05 | WSL | kind 클러스터 (예정) |
+| 05-1 | WSL | kind 4노드 클러스터, GPU 노드에 라벨/taint |
+| 05-2 | WSL | GPU 노드 컨테이너에 toolkit 설치, containerd 설정 |
+| 05-3 | WSL | device plugin (GPU 노드에만) |
 | 06 | WSL | Kubeflow (예정) |
 
 ## IaC 전환 계획 (설치 완료 후)

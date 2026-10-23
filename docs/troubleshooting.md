@@ -44,6 +44,7 @@
 
 ## 8. kind 에서 GPU 가 광고되지 않음 (device plugin 이 NVML 을 못 찾음)
 
+- (당시에는 `05-kind.sh` 하나였고, 이후 `05-1`~`05-3` 으로 나눴다 — [0007](decisions/0007-multi-node-kind.md))
 - 증상: `verify/05-kind.sh` 가 `노드가 nvidia.com/gpu 를 광고하지 않습니다` 로 실패. 노드 컨테이너의 `nvidia-smi -L` 은 성공.
 - 진단: device plugin 파드가 `Error` 로 재시작을 반복하고, 로그에 `Failed to initialize NVML: ERROR_LIBRARY_NOT_FOUND`.
 - 원인: 호스트 Docker 의 nvidia 런타임은 **노드 컨테이너**에 GPU 를 주입하지만, 노드 안의 containerd 는 일반 runc 라서 **파드**에는 GPU 라이브러리를 넣지 못한다. Codex 의 레시피는 이 단계가 빠져 있었다("nvidia 가 기본 런타임이면 runtimeClassName 이 필요 없다"는 호스트 Docker 기준 설명이었다).
@@ -53,4 +54,4 @@
 ## 미해결 / 확인 필요
 
 - 재부팅 후 tailscaled 와 Docker 의 기동 순서 (API 서버가 tailnet 주소에 바인딩되어 있다). `windows/autostart.ps1` 단계에서 확인한다.
-- 클러스터를 지우면 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-kind.sh` 가 매번 다시 하므로 문제는 없지만 외부 apt 저장소가 필요하다.
+- 클러스터를 지우면 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-2-gpu-node.sh` 가 다시 하므로 문제는 없지만 외부 apt 저장소가 필요하다.
