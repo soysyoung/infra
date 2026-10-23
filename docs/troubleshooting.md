@@ -59,7 +59,8 @@
   - 사이드카가 붙는 파드의 `istio-validation` 초기화 컨테이너: `iptables validation failed; workload is not ready for Istio` (CNI 가 없는 노드에 먼저 스케줄됨)
   - `sysctl fs.inotify.max_user_instances` = **128** (WSL 기본값, kind 노드 컨테이너 안에서도 같은 값)
 - 원인: kind 노드 컨테이너는 WSL 커널을 공유한다. 4노드와 kubelet/containerd 가 inotify 인스턴스 한도(128)를 소진했다.
-- 해결: `fs.inotify.max_user_instances = 1024` 를 `/etc/sysctl.d/99-kind-inotify.conf` 에 두어 영구 적용하고 (`05-1-kind-cluster.sh` 에 넣었다, `verify/05-1` 이 값을 확인), `istio-cni-node` 를 재시작한 뒤 CNI 없이 만들어진 파드를 지워 다시 만들게 했다. Istio CNI 설정에 `cni.repair.deletePods=true` 가 없으면 이런 파드는 수동으로 지워야 한다.
+- 근거: kind 공식 문서(Known Issues)가 같은 증상(`too many open files`)을 인용하며 Ubuntu 기본값 `max_user_instances=128`, `max_user_watches=8192` 가 "여러 노드의 클러스터에는 부족하다"고 하고 **`max_user_instances=512`**, `max_user_watches=524288` 을 권장한다. `inotify(7)` 는 두 한도를 "real user ID 당" 상한이라고 정의한다. 이 PC 실측(root 로 `/proc/*/fd` 를 센 값): uid 0 이 inotify 인스턴스 **131개**를 쓰고 있어 한도 128 을 이미 넘겼다 (watch 는 1168개로 한도 524288 에 한참 못 미침).
+- 해결: `fs.inotify.max_user_instances = 512` 를 `/etc/sysctl.d/99-kind-inotify.conf` 에 두어 영구 적용하고 (`05-1-kind-cluster.sh` 에 넣었다, `verify/05-1` 이 값을 확인), `istio-cni-node` 를 재시작한 뒤 CNI 없이 만들어진 파드를 지워 다시 만들게 했다. Istio CNI 설정에 `cni.repair.deletePods=true` 가 없으면 이런 파드는 수동으로 지워야 한다.
 - 교훈: 노드 수를 늘리기 전의 단일 노드 검증(`verify/05-*`)으로는 이 한도 문제가 드러나지 않았다. Kubeflow 가 처음으로 Istio CNI 를 올리면서 드러났다.
 
 ## 미해결 / 확인 필요
