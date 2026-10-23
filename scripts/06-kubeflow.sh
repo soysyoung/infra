@@ -11,7 +11,7 @@
 #   여러 번 실행해도 안전하다 (server-side apply). 중간에 실패하면 같은 명령을 다시 실행하면 된다.
 #
 # 포함되는 공통요소: cert-manager, Istio, Dex, oauth2-proxy, Knative Serving (KServe 기본 모드가 Serverless)
-# 주의: 기본 로그인은 user@example.com / 12341234 이다. 클러스터는 tailnet 에서만 열려 있지만 비밀번호를 바꾸기 전에는 외부에 노출하지 않는다.
+# 주의: 로그인은 user@example.com, 비밀번호는 .env 의 KUBEFLOW_PASSWORD (없으면 공개된 기본값 12341234). 바꾸기 전에는 외부에 노출하지 않는다.
 #
 # 선행: 05-1 ~ 05-3 (RAM 은 WSL 에 16GB 이상 권장, 첫 설치는 이미지를 많이 받아 오래 걸린다)
 # 검증: scripts/verify/06-kubeflow.sh
@@ -57,6 +57,15 @@ for i in $(seq 10); do
   log "적용 재시도 $i/10 (20초 후)"; sleep 20
 done
 [ "${applied:-}" = 1 ] || die "Kubeflow 적용에 실패했습니다."
+
+# .env 의 KUBEFLOW_PASSWORD 를 bcrypt 해시로 dex 에 반영한다 (없으면 공식 기본값 유지). apply 가 매번 기본값으로 되돌리므로 매번 한다.
+pw=$(sed -n 's/^KUBEFLOW_PASSWORD=//p' "$ROOT/.env" 2>/dev/null | tr -d '\r')
+if [ -n "$pw" ]; then
+  python3 -c 'import bcrypt' 2>/dev/null || die "python3-bcrypt 가 필요합니다. sudo apt install python3-bcrypt"
+  hash=$(PW="$pw" python3 -c 'import bcrypt,os;print(bcrypt.hashpw(os.environ["PW"].encode(),bcrypt.gensalt(12)).decode())')
+  kubectl -n auth patch secret dex-passwords -p "{\"stringData\":{\"DEX_USER_PASSWORD\":\"$hash\"}}"
+  kubectl -n auth rollout restart deploy/dex   # 비밀번호는 시작할 때만 읽는다
+fi
 
 # Istio CNI 가 준비되기 전에 스케줄된 파드는 istio-validation 이 실패해 Init:Error 에서 멈추고 스스로 복구되지 않는다.
 # CNI 가 Ready 가 된 뒤 그런 파드만 지우면 Deployment 가 CNI 가 있는 상태로 다시 만든다.

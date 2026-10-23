@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 삭제: WSL 안의 모든 설치를 설치의 역순으로 지운다 (06 -> 05 -> 04 -> 03 -> 02).
+# 삭제: WSL 안의 모든 설치를 설치의 역순으로 지운다 (07 -> 06 -> 05 -> 04 -> 03 -> 02).
 #
 # 사용:  bash scripts/teardown/all.sh              # 확인 후 삭제
 #        DRY_RUN=1 bash scripts/teardown/all.sh    # 아무것도 실행하지 않고 실행할 명령만 출력
@@ -10,6 +10,7 @@ source "$(dirname "$0")/../lib/common.sh"
 
 cat <<MSG
 다음을 설치의 역순으로 삭제합니다:
+  07  tailnet 노출 서비스 (kubeflow-port-forward)
   06  Kubeflow 설치용 클론, kustomize
   05  kind 클러스터(Kubeflow 와 모든 데이터 포함), kind, kubectl, inotify 설정
   04  NVIDIA Container Toolkit, Docker 런타임 설정
@@ -20,7 +21,7 @@ confirm "되돌릴 수 없습니다."
 
 export ASSUME_YES=1
 [ "${DRY_RUN:-}" = 1 ] || sudo -v   # sudo 비밀번호를 한 번만 묻는다
-for s in 06-kubeflow 05-kind-cluster 04-nvidia-toolkit 03-docker 02-tailscale; do
+for s in 07-expose 06-kubeflow 05-kind-cluster 04-nvidia-toolkit 03-docker 02-tailscale; do
   log "삭제 $s"
   bash "$(dirname "$0")/$s.sh"
 done

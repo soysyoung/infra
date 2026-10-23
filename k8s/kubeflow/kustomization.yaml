@@ -1,7 +1,7 @@
 # Kubeflow 26.03.1 공식 example/kustomization.yaml 에서 선택하지 않은 구성요소만 주석 처리한 것이다.
 # 06-kubeflow.sh 가 클론한 저장소의 example-mlops/ 에 복사해서 빌드하므로 ../ 상대 경로가 공식 example 과 같다.
 # 제외: Katib, Trainer, Spark Operator, Hub (Model Registry, Model Catalog). 설치: Pipelines, Notebooks v1, KServe.
-# 공식 example 과의 차이는 '제외:' 가 붙은 줄뿐이다 (diff 로 확인 가능).
+# 공식 example 과의 차이는 '제외:' 가 붙은 줄과 맨 끝의 '추가:' patches 뿐이다 (diff 로 확인 가능).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -109,3 +109,19 @@ resources:
 # Patches the centraldashboard configmap to add the Workspaces menu entry for Workspaces
 # components:
 # - ../applications/workspaces/components/centraldashboard
+
+# 추가: 방식 C (docs/decisions/0009). 게이트웨이를 NodePort 30080 으로 열어 kind-config.yaml 의 extraPortMappings 가 tailnet 주소로 연결한다.
+patches:
+- patch: |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: istio-ingressgateway
+      namespace: istio-system
+    spec:
+      type: NodePort
+      ports:
+      - name: http2
+        port: 80
+        protocol: TCP
+        nodePort: 30080

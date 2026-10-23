@@ -16,6 +16,11 @@ kubeadmConfigPatches:
 nodes:
   - role: control-plane
     image: ${KIND_NODE_IMAGE}
+    # 방식 C (docs/decisions/0009): istio 게이트웨이 NodePort 30080 을 tailnet 주소로 연다. 생성할 때만 정해지고 나중에 바꿀 수 없다.
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        listenAddress: "${TAILNET_IP}"
   # 첫 번째 워커(kind 이름: mlops-worker)가 GPU 노드다. 05-1 이 이 이름으로 라벨과 taint 를 건다.
   - role: worker
     image: ${KIND_NODE_IMAGE}
