@@ -2,7 +2,7 @@
 # 03. Docker Engine 설치 (Docker 공식 apt 저장소)
 #
 # 왜: kind 가 Docker 컨테이너를 노드로 쓴다. 이미지 빌드도 같은 Docker 로 한다 (런타임 하나).
-# 하는 일: apt 저장소 등록 -> versions.env 의 DOCKER_VERSION 으로 고정 설치 -> 자동 업그레이드 방지(hold)
+# 하는 일: apt 저장소 등록(docker.sources) -> versions.env 의 DOCKER_VERSION 으로 고정 설치 -> 자동 업그레이드 방지(hold)
 #   -> 현재 사용자를 docker 그룹에 추가
 #
 # 선행: 01-wsl-systemd.sh 후 WSL 재시작
@@ -25,8 +25,15 @@ sudo apt-get install -y ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+# 공식 문서의 현재 형식(deb822). UBUNTU_CODENAME 은 Ubuntu 파생 배포판에서 기반 릴리스 이름을 준다.
+sudo tee /etc/apt/sources.list.d/docker.sources >/dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
 sudo apt-get update
 
 if [ -z "$DOCKER_VERSION" ]; then

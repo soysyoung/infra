@@ -13,7 +13,7 @@ run sudo apt-mark unhold docker-ce docker-ce-cli
 # docker-ce-rootless-extras 는 docker-ce 가 추천 패키지로 함께 설치한다.
 run sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
 run sudo rm -rf /var/lib/docker /var/lib/containerd /etc/docker
-# 공식 문서는 docker.sources(deb822) 를 쓰고, 03-docker.sh 는 docker.list(한 줄 형식)를 만든다. 둘 다 지운다.
+# 03-docker.sh 는 공식 문서와 같은 docker.sources 를 만든다. 예전 버전이 만든 docker.list 가 남아 있을 수 있어 둘 다 지운다.
 run sudo rm -f /etc/apt/sources.list.d/docker.list /etc/apt/sources.list.d/docker.sources /etc/apt/keyrings/docker.asc
 # 브리지 인터페이스는 데몬을 지워도 WSL 을 재시작하기 전까지 커널에 남는다.
 run sudo ip link delete docker0 || true
