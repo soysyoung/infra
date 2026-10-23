@@ -1,0 +1,111 @@
+# Kubeflow 26.03.1 공식 example/kustomization.yaml 에서 선택하지 않은 구성요소만 주석 처리한 것이다.
+# 06-kubeflow.sh 가 클론한 저장소의 example-mlops/ 에 복사해서 빌드하므로 ../ 상대 경로가 공식 example 과 같다.
+# 제외: Katib, Trainer, Spark Operator, Hub (Model Registry, Model Catalog). 설치: Pipelines, Notebooks v1, KServe.
+# 공식 example 과의 차이는 '제외:' 가 붙은 줄뿐이다 (diff 로 확인 가능).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+sortOptions:
+  order: legacy
+  legacySortOptions:
+    orderFirst:
+    - Namespace
+    - ResourceQuota
+    - StorageClass
+    - CustomResourceDefinition
+    - MutatingWebhookConfiguration
+    - ServiceAccount
+    - PodSecurityPolicy
+    - NetworkPolicy
+    - Role
+    - ClusterRole
+    - RoleBinding
+    - ClusterRoleBinding
+    - ConfigMap
+    - Secret
+    - Endpoints
+    - Service
+    - LimitRange
+    - PriorityClass
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - Deployment
+    - StatefulSet
+    - CronJob
+    - PodDisruptionBudget
+    orderLast:
+    - ValidatingWebhookConfiguration
+
+resources:
+# Cert-Manager
+- ../common/cert-manager/base
+- ../common/cert-manager/overlays/kubeflow
+# Istio
+- ../common/istio/istio-crds/base
+- ../common/istio/istio-namespace/base
+- ../common/istio/istio-install/overlays/oauth2-proxy
+# NOTE: For Google Kubernetes Engine (GKE), use:
+# - ../common/istio/istio-install/overlays/gke
+# NOTE: For Istio Ambient Mode (sidecar-free), use one of:
+# - ../common/istio/istio-install/overlays/ambient-oauth2-proxy
+# - ../common/istio/istio-install/overlays/ambient-oauth2-proxy-gke
+# GKE mounts `/opt/cni/bin` as read-only. The GKE overlays use `/home/kubernetes/bin`.
+# For details, see [Istio CNI Prerequisites](https://istio.io/latest/docs/setup/additional-setup/cni/#prerequisites)
+# Oauth2-proxy
+# NOTE: only uncomment ONE of the following overlays, depending on your cluster type
+- ../common/oauth2-proxy/overlays/m2m-dex-only       # for all clusters
+# - ../common/oauth2-proxy/overlays/m2m-dex-and-kind  # for KIND clusters (allows K8S JWTs for gateway auth)
+# - ../common/oauth2-proxy/overlays/m2m-dex-and-eks   # for EKS clusters (NOTE: requires you to configure issuer, see overlay)
+# Dex
+- ../common/dex/overlays/oauth2-proxy
+# KNative
+- ../common/knative/knative-serving/overlays/gateways
+# Uncomment the following line if `knative-eventing` is required
+# - ../common/knative/knative-eventing/base
+- ../common/istio/cluster-local-gateway/base
+# Kubeflow namespace
+- ../common/kubeflow-namespace/base
+# Kubeflow Roles
+- ../common/kubeflow-roles/base
+# Kubeflow Istio Resources
+- ../common/istio/kubeflow-istio-resources/base
+# Kubeflow Pipelines (SeaweedFS as default S3 storage)
+- ../applications/pipeline/overlays  # Pipeline definitions stored in the database
+# - ../applications/pipeline/upstream/env/cert-manager/platform-agnostic-multi-user-k8s-native # Pipeline Definitions Stored as Kubernetes Resources
+# Katib
+# 제외: - ../applications/katib/upstream/installs/katib-with-kubeflow
+# Central Dashboard
+- ../applications/dashboard/overlays/istio
+# Notebooks v1
+- ../applications/notebooks-v1/overlays/istio
+# Training Operator (v1)
+# - ../applications/training-operator/upstream/overlays/kubeflow
+# Trainer (Training Operator v2)
+# 제외: - ../applications/trainer/overlays
+# User namespace
+- ../common/user-namespace/base
+# KServe
+- ../applications/kserve/kserve
+- ../applications/kserve/models-web-app/overlays/kubeflow
+# Spark Operator
+# 제외: - ../applications/spark/spark-operator/overlays/kubeflow
+
+# Hub — Model Registry (per-tenant: deployed to user profile namespace)
+# 제외: - ../applications/hub/overlays/model-registry
+# Hub — Model Catalog (cluster-wide singleton: deployed to kubeflow namespace)
+# 제외: - ../applications/hub/overlays/model-catalog
+
+# Ray is an experimental integration
+# Here is the documentation for Ray: https://docs.ray.io/en/latest/
+# Here is the internal documentation for Ray: - ../experimental/ray/README.md
+# - ../experimental/ray/kuberay-operator/overlays/kubeflow
+
+# --> DANGER: Workspaces (Notebooks v2) is still pre-GA <--
+#
+# !!! DO NOT DEPLOY THIS TO A PRODUCTION CLUSTER !!!
+#
+# See this for the current status: https://www.kubeflow.org/docs/components/notebooks/notebooks-v2-pre-ga-banner
+# - ../applications/workspaces/overlays/istio
+# Patches the centraldashboard configmap to add the Workspaces menu entry for Workspaces
+# components:
+# - ../applications/workspaces/components/centraldashboard

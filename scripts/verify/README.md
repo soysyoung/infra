@@ -153,3 +153,13 @@ kubectl -n kube-system logs -l name=nvidia-device-plugin-ds --tail=10
 `Failed to initialize NVML: ERROR_LIBRARY_NOT_FOUND` 가 보이면 GPU 노드의 containerd 가 nvidia 런타임으로 설정되지 않은 것이다 (`05-2-gpu-node.sh`, [troubleshooting.md](../../docs/troubleshooting.md) 8번).
 `Detected platform: wsl` 과 `Registered device plugin for 'nvidia.com/gpu'` 가 보이면 정상이다.
 `device plugin 이 N 개 노드에 배치되었습니다`: 기대는 GPU 노드 1개다. `05-3-device-plugin.sh` 의 nodeSelector 패치를 확인한다.
+
+## 06-kubeflow.sh
+
+```bash
+bash scripts/verify/06-kubeflow.sh
+```
+
+7개 네임스페이스(`cert-manager`, `istio-system`, `auth`, `oauth2-proxy`, `knative-serving`, `kubeflow-system`, `kubeflow`)의 Deployment 가 Available 인지, `Running`/`Completed` 가 아닌 파드가 없는지, Istio 게이트웨이가 HTTP 로 응답하는지(로그인 화면으로 리다이렉트되는 200/30x)를 순서대로 확인한다.
+
+**아직 설치를 실행하지 않아 실제 출력은 없다.** 설치 후 이 자리에 실제 출력을 채운다.
