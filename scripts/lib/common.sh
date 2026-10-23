@@ -4,6 +4,8 @@
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=/dev/null
 source "$ROOT/versions.env"
+# shellcheck source=/dev/null
+source "$ROOT/cluster.env"
 
 CLUSTER=mlops
 KUBECONFIG_FILE="$HOME/.kube/kind-$CLUSTER.yaml"

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# 05-1 검증: 노드 4개 Ready -> GPU 노드 라벨/taint -> 일반 파드가 GPU 노드를 피함
+# 05-1 검증: 노드 (2 + CPU_WORKERS)개 Ready -> GPU 노드 라벨/taint -> 일반 파드가 GPU 노드를 피함
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
 export KUBECONFIG="$KUBECONFIG_FILE"
-EXPECTED_NODES=4
+EXPECTED_NODES=$((2 + CPU_WORKERS))   # control-plane + GPU 워커 + CPU 워커 (cluster.env)
 
 [ "$(sysctl -n fs.inotify.max_user_instances)" -ge 1024 ] \
   || die "fs.inotify.max_user_instances 가 1024 미만입니다 (Istio CNI 가 'too many open files' 로 죽습니다). 05-1-kind-cluster.sh 를 다시 실행하세요."

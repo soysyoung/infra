@@ -1,5 +1,5 @@
 # 05-1-kind-cluster.sh 가 envsubst 로 ${TAILNET_IP}, ${KIND_NODE_IMAGE} 를 채워서 kind 에 넘긴다.
-# 노드: control-plane 1 + GPU 워커 1 + CPU 워커 2 (컨테이너 4개). 한 PC 위의 스케줄링 실습용 구성이라 고가용성은 아니다.
+# 노드: control-plane 1 + GPU 워커 1 + CPU 워커 CPU_WORKERS 개 (기본 2, 컨테이너 4개). 한 PC 위의 스케줄링 실습용 구성이라 고가용성은 아니다.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
@@ -24,7 +24,4 @@ nodes:
       # /dev/dxg, /usr/lib/wsl 을 직접 bind mount 하지 않는다 (nvkind 방식). 노드 생성 후에는 바꿀 수 없다.
       - hostPath: /dev/null
         containerPath: /var/run/nvidia-container-devices/all
-  - role: worker
-    image: ${KIND_NODE_IMAGE}
-  - role: worker
-    image: ${KIND_NODE_IMAGE}
+  # CPU 워커는 05-1 이 cluster.env 의 CPU_WORKERS 개수만큼 이 파일 뒤에 붙인다.

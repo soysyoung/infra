@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# 05-1. kind + kubectl 설치, 4노드 클러스터 생성, GPU 노드에 라벨/taint
+# 05-1. kind + kubectl 설치, 클러스터 생성(노드 수는 cluster.env), GPU 노드에 라벨/taint
 #
 # 왜: Kubeflow 를 올릴 Kubernetes. 노드가 Docker 컨테이너라 런타임이 Docker 하나다.
 #     GPU 노드 1개와 CPU 노드를 나눠 GPU 작업만 GPU 노드로 보내는 스케줄링을 실습한다.
 # 하는 일:
 #   1) kind, kubectl 을 체크섬 검증 후 /usr/local/bin 에 설치 (버전은 versions.env)
 #   0) WSL 의 inotify 인스턴스 한도를 1024 로 올림 (kind 노드가 커널을 공유해서 기본값 128 은 부족)
-#   2) k8s/kind-config.yaml 로 클러스터 생성 (control-plane 1 + GPU 워커 1 + CPU 워커 2)
+#   2) k8s/kind-config.yaml 로 클러스터 생성 (control-plane 1 + GPU 워커 1 + CPU 워커 CPU_WORKERS 개, cluster.env)
 #   3) GPU 워커(mlops-worker)에 라벨 nvidia.com/gpu.present=true 와 taint nvidia.com/gpu=present:NoSchedule
 #   kubeconfig 는 ~/.kube/kind-mlops.yaml 에 따로 쓴다 (기존 ~/.kube/config 는 건드리지 않음)
 #
@@ -58,8 +58,11 @@ mkdir -p "$HOME/.kube"
 if kind get clusters | grep -qx "$CLUSTER"; then
   log "클러스터 '$CLUSTER' 가 이미 있습니다. 생성은 건너뜁니다."
 else
-  envsubst '${TAILNET_IP} ${KIND_NODE_IMAGE}' < "$ROOT/k8s/kind-config.yaml" \
-    | kind create cluster --name "$CLUSTER" --config - --kubeconfig "$KUBECONFIG_FILE"
+  [[ "$CPU_WORKERS" =~ ^[0-9]+$ ]] || die "cluster.env 의 CPU_WORKERS 는 0 이상의 정수여야 합니다 (현재: '$CPU_WORKERS')."
+  {
+    envsubst '${TAILNET_IP} ${KIND_NODE_IMAGE}' < "$ROOT/k8s/kind-config.yaml"
+    for _ in $(seq "$CPU_WORKERS"); do printf '  - role: worker\n    image: %s\n' "$KIND_NODE_IMAGE"; done
+  } | kind create cluster --name "$CLUSTER" --config - --kubeconfig "$KUBECONFIG_FILE"
 fi
 chmod 600 "$KUBECONFIG_FILE"
 export KUBECONFIG="$KUBECONFIG_FILE"
