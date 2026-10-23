@@ -63,6 +63,21 @@ kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80   # http:/
 
 둘 다 `.env` 의 비밀번호를 바꾼 뒤에 연다. 아직 시험하지 못했다.
 
+## 재부팅 후 자동 복구
+
+재부팅하거나 유휴가 지나면 WSL 이 꺼져 모든 것이 내려간다. 사람이 로그인하지 않아도 돌아오게 하는 구성이고, 근거와 미검증 항목은 [ADR 0010](../docs/decisions/0010-reboot-recovery.md).
+
+```powershell
+# 관리자 PowerShell
+powershell -ExecutionPolicy Bypass -File .\windows\autostart.ps1        # 부팅 때 WSL 을 띄우는 예약 작업
+powershell -ExecutionPolicy Bypass -File .\windows\power-settings.ps1   # AC 전원에서 절전 끄기
+```
+```bash
+bash scripts/05-1-kind-cluster.sh   # 이미 만든 클러스터라면 다시 실행해 노드 재시작 정책을 적용 (멱등)
+# 재부팅 후
+bash scripts/verify/08-reboot.sh
+```
+
 ## 삭제
 
 설치의 역순으로 지운다. 되돌릴 수 없으므로 먼저 `DRY_RUN=1` 로 확인한다. 사용법은 [teardown/README.md](teardown/README.md).

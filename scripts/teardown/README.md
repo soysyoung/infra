@@ -10,7 +10,7 @@
 | 3 | `04-nvidia-toolkit.sh` | NVIDIA Container Toolkit, apt 저장소 | `daemon.json` 을 03 상태로 먼저 되돌리고 Docker 를 재시작한 뒤 패키지를 지운다. 거꾸로 하면 Docker 가 없어진 nvidia 런타임을 찾다가 시작에 실패한다 |
 | 4 | `03-docker.sh` | Docker Engine, 이미지/컨테이너/볼륨, apt 저장소, docker 그룹 멤버십 | 위 둘이 Docker 를 쓰므로 마지막에 지운다 |
 | 5 | `02-tailscale.sh` | Tailscale 연결 해제와 제거 | **원격 접속이 끊긴다.** 맨 뒤에 둬서 앞 단계를 원격에서 끝낼 수 있게 한다 |
-| 6 | `00-windows-wsl.ps1` (PowerShell) | Ubuntu-24.04 배포판(안의 모든 데이터), `.wslconfig`(백업으로 이름 변경) | 배포판을 지우면 01(`/etc/wsl.conf`)도 함께 사라진다 |
+| 6 | `00-windows-wsl.ps1` (PowerShell) | 예약 작업 `wsl-keepalive`(있으면), Ubuntu-24.04 배포판(안의 모든 데이터), `.wslconfig`(백업으로 이름 변경) | 배포판을 지우면 01(`/etc/wsl.conf`)도 함께 사라진다 |
 
 ## 사용
 

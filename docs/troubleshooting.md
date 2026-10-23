@@ -28,10 +28,11 @@
 | 19 | README 에 `scripts<탭>eardown<NUL>-windows-wsl.ps1` 로 깨진 경로가 이미 push 됨. 편집기가 "NUL 바이트가 있는 이진 파일"이라며 편집을 거부 | AI 가 파이썬 문자열로 README 끝에 삭제 절을 덧붙일 때 Windows 경로의 백슬래시 시퀀스 두 개가 이스케이프(탭, NUL)로 해석됨 | README 를 새로 작성하고, 추적 파일 전체를 NUL/탭/제어문자로 검사해 다른 파일은 정상임을 확인 (49개 중 1개). 경로를 파이썬 문자열에 쓸 때는 원문 문자열이나 `chr(92)` 를 쓰고 쓴 뒤 바이트를 검사한다 | 해결 | - |
 | 20 | `06` 중 `no matches for kind "ClusterStorageContainer" in version "serving.kserve.io/v1alpha1"`, `ensure CRDs are installed first`, 이어서 `적용 재시도 1/10` | CRD 와 그 CRD 를 쓰는 리소스가 한 묶음으로 적용되는데 API 서버가 CRD 를 등록하기 전에 리소스가 먼저 도착함. 오류 문구와 `06` 의 주석(공식 설치도 재시도 루프)으로 판단했고 설치 로그 전체는 보지 못했다 | 정상 동작이다. `06` 의 재시도 루프(최대 10회, 20초 간격)가 처리한다. 10/10 에서도 같은 오류면 `kubectl get crd` 로 kserve CRD 를 확인한다 | 해결 | - |
 | 21 | `kubectl port-forward ... 8080:80` 이 `address already in use` | 포트 8080 을 `kubectl --context kind-mlops -n istio-system port-forward svc/is...` 프로세스(pid 39675)가 이미 잡고 있었음. `ss -ltnp` 와 `ps` 로 확인. **누가 띄웠는지는 모른다.** `verify/06` 의 `trap` 이 프로세스를 남기는지 같은 구조로 재현해 봤으나 남지 않았다 | 그 프로세스를 그대로 쓰거나 `kill` 후 다시 실행. 포트를 바꾸면 로그인 리다이렉트가 깨질 수 있어 권하지 않음 | 해결 | - |
+| 22 | (재부팅 전 점검에서 발견) kind 노드 컨테이너 4개의 재시작 정책이 `on-failure:1` | `docker inspect` 로 실측. Docker 문서에 따르면 `on-failure` 는 데몬이 재시작되면 컨테이너를 다시 시작하지 않으므로 재부팅 후 노드가 올라오지 않을 수 있다 (재부팅으로는 아직 확인하지 않았다) | `05-1` 이 노드에 `docker update --restart unless-stopped` 를 적용 (이미 만든 클러스터도 재실행으로 적용). 근거는 [ADR 0010](decisions/0010-reboot-recovery.md) | 해결 (미시험) | - |
 
 ## 열린 항목
 
-- 재부팅 후 tailscaled 와 Docker 의 기동 순서. API 서버가 tailnet 주소에 바인딩되어 있어서 tailscaled 가 늦으면 노드 컨테이너가 시작에 실패할 수 있다. `windows/autostart.ps1` 단계에서 확인한다.
+- 재부팅 후 전체 복구 (자동 시작 작업, 노드 재시작, tailscaled 와 Docker 의 기동 순서)는 구성만 했고 시험 전이다 ([ADR 0010](decisions/0010-reboot-recovery.md)). 기동 순서: API 서버가 tailnet 주소에 바인딩되어 있어서 tailscaled 가 늦으면 노드 컨테이너가 시작에 실패할 수 있다. `windows/autostart.ps1` 단계에서 확인한다.
 - `/etc/sysctl.d` 의 inotify 설정이 재부팅 후에도 유지되는지 (systemd 가 켜져 있어 유지될 것으로 보나 확인하지 않았다).
 - 클러스터를 지우면 GPU 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-2` 가 매번 다시 하지만 외부 apt 저장소가 필요하다.
 - Kubeflow 로그인 비밀번호는 `.env` 로 바꾸고 `06` 이 반영한다. 바꾼 비밀번호로 로그인되는 것을 확인했다 (2026-10-23, 해시는 dex 문서 예시의 `$2y$` 접두사에 맞춤). 로그인 후 기능(Pipelines 실행, Notebook 생성, GPU Notebook)은 아직 시험하지 않았다.
