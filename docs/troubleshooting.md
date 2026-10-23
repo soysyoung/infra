@@ -23,6 +23,7 @@
 | 14 | `wsl.exe -u root` 에서 `Failed to start the systemd user session for 'root'` 경고 | 모름 (출력은 정상이었고 영향은 확인하지 못함) | 없음 | 우회 | - |
 | 15 | `verify/06` 이 `HTTP 403` 으로 실패 | 로그인 전 `/` 의 403 (`UAEX ext_authz_denied`)은 oauth2-proxy 의 Sign In 페이지로 가는 정상 응답. 검증 기대값(200/30x)이 틀렸음 | `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지로 확인 | 해결 | - |
 | 16 | 새 WSL 셸에서 `kubectl get po` 가 멈추거나 `No resources found in default namespace` | 처음에 kubeconfig 를 `--kubeconfig ~/.kube/kind-mlops.yaml` 로 따로 써서(kind 공식 기본값은 `~/.kube/config` 에 병합) `kubectl` 이 기본 `localhost:8080` 으로 접속을 시도함. 연결이 되어도 `default` 네임스페이스에는 파드가 없음 (Kubeflow 는 `kubeflow` 등 다른 네임스페이스) | **공식 기본값으로 전환**: `--kubeconfig`, `KUBECONFIG` export, `.bashrc` 수정을 모두 제거. 스크립트는 `kubectl --context kind-mlops` 를 명시하는 함수(`common.sh`)로 다른 클러스터가 생겨도 엉뚱한 곳에 적용되지 않게 함. 파드는 `kubectl get po -A` | 해결 | - |
+| 17 | 삭제 스크립트에 `yes` 를 입력했는데 `오류: 취소했습니다.` | 입력 앞에 공백이 섞여(`' yes'`) `confirm` 이 정확히 `yes` 일 때만 통과시켰음 (스크립트 버그) | 앞뒤 공백을 제거하고 대소문자를 무시. `y`, `yess`, 빈 입력은 파괴적 작업이라 계속 취소. 취소 메시지에 받은 입력을 표시. PowerShell 쪽도 `.Trim()` | 해결 | - |
 
 ## 열린 항목
 
