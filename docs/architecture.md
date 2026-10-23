@@ -13,7 +13,7 @@
 |  +-- WSL2 Ubuntu 24.04 (systemd) -------------------------------------+  |
 |  |  tailscaled        <- tailnet 노드 (WSL 이 직접 가입)  [완료: 02]  |  |
 |  |  Docker Engine 29.8.2                                  [완료: 03]  |  |
-|  |  NVIDIA Container Toolkit 1.20.1                       [설치: 04]  |  |
+|  |  NVIDIA Container Toolkit 1.20.1 (기본 런타임 nvidia)  [완료: 04]  |  |
 |  |     |                                                              |  |
 |  |     +-- kind 클러스터 (노드 = Docker 컨테이너)         [예정: 05]  |  |
 |  |           kindest/node v1.36.4                                     |  |

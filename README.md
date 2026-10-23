@@ -22,11 +22,13 @@ bash scripts/01-wsl-systemd.sh   # 끝나면 PowerShell 에서 wsl --shutdown
 bash scripts/02-tailscale.sh
 bash scripts/03-docker.sh        # DOCKER_VERSION 이 비어 있으면 목록을 보여주고 멈춘다
 bash scripts/04-nvidia-toolkit.sh
-bash scripts/verify/04-gpu.sh    # GPU 관문
+bash scripts/verify/04-gpu.sh    # GPU 1차 관문 (Docker 컨테이너)
+bash scripts/05-kind.sh          # kind 클러스터 + device plugin
+bash scripts/verify/05-kind.sh   # GPU 2차 관문 (kind 노드 안의 파드)
 ```
 
-05 (kind), 06 (Kubeflow) 는 GPU 관문 통과 후 추가한다. 단계별 확인은 `scripts/verify/`.
+06 (Kubeflow) 는 2차 관문 통과 후 추가한다. 단계별 확인은 `scripts/verify/`.
 
 ## 상태 (2026-10-23)
 
-00~03 완료. 04 설치됨, GPU 검증 대기.
+00~03 완료, 04 는 Codex 리뷰 반영으로 수정되어 재실행 필요, 05 는 작성만 했고 실행 전.

@@ -22,8 +22,23 @@
 
 - AI 가 쓴 주장은 가능한 한 공식 문서나 릴리스 페이지로 다시 확인하고, 확인하지 못한 것은 문서에 "미검증"으로 명시한다 ([versions.md](versions.md)).
 - 단계마다 `scripts/verify/` 로 동작을 확인한다.
-- 교차 리뷰: Codex(OpenAI) 로 스크립트를 독립 검토할 계획이다. 첫 시도는 Node.js 미설치로 실패했다. 설치 후 다시 시도하고 결과를 여기에 기록한다.
+- 교차 리뷰: Codex(OpenAI) 로 스크립트를 독립 검토했다 (아래 결과). 두 번 실패한 뒤 성공했다 ([troubleshooting.md](troubleshooting.md) 6번).
 
-## Codex 리뷰 결과
+## Codex 리뷰 결과 (2026-10-23)
 
-(아직 없음)
+Codex(GPT 계열, 읽기 전용)가 `00`, `03`, `04`, verify, 문서를 공식 문서와 대조했다. 보고서는 제안일 뿐이라서, 시스템 설정을 바꾸는 항목은 적용 전에 직접 확인했다 (nvkind README 의 명령, device plugin 릴리스, 다운로드 URL 응답).
+
+| 지적 | 처리 |
+|---|---|
+| 04 가 kind GPU 에 부족: `--set-as-default --cdi.enabled`, `accept-nvidia-visible-devices-as-volume-mounts` 누락 | **반영.** nvkind README 에서 명령 확인. `04` 수정 |
+| 03 의 `daemon.json` 처리가 재실행에 불안정 | **반영.** 이미 snapshotter 설정이 있으면 통과 |
+| hold 때문에 버전 변경/다운그레이드 실패 | **반영.** `unhold` + `--allow-downgrades` 후 다시 hold |
+| `wsl.exe` 실패가 PowerShell 에서 안 잡힘 | **반영.** 설치 호출 뒤 `$LASTEXITCODE` 확인 |
+| Docker apt 키 `chmod a+r`, `gnupg` 누락 | **반영** |
+| `vmIdleTimeout=-1` 은 문서에 없음 | **반영.** 주석을 고침. 상시 구동은 시작 작업으로 처리 |
+| verify 의 인코딩 복원이 `finally` 가 아님 | **반영** |
+| kind GPU 는 `/dev/dxg` bind mount 가 아니라 마커 마운트 | **반영.** 0006 과 `kind-config.yaml` |
+| `containerd.io` 등은 pin/hold 안 됨 | **미반영.** 문서가 docker-ce 만 pin 이라고 쓰고 있어 과장은 아님. 필요해지면 추가 |
+| 03 의 "이미 설치됨" 조기 종료 | **유지.** 같은 버전이 설치되어 있으면 끝내는 것이 의도. 설치가 중간에 끊긴 경우는 수동으로 처리 |
+
+**한계**: Codex 는 실제 WSL/Docker/kind 환경에 접근하지 못했고, kind GPU 레시피는 어디서도 end-to-end 로 검증되지 않았다. 이 PC 에서의 실제 검증은 `verify/05-kind.sh` 가 한다.

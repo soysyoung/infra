@@ -27,7 +27,7 @@
 - `01-wsl-systemd.sh` 는 tailscaled 와 Docker 가 systemd 를 쓰므로 계속 필요하다.
 
 ## 확정 조건과 대안
-**GPU 관문**: Docker 컨테이너에서 `nvidia-smi` 가 도는 것(`verify/04-gpu.sh`) 뿐 아니라, **kind 노드 안의 파드**가 GPU 를 잡아야 한다. 이 부분은 아직 검증하지 않았다.
+**GPU 관문**: 1차(Docker 컨테이너의 `nvidia-smi`, `verify/04-gpu.sh`)는 통과했다. 2차는 **kind 노드 안의 파드**가 GPU 를 잡는 것(`verify/05-kind.sh`)이고 아직 실행하지 않았다. 레시피와 한계는 [0006](0006-nvidia-wsl2-blackwell.md) 참고.
 실패하면 k3s 로 돌아간다: 런타임 둘 + 레지스트리 구성, k3s `v1.36.5+k3s1`(stable 채널), 설치 시 `--disable traefik`(Kubeflow 의 Istio 와 충돌).
 
 ## 재검토 시점

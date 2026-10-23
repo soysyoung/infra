@@ -30,7 +30,18 @@
 
 - `tailscale status` 에 같은 계정의 offline 노드가 다수 남아 있다 (마지막 접속 248~335일 전). Tailscale SSH/ACL 적용 시 섞일 수 있어 관리 콘솔에서 정리가 필요하다.
 
+## 6. Codex 리뷰가 두 번 실패
+
+- 1차: Node.js 미설치로 `node: command not found`.
+- 2차: Node.js 를 설치했지만 이 세션이 설치 **전에** 시작되어 Git Bash 의 PATH 에 `node` 와 npm 전역 경로(`%APPDATA%\npm`)가 없었다. `Codex CLI is not installed` 로 실패.
+- 해결: 호출 앞에 `export PATH="/c/Program Files/nodejs:/c/Users/pc_18/AppData/Roaming/npm:$PATH"` 를 붙였다. 세션을 재시작하면 PATH 가 갱신되어 필요 없다.
+- 교훈: 설치 직후에는 실행 중인 프로세스의 환경 변수가 낡았다는 점을 먼저 의심한다.
+
+## 7. WSL 호출 시 Git Bash 가 경로를 변환
+
+- `wsl.exe -- bash /mnt/c/...` 를 Git Bash 에서 부르면 `/mnt/c/...` 가 `C:/Program Files/Git/mnt/c/...` 로 바뀐다.
+- 해결: `MSYS_NO_PATHCONV=1` 을 앞에 붙인다. WSL 안에서 직접 실행하면 해당 없음.
+
 ## 미해결 / 확인 필요
 
-- Codex 교차 리뷰: Node.js 미설치로 `codex-companion.mjs` 가 `node: command not found` 로 실패했다. Node.js 설치를 진행했다 (ai-usage.md 참고).
-- kind 안의 파드가 GPU 를 잡는지는 아직 검증하지 못했다 ([0006](decisions/0006-nvidia-wsl2-blackwell.md)).
+- kind 안의 파드가 GPU 를 잡는지는 아직 검증하지 못했다 ([0006](decisions/0006-nvidia-wsl2-blackwell.md)). `verify/05-kind.sh` 로 확인한다.
