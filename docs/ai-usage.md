@@ -41,4 +41,9 @@ Codex(GPT 계열, 읽기 전용)가 `00`, `03`, `04`, verify, 문서를 공식 �
 | `containerd.io` 등은 pin/hold 안 됨 | **미반영.** 문서가 docker-ce 만 pin 이라고 쓰고 있어 과장은 아님. 필요해지면 추가 |
 | 03 의 "이미 설치됨" 조기 종료 | **유지.** 같은 버전이 설치되어 있으면 끝내는 것이 의도. 설치가 중간에 끊긴 경우는 수동으로 처리 |
 
-**한계**: Codex 는 실제 WSL/Docker/kind 환경에 접근하지 못했고, kind GPU 레시피는 어디서도 end-to-end 로 검증되지 않았다. 이 PC 에서의 실제 검증은 `verify/05-kind.sh` 가 한다.
+**한계**: Codex 는 실제 WSL/Docker/kind 환경에 접근하지 못했고, kind GPU 레시피는 어디서도 end-to-end 로 검증되지 않았다.
+
+### 실행으로 드러난 Codex 레시피의 빈틈
+
+Codex 의 kind GPU 레시피대로 구성한 뒤 `verify/05-kind.sh` 가 실패했다. 노드 컨테이너에서는 GPU 가 보이지만 노드가 `nvidia.com/gpu` 를 광고하지 않았다. device plugin 로그(`ERROR_LIBRARY_NOT_FOUND`)로 원인을 좁혔고, 레시피에는 **노드 안의 containerd 설정**이 빠져 있었다. NVIDIA nvkind 소스(`node.go`)를 직접 읽어 빠진 단계를 확인했고, 시험용 클러스터에서 먼저 시험한 뒤 스크립트에 넣어 처음부터 다시 만들어 통과를 확인했다. 두 번째 실패(device plugin Ready 직후의 타이밍)도 같은 방식으로 고쳤다.
+교훈: 다른 모델의 조사 결과도 제안일 뿐이고, 마지막 판정은 이 PC 에서의 검증 스크립트가 한다. 그래서 검증 스크립트를 먼저 만들었다.

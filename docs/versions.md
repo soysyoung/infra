@@ -20,7 +20,7 @@
 
 ## 미검증 항목
 
-- kind 안의 파드가 WSL2 + RTX 5080 에서 GPU 를 잡는지 (`scripts/verify/04-gpu.sh` 는 Docker 까지만 확인)
+- kind 안의 파드의 실제 CUDA 연산 (`nvidia-smi -L` 까지만 확인했다. kind 안의 GPU 인식은 2026-10-23 에 검증 완료)
 - Kubeflow 26.10 의 출시 여부, Katib/Notebooks 의 정확한 버전
 - Docker 29 최소 API(1.44) 와 kind v0.33.0 의 호환 (문제 보고는 못 찾음)
 - Codex 교차 리뷰는 완료했으나 Codex 도 이 PC 의 실제 환경은 검증하지 못했다 ([ai-usage.md](ai-usage.md))

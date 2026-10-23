@@ -5,6 +5,8 @@
 - 구성도: [docs/architecture.md](docs/architecture.md)
 - 버전과 선택 근거: [docs/versions.md](docs/versions.md), [docs/decisions/](docs/decisions/)
 - 막힌 곳과 해결: [docs/troubleshooting.md](docs/troubleshooting.md)
+- 검증 스크립트 사용법과 실제 출력: [scripts/verify/README.md](scripts/verify/README.md)
+- 커밋 규칙: [docs/commit-convention.md](docs/commit-convention.md)
 - 생성형 AI 사용 기록: [docs/ai-usage.md](docs/ai-usage.md)
 
 ## 실행 순서
@@ -31,4 +33,4 @@ bash scripts/verify/05-kind.sh   # GPU 2차 관문 (kind 노드 안의 파드)
 
 ## 상태 (2026-10-23)
 
-00~03 완료, 04 는 Codex 리뷰 반영으로 수정되어 재실행 필요, 05 는 작성만 했고 실행 전.
+00~05 완료. GPU 2차 관문 통과 (kind 노드 안의 파드에서 RTX 5080 확인). 다음: 06 Kubeflow.
