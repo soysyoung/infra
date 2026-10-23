@@ -183,4 +183,4 @@ bash scripts/verify/07-expose.sh
 
 tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지를 방식 A (포트 8080, `07-expose.sh`) 와 방식 C (포트 30080, kind `extraPortMappings`) 각각 확인하고, 하나라도 되면 통과한다. 두 방식의 비교는 [ADR 0009](../../docs/decisions/0009-tailnet-exposure-a-vs-c.md).
 
-실제 출력: **아직 실행하지 않았다.** 실행한 뒤 이 자리에 붙인다.
+실제 출력: A 는 2026-10-23 에 실행해 통과했다는 보고를 받았지만 **출력은 받지 못했다.** C 는 클러스터에 포트 매핑이 없어 실행하지 못했다. 출력을 받으면 이 자리에 붙인다.

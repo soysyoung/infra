@@ -1,6 +1,6 @@
 # 0009. Kubeflow 를 tailnet 에 여는 방식: A (port-forward 서비스) 와 C (NodePort 직결)
 
-- 상태: 두 방식 모두 구성함, **둘 다 이 PC 에서 아직 시험하지 못했다** (2026-10-23)
+- 상태: 두 방식 모두 구성함. **A 는 시험함** (2026-10-23: `06` 재실행 -> `07-expose.sh` -> `verify/07-expose.sh` 를 실행했고 핸드폰에서 `http://<tailnet 주소>:8080` 접속을 확인했다). **C 는 아직 시험하지 못했다** (클러스터를 다시 만들어야 한다)
 
 ## 상황
 `kubectl port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 tailnet 주소로 Kubeflow 를 상시 쓰려면 tailnet 주소에서 받아 주는 경로가 필요하다. 접속은 Tailscale 하나로 일원화하고 공유기 포트포워딩은 쓰지 않는다 ([architecture.md](../architecture.md)).
@@ -41,6 +41,7 @@
 문서에서 확인하지 못한 것: kind 의 `extraPortMappings` 를 생성 후 바꿀 수 없다는 점(위 표의 kind 문서에 그런 문장이 없다. 노드가 컨테이너이고 포트 퍼블리시가 컨테이너 생성 시점에 정해지는 구조에서 나온 추론), `tailscale serve` 의 동작.
 
 ## 미검증
-- `scripts/verify/07-expose.sh` 를 아직 실행하지 않았다 (A 와 C 를 각각 확인하고 하나라도 되면 통과한다).
+- `scripts/verify/07-expose.sh`: A 쪽만 실행했다 (사용자 보고, 출력은 첨부받지 못했다). C 는 현재 클러스터에 포트 매핑이 없어 확인할 수 없다.
+- A 의 재부팅 후 동작은 시험하지 않았다.
 - 위 표의 "파드가 바뀌면", "재부팅 후" 행은 구조에서 나온 추론이다.
 - kustomize 빌드에서 `nodePort: 30080` 이 들어가는 것만 확인했다. 클러스터에 적용해 보지 않았다 (병합 키에 `protocol: TCP` 가 없으면 nodePort 가 사라지는 것을 빌드에서 확인하고 고쳤다).

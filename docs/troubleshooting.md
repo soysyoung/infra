@@ -35,4 +35,4 @@
 - `/etc/sysctl.d` 의 inotify 설정이 재부팅 후에도 유지되는지 (systemd 가 켜져 있어 유지될 것으로 보나 확인하지 않았다).
 - 클러스터를 지우면 GPU 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-2` 가 매번 다시 하지만 외부 apt 저장소가 필요하다.
 - Kubeflow 로그인 비밀번호는 `.env` 로 바꾸고 `06` 이 반영하도록 했다. 바꾼 비밀번호로 로그인되는지는 아직 확인하지 못했다 (해시는 dex 문서 예시의 `$2y$` 접두사에 맞췄다). 로그인 후 기능(Pipelines 실행, Notebook 생성, GPU Notebook)은 아직 시험하지 않았다.
-- tailnet 상시 접속 방식 A (`07-expose.sh`) 와 C (kind `extraPortMappings` + NodePort) 모두 아직 실행해 보지 못했다. 비교와 미검증 항목은 [ADR 0009](decisions/0009-tailnet-exposure-a-vs-c.md). tailnet 주소(http)로 실제 로그인이 되는지도 확인 대상이다.
+- tailnet 상시 접속: 방식 A (`07-expose.sh`)는 핸드폰 접속을 확인했다. 방식 C (kind `extraPortMappings` + NodePort)는 클러스터를 다시 만들어야 해서 아직 시험하지 못했다. 재부팅 후 A 의 동작도 확인 전이다. 비교는 [ADR 0009](decisions/0009-tailnet-exposure-a-vs-c.md).
