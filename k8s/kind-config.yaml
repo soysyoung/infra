@@ -1,4 +1,5 @@
-# 05-kind.sh 가 envsubst 로 ${TAILNET_IP}, ${KIND_NODE_IMAGE} 를 채워서 kind 에 넘긴다.
+# 05-1-kind-cluster.sh 가 envsubst 로 ${TAILNET_IP}, ${KIND_NODE_IMAGE} 를 채워서 kind 에 넘긴다.
+# 노드: control-plane 1 + GPU 워커 1 + CPU 워커 2 (컨테이너 4개). 한 PC 위의 스케줄링 실습용 구성이라 고가용성은 아니다.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
@@ -15,8 +16,15 @@ kubeadmConfigPatches:
 nodes:
   - role: control-plane
     image: ${KIND_NODE_IMAGE}
+  # 첫 번째 워커(kind 이름: mlops-worker)가 GPU 노드다. 05-1 이 이 이름으로 라벨과 taint 를 건다.
+  - role: worker
+    image: ${KIND_NODE_IMAGE}
     extraMounts:
       # NVIDIA 마커 마운트: Docker 의 nvidia 런타임이 이 경로를 보고 노드에 GPU 와 WSL 라이브러리를 넣어 준다.
-      # /dev/dxg, /usr/lib/wsl 을 직접 bind mount 하지 않는다 (nvkind 방식).
+      # /dev/dxg, /usr/lib/wsl 을 직접 bind mount 하지 않는다 (nvkind 방식). 노드 생성 후에는 바꿀 수 없다.
       - hostPath: /dev/null
         containerPath: /var/run/nvidia-container-devices/all
+  - role: worker
+    image: ${KIND_NODE_IMAGE}
+  - role: worker
+    image: ${KIND_NODE_IMAGE}
