@@ -175,15 +175,16 @@ deployment.apps/seaweedfs condition met
 - **로그인 전 `/` 는 `HTTP 403` 이 정상이다.** 응답 본문이 oauth2-proxy 의 "Sign In" 페이지이고 게이트웨이 로그에 `ext_authz_denied` 가 찍힌다. 처음에는 이 403 을 실패로 판정하는 검증을 썼다가 고쳤다 ([troubleshooting.md](../../docs/troubleshooting.md) 15번).
 - `Running/Completed 가 아닌 파드가 있습니다` 이면 `kubectl get pods -A` 로 확인한다. `Init:Error` 면 [troubleshooting.md](../../docs/troubleshooting.md) 10번이다 (`06-kubeflow.sh` 를 다시 실행하면 정리된다).
 
-## 07-expose.sh
+## 07-1-port-forward.sh, 07-2-nodeport.sh
 
 ```bash
-bash scripts/verify/07-expose.sh
+bash scripts/verify/07-1-port-forward.sh   # port-forward 방식: <tailnet 주소>:8080
+bash scripts/verify/07-2-nodeport.sh       # NodePort 방식:     <tailnet 주소>:30080
 ```
 
-tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지를 port-forward 방식 (포트 8080, `07-expose.sh`) 와 NodePort 방식 (포트 30080, kind `extraPortMappings`) 각각 확인하고, 하나라도 되면 통과한다. 두 방식의 비교는 [ADR 0009](../../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md).
+각각 tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지 확인한다. `07-1` 은 `kubeflow-port-forward` 서비스가 실행 중인지도 본다. 적용한 방식만 돌리면 된다. 두 방식의 비교는 [ADR 0009](../../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md).
 
-실제 출력: port-forward 방식은 2026-10-23 에 실행해 통과했다는 보고를 받았지만 **출력은 받지 못했다.** NodePort 방식은 클러스터에 포트 매핑이 없어 실행하지 못했다. 출력을 받으면 이 자리에 붙인다.
+실제 출력: **아직 없다.** 2026-10-26 까지는 두 방식을 한 스크립트(`verify/07-expose.sh`, 지금은 없음)가 함께 확인했고, 그 출력은 아래 08 절에 있다 (당시 라벨은 '방식 A / 방식 C').
 
 ## 08-reboot.sh
 
@@ -191,7 +192,7 @@ tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지�
 bash scripts/verify/08-reboot.sh
 ```
 
-재부팅하고 로그인하지 않은 채 기다린 뒤 실행한다. `docker`, `tailscaled`, `kubeflow-port-forward` 서비스, 노드 컨테이너의 재시작 정책(`unless-stopped`), 노드 Ready, 파드 상태, tailnet 접속(`07` 검증)을 차례로 확인한다. 근거는 [ADR 0010](../../docs/decisions/0010-reboot-recovery.md).
+재부팅하고 몇 분 기다린 뒤 실행한다. `docker`, `tailscaled` 서비스, 노드 컨테이너의 재시작 정책(`unless-stopped`), 노드 Ready, 파드 상태를 보고, **적용한 노출 방식만** 골라 접속을 확인한다 (`kubeflow-port-forward` 서비스가 있으면 `07-1`, 게이트웨이 Service 가 NodePort 면 `07-2`, 둘 다 아니면 실패). 근거는 [ADR 0010](../../docs/decisions/0010-reboot-recovery.md).
 
 아래 출력에 찍힌 '방식 A / 방식 C' 는 당시 스크립트의 라벨이고, 지금은 'port-forward 방식 / NodePort 방식' 으로 찍힌다.
 

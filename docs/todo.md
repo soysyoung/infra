@@ -28,7 +28,7 @@ port-forward 방식은 확인했다. NodePort 방식은 호스트 포트 매핑�
 
 - [ ] Kubeflow 안에 보존할 데이터가 없으므로(2026-10-26 사용자 확인) 기능 시험보다 먼저 해도 된다. 클러스터를 다시 만들면 안의 데이터는 사라진다.
 - [ ] 클러스터만 다시 만들기: [scripts/README.md](../scripts/README.md) '클러스터만 다시 만들기'
-- [ ] `bash scripts/verify/07-expose.sh` 에서 NodePort 방식(`<tailnet 주소>:30080`)이 OK 인지, port-forward 방식과 공존하는지
+- [ ] `bash scripts/07-2-nodeport.sh` 실행 후 `bash scripts/verify/07-2-nodeport.sh` 가 OK 인지, `verify/07-1-port-forward.sh` 와 함께 공존하는지 (`docker port mlops-control-plane` 에 30080 매핑이 보이는 것은 2026-10-26 확인)
 - [ ] port-forward 와 NodePort 중 상시로 쓸 방식을 정하고 ADR 0009 의 '결정' 을 갱신 (선호는 NodePort)
 
 ## 기능 시험

@@ -1,6 +1,6 @@
 # 0009. Kubeflow 를 tailnet 에 여는 방식: port-forward (systemd 서비스) 와 NodePort (직결)
 
-- 상태: 두 방식 모두 구성함. **port-forward 방식은 시험함** (2026-10-23: `06` 재실행 -> `07-expose.sh` -> `verify/07-expose.sh` 를 실행했고 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 `.env` 의 새 비밀번호로 로그인을 확인했다). **NodePort 방식은 아직 시험하지 못했다** (클러스터를 다시 만들어야 한다)
+- 상태: 두 방식 모두 구성함. **port-forward 방식은 시험함** (2026-10-23: `06` 재실행 -> `07-expose.sh`(지금의 `07-1-port-forward.sh`) -> `verify/07-expose.sh`(지금의 `verify/07-1-port-forward.sh` 와 `07-2-nodeport.sh` 로 나뉨) 를 실행했고 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 `.env` 의 새 비밀번호로 로그인을 확인했다). **NodePort 방식은 아직 시험하지 못했다** (클러스터를 다시 만들어야 한다)
 
 ## 상황
 `kubectl port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 tailnet 주소로 Kubeflow 를 상시 쓰려면 tailnet 주소에서 받아 주는 경로가 필요하다. 접속은 Tailscale 하나로 일원화하고 공유기 포트포워딩은 쓰지 않는다 ([architecture.md](../architecture.md)).
@@ -11,13 +11,13 @@
 | | port-forward (systemd 로 감쌈) | NodePort (직결) |
 |---|---|---|
 | 접속 주소 | `http://<tailnet 주소>:8080` | `http://<tailnet 주소>:30080` |
-| 구성 위치 | `scripts/07-expose.sh` 가 `/etc/systemd/system/kubeflow-port-forward.service` 를 만든다 | `k8s/kind-config.yaml` 의 `extraPortMappings` (호스트 `<tailnet 주소>:30080` -> 노드 30080) + `k8s/kubeflow/kustomization.yaml` 의 patch (게이트웨이 Service 를 NodePort 30080 으로) |
+| 구성 위치 | `scripts/07-1-port-forward.sh` 가 `/etc/systemd/system/kubeflow-port-forward.service` 를 만든다 | 호스트 포트는 `k8s/kind-config.yaml` 의 `extraPortMappings` (호스트 `<tailnet 주소>:30080` -> 노드 30080, `05-1` 이 클러스터를 만들 때), Service 변경은 `scripts/07-2-nodeport.sh` 가 한다 |
 | 동작 | `kubectl port-forward` 프로세스 하나가 파드 하나로 터널을 연다 (API 서버를 거친다) | Docker 가 포트를 노드 컨테이너로 넘기고 kube-proxy 가 서비스로 분배한다. 상시 도는 별도 프로세스가 없다 |
 | 파드가 바뀌면 | 터널이 끊긴다. systemd 가 5초 뒤 다시 붙인다 | 서비스 라우팅이라 영향이 없다 |
-| 언제 적용되나 | 아무 때나, 기존 클러스터에도 | 매핑은 **클러스터를 만들 때만** 정해진다. 이미 만든 클러스터는 지우고 `05-1` 부터 다시 해야 한다 (Service patch 만은 `06` 재실행으로 들어간다) |
+| 언제 적용되나 | 아무 때나, 기존 클러스터에도 | 매핑은 **클러스터를 만들 때만** 정해진다. 매핑이 없는 클러스터면 `07-2` 가 알려 주고 멈춘다. 지우고 `05-1` 부터 다시 해야 한다. `06` 을 다시 실행하면 Service 가 되돌아가서 `07-2` 도 다시 실행한다 |
 | 재부팅 후 | Docker, tailscaled, 클러스터가 늦으면 서비스가 재시도한다 | tailscaled 가 Docker 보다 늦으면 노드 컨테이너 자체가 시작에 실패할 수 있다 (API 서버 6443 의 기존 열린 항목과 같은 위험) |
-| 공식 구성과의 차이 | 없음 | 게이트웨이 Service 의 type 과 nodePort 를 바꾼다 (patch 한 곳) |
-| 삭제 | `teardown/07-expose.sh` 가 서비스를 지운다 | 클러스터와 함께 사라진다 |
+| 공식 구성과의 차이 | 없음 | 없음. Kubeflow 매니페스트(`k8s/kubeflow/kustomization.yaml`)는 건드리지 않고, 설치 뒤 `07-2` 가 Service 하나를 패치한다 |
+| 삭제 | `teardown/07-1-port-forward.sh` 가 서비스를 지운다 | 클러스터와 함께 사라진다 (삭제 스크립트 없음) |
 
 공통: 둘 다 tailnet 주소에만 바인딩한다 (`0.0.0.0` 이 아니므로 LAN 에 열리지 않는다). 로그인 쿠키는 `FORCE_HTTPS=false` 라서 `Secure` 속성이 없고 http 로 로그인할 수 있다 (oauth2-proxy 매니페스트에서 확인). 콜백 주소(`/oauth2/callback`)는 상대 경로다. tailnet 주소(http)로 실제 로그인이 되는 것은 port-forward 방식으로 확인했다 (핸드폰, 2026-10-23).
 
@@ -41,7 +41,7 @@
 문서에서 확인하지 못한 것: kind 의 `extraPortMappings` 를 생성 후 바꿀 수 없다는 점(위 표의 kind 문서에 그런 문장이 없다. 노드가 컨테이너이고 포트 퍼블리시가 컨테이너 생성 시점에 정해지는 구조에서 나온 추론), `tailscale serve` 의 동작.
 
 ## 미검증
-- `scripts/verify/07-expose.sh`: port-forward 방식만 실행했다 (사용자 보고, 출력은 첨부받지 못했다). NodePort 방식은 현재 클러스터에 포트 매핑이 없어 확인할 수 없다.
+- `scripts/verify/07-1-port-forward.sh`, `07-2-nodeport.sh`: 나누기 전의 `07-expose.sh` 로 port-forward 방식만 실행했다 (사용자 보고, 출력은 첨부받지 못했다). NodePort 방식은 현재 클러스터에 포트 매핑이 없어 확인할 수 없다.
 - port-forward 방식의 재부팅 후 동작은 2026-10-26 '다시 시작' 1회로 확인했다 ([ADR 0010](0010-reboot-recovery.md)).
 - 위 표의 "파드가 바뀌면", "재부팅 후" 행은 구조에서 나온 추론이다.
 - kustomize 빌드에서 `nodePort: 30080` 이 들어가는 것만 확인했다. 클러스터에 적용해 보지 않았다 (병합 키에 `protocol: TCP` 가 없으면 nodePort 가 사라지는 것을 빌드에서 확인하고 고쳤다).

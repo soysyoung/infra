@@ -40,8 +40,11 @@ bash scripts/05-3-device-plugin.sh    # device plugin (GPU 노드에만)
 bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드)
 bash scripts/06-kubeflow.sh           # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
 bash scripts/verify/06-kubeflow.sh
-bash scripts/07-expose.sh            # (선택) tailnet 주소로 상시 접속: systemd 로 감싼 port-forward (port-forward 방식)
-bash scripts/verify/07-expose.sh
+# tailnet 주소로 상시 접속 (선택, 아래 둘 중 하나 또는 둘 다. 비교는 ADR 0009)
+bash scripts/07-1-port-forward.sh    # port-forward 방식: systemd 로 감싼 kubectl port-forward -> :8080
+bash scripts/verify/07-1-port-forward.sh
+bash scripts/07-2-nodeport.sh        # NodePort 방식: 게이트웨이를 NodePort 로 -> :30080 (kind 포트 매핑이 있는 클러스터 필요)
+bash scripts/verify/07-2-nodeport.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
@@ -58,10 +61,10 @@ kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80   # http:/
 
 `port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 쓰려면 두 방식이 있고 차이는 [ADR 0009](../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md) 에 정리했다.
 
-- **A**: `bash scripts/07-expose.sh` -> `http://<tailnet 주소>:8080` (`tailscale ip -4`). 기존 클러스터에도 바로 된다.
-- **C**: 클러스터를 만들 때 `kind-config.yaml` 이 포트를 열고 `06` 이 게이트웨이를 NodePort 로 바꾼다 -> `http://<tailnet 주소>:30080`. 별도 스크립트가 없고, 이미 만든 클러스터에는 지우고 `05-1` 부터 다시 해야 한다.
+- **port-forward 방식** `bash scripts/07-1-port-forward.sh` -> `http://<tailnet 주소>:8080` (`tailscale ip -4`). systemd 서비스 `kubeflow-port-forward` 를 만든다. 기존 클러스터에도 바로 된다. 검증 `verify/07-1-port-forward.sh`
+- **NodePort 방식** `bash scripts/07-2-nodeport.sh` -> `http://<tailnet 주소>:30080`. 게이트웨이 Service 를 NodePort 30080 으로 바꾼다. 호스트 포트는 클러스터를 만들 때 `kind-config.yaml` 의 `extraPortMappings` 가 열어 두므로(`05-1`), 이미 만든 클러스터에 매핑이 없으면 스크립트가 알려 주고, 지우고 `05-1` 부터 다시 해야 한다. `06` 을 다시 실행하면 Service 가 원래대로 돌아가므로 `07-2` 도 다시 실행한다. 검증 `verify/07-2-nodeport.sh`
 
-둘 다 `.env` 의 비밀번호를 바꾼 뒤에 연다. 아직 시험하지 못했다.
+두 방식은 포트가 달라서 함께 켜 둘 수 있다. 둘 다 `.env` 의 비밀번호를 바꾼 뒤에 연다. 재부팅 후 확인은 `verify/08-reboot.sh` 가 적용된 방식만 골라 본다.
 
 ## 재부팅 후 자동 복구
 
@@ -88,7 +91,9 @@ bash scripts/05-1-kind-cluster.sh
 bash scripts/05-2-gpu-node.sh          # GPU 노드 컨테이너의 설정은 클러스터와 함께 사라지므로 다시 한다
 bash scripts/05-3-device-plugin.sh
 bash scripts/06-kubeflow.sh            # .env 의 비밀번호도 다시 반영된다
-bash scripts/verify/07-expose.sh
+bash scripts/07-2-nodeport.sh          # NodePort 방식을 쓸 때 (06 이 Service 를 원래대로 되돌리므로 매번)
+bash scripts/verify/07-2-nodeport.sh
+# port-forward 방식은 systemd 서비스가 그대로 있으니 다시 할 것이 없다 (클러스터가 뜨면 다시 연결된다)
 ```
 
 `teardown/05-kind-cluster.sh` 로 지워도 되지만 kind 와 kubectl 바이너리와 inotify 설정까지 지우고, `05-1` 이 다시 설치한다. 클러스터만 지우려면 위 한 줄이 가볍다. 클러스터가 없는 동안 `07` 서비스는 5초마다 재시작을 반복할 뿐 해가 없고, 새 클러스터가 뜨면 다시 연결된다 (추론, 시험 전).
