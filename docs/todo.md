@@ -39,7 +39,10 @@
    - [ ] 삭제의 수정 경로(패키지 2개 purge, `docker0` 삭제) 실행 확인 ([troubleshooting.md](troubleshooting.md) 18번). `DRY_RUN=1` 먼저
    - [x] `03`~`06` verify 를 다시 실행해 모두 `==> OK` (2026-10-26), 차이점을 verify README 에 반영. `00-windows.ps1` 은 다시 실행하지 않았다
 6. [x] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 ([troubleshooting.md](troubleshooting.md) 5번) -> 2026-10-23 에 삭제함 (사용자 보고)
-7. [ ] 이전에 공식 문서 대조 없이 쓴 `00`~`06` 과 ADR 0001~0008 을 ADR 0008 처럼 다시 대조 (0009~0011 은 대조했다)
+7. [x] 이전에 공식 문서 대조 없이 쓴 `00`~`06` 과 ADR 0001~0008 을 다시 대조 (2026-10-26) -> [ADR 0012](decisions/0012-official-doc-recheck.md). 틀린 곳 2개(ADR 0001 지원 종료일, `06` Dex 해시 주석)는 고쳤다. 남은 열린 항목:
+   - [ ] kind API 서버를 tailnet 주소에 여는 것은 kind 문서의 권고(loopback 유지)와 다르다. 원격 `kubectl` 이 필요한지 판단하고, 필요하면 근거를 ADR 에 적고 아니면 loopback 으로 되돌린다 (클러스터 재생성 필요)
+   - [ ] `02` 의 `tailscale up --ssh` 가 현재 문서(`tailscale set --ssh`)와 다르다. 동작은 확인하지 못했다
+   - [ ] 미확인: `05-1` 노드 재시작 정책의 Docker 문서 인용, `06` 의 kustomize 5.8.1 체크섬, ADR 0006 의 toolkit 1.20.1 WSL2 수정과 CUDA 12.8 요구
 8. [ ] (선택) 재부팅의 남은 경우: 로그인 화면(비밀번호)이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작), 덮개를 닫은 채 접속
 9. [ ] 위가 끝나면 `dev` -> `main` PR (`main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
 10. [ ] IaC: Terraform 으로 tailscale ACL/authkey 와 클러스터 플랫폼 구성, ArgoCD 로 Kubeflow 배포 ([architecture.md](architecture.md))
@@ -55,3 +58,6 @@
 | 2026-10-26 | 옛 세션 쿠키로 JWKS 401 이 나는 문제의 원인 확정, `06` 이 `cookie-secret` 을 새로 만들게 함 | [troubleshooting.md](troubleshooting.md) 24번 |
 | 2026-10-26 | README 를 루트와 `scripts/` 로 분리, `main` 에 README 추가 | [README.md](../README.md) |
 | 2026-10-26 | 핸드폰에서 Notebook 을 JupyterLab 으로 열어 코드 실행 (HTTPS + 웹소켓 통과) | 게이트웨이 로그, [ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md) |
+| 2026-10-26 | `06` 재실행 (ClusterIP 복귀, `cookie-secret` 교체, 새 비밀번호 로그인), GPU Notebook, Pipelines 실행 | 위 '다음 할 일' 1, 3, 4번 |
+| 2026-10-26 | 재부팅 후 `tailscale serve` HTTPS 와 GPU 광고 유지, `03`~`06` verify 재실행 | `scripts/verify/08-reboot.sh`, [verify/README.md](../scripts/verify/README.md) |
+| 2026-10-26 | `00`~`06` 과 ADR 0001~0008 공식 문서 재대조 | [ADR 0012](decisions/0012-official-doc-recheck.md) |

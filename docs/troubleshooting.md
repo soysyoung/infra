@@ -37,9 +37,7 @@
 
 ## 열린 항목
 
-- **tailscale serve 의 재부팅 후 자동 재개**: Tailscale 문서는 `--bg` 면 재부팅 뒤 다시 공유한다고 하지만 이 PC 에서 시험하지 않았다 ([ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md)).
-- **GPU Notebook, Pipelines 실행**은 아직 시험하지 않았다 (Notebook 생성, JupyterLab 열기, 셀 실행은 통과).
-- **쓰지 않는 NodePort 설정이 클러스터에 남아 있다** (Service 타입, NetworkPolicy). 정리 순서는 [todo.md](todo.md). `06` 의 `cookie-secret` 새로 만들기(24번의 대책)도 이 클러스터에는 `06` 을 다시 실행해야 적용된다.
+- 남아 있는 NodePort 흔적은 `kind-config.yaml` 의 30080 매핑과 `07-2` 스크립트뿐이다 (시험 기록으로 남기기로 했다, [todo.md](todo.md)). 게이트웨이 Service 는 ClusterIP 로 돌아왔고 NetworkPolicy 는 없다.
 - **재부팅의 남은 경우**: 윈도우 비밀번호 로그인 화면이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작 `HiberbootEnabled=1`), 덮개를 닫은 채의 접속, `tailscaled` 가 Docker 보다 늦게 뜰 때의 노드 시작은 시험 전이다 (이번 1회는 순서가 맞았지만 보장은 아니다, [ADR 0010](decisions/0010-reboot-recovery.md)).
 - `/etc/sysctl.d` 의 inotify 설정이 재부팅 후에도 유지되는지 (이번 재부팅에서 노드와 Istio CNI 가 정상이라 유지된 것으로 보이나 값을 직접 확인하지 않았다).
 - 클러스터를 지우면 GPU 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-2` 가 매번 다시 하지만 외부 apt 저장소가 필요하다.
