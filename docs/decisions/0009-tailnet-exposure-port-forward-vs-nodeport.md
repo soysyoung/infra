@@ -28,8 +28,23 @@ NodePort 방식은 Service 만 바꿔서는 접속되지 않았다. `istio-syste
 - 대가: 게이트웨이 8080 을 클러스터 안 모든 파드가 직접 부를 수 있게 된다 (이전에는 같은 네임스페이스와 knative 만). 인증은 앞단 oauth2-proxy 가 하고 이 클러스터는 사용자 한 명의 실습 환경이라 허용했다. 좁히려면 `from.ipBlock` 에 kind 도커 네트워크 대역을 쓴다 (미시험).
 - 즉 NodePort 방식은 port-forward 보다 손이 더 간다. 비교표의 "상시 도는 프로세스가 없다" 는 장점은 그대로지만 설치가 간단하다는 인상은 틀렸다.
 
+## 공식 문서와 충돌하는 점 (2026-10-26)
+이 ADR 의 두 방식은 Kubeflow 의 접속 안내를 읽기 **전에** 만들었다. 읽고 나니 충돌하는 부분이 있다 ([kubeflow/community-distribution](https://github.com/kubeflow/community-distribution) 의 접속 절).
+
+- 기본 접속 방식은 `kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80` 후 `http://localhost:8080` 이다.
+- NodePort, LoadBalancer, Ingress 로 접속하려면 **HTTPS 를 설정해야 한다.** Tensorboard 웹앱, Jupyter 웹앱, Katib UI 등이 Secure Cookies 를 쓰기 때문에 **localhost 가 아닌 도메인에 HTTP 로 접속하면 동작하지 않는다.**
+- "보안상 서비스는 ClusterIP 만 쓰고 NodePort 나 그와 비슷하게 위험한 것은 쓰지 않는다." 꼭 HTTP 여야 하면 각 웹앱에 `APP_SECURE_COOKIES=false` 를 줄 수 있지만 권장하지 않는다.
+
+우리에게 미치는 영향 (시험 전, 문서 문장에서 추론):
+- 두 방식 모두 `http://100.83.193.87:<포트>` 로 접속한다. 로그인 화면과 대시보드까지는 확인했지만, **Jupyter 웹앱(Notebook 생성) 등 웹앱은 시험하지 않았다.** 공식 문서대로면 tailnet 주소(HTTP)에서는 깨질 가능성이 높다. 이전 절의 "http 로 로그인할 수 있다" 는 oauth2-proxy 쿠키(`FORCE_HTTPS=false`)에 대한 말이었고 웹앱까지 보증하지 않는다.
+- NodePort 방식은 공식이 권하지 않는 방식이고, 동작시키려고 게이트웨이 8080 을 모든 파드에 여는 NetworkPolicy 까지 더했다.
+
+공식 문서에 맞는 후보 (미시험):
+- Service 는 ClusterIP 그대로 두고, port-forward 를 `127.0.0.1` 에 바인딩한 뒤 `tailscale serve --bg --https=443 http://127.0.0.1:8080` 으로 tailnet 에 **HTTPS** 로 연다. Tailscale 문서: HTTPS 는 자동 발급된 TLS 인증서를 쓰고 tailscaled 가 HTTPS 를 종료하며, `--bg` 면 재부팅이나 Tailscale 재시작 뒤 자동으로 다시 공유한다 ([tailscale serve](https://tailscale.com/docs/reference/tailscale-cli/serve)). 필요 조건(관리 콘솔의 MagicDNS, HTTPS 인증서 활성화)과 Kubeflow 로그인이 `*.ts.net` HTTPS 주소에서 정상인지는 확인하지 못했다.
+- 또는 접속하는 기기에서 localhost 로 터널을 열어 쓴다 (localhost 는 Secure Cookies 예외).
+
 ## 검토했으나 쓰지 않은 것
-`tailscale serve` 로 로컬 8080 을 노출하는 방법. 명령 하나로 되지만 결국 port-forward 가 떠 있어야 해서 port-forward 방식의 문제가 그대로 남고, 동작과 재부팅 후 유지 여부를 확인하지 못했다.
+(2026-10-26 재검토: 위 '공식 문서와 충돌하는 점' 에서 HTTPS 를 위해 다시 후보가 됐다.) `tailscale serve` 로 로컬 8080 을 노출하는 방법. 명령 하나로 되지만 결국 port-forward 가 떠 있어야 해서 port-forward 방식의 문제가 그대로 남고, 동작과 재부팅 후 유지 여부를 확인하지 못했다.
 
 ## 공식 문서 대조 (2026-10-23)
 
