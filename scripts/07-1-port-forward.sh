@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# 07. Kubeflow 를 tailnet 에 상시 노출 (port-forward 방식: systemd 로 감싼 kubectl port-forward)
+# 07-1. Kubeflow 를 tailnet 에 상시 노출 (port-forward 방식: systemd 로 감싼 kubectl port-forward)
 #
 # 왜: kubectl port-forward 는 터미널을 닫으면 끊기고 127.0.0.1 에만 열린다. 다른 기기에서 tailnet 주소로 쓰려면
 #     tailnet 주소에 바인딩한 port-forward 를 systemd 가 계속 살려 두어야 한다.
 # 하는 일: /etc/systemd/system/kubeflow-port-forward.service 를 만들고 enable --now. 여러 번 실행해도 안전하다.
 # 접속: http://<tailnet 주소>:8080  (tailscale ip -4)
-# NodePort 방식(포트 30080)은 이 스크립트가 필요 없다. 클러스터를 만들 때 kind-config.yaml 이 연다. 비교는 docs/decisions/0009.
+# NodePort 방식은 07-2-nodeport.sh 가 따로 맡는다. 포트가 달라서 둘 다 켜 둘 수 있다. 비교는 docs/decisions/0009.
 #
-# 선행: 02, 05-1, 06   검증: scripts/verify/07-expose.sh
+# 선행: 02, 05-1, 06   검증: scripts/verify/07-1-port-forward.sh
 # 주의: 비밀번호(.env)를 바꾸기 전에는 tailnet 에도 열지 않는다.
 set -euo pipefail
 source "$(dirname "$0")/lib/common.sh"
@@ -43,4 +43,4 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now kubeflow-port-forward
 sudo systemctl restart kubeflow-port-forward   # tailnet 주소가 바뀐 뒤 다시 실행했을 때 새 주소를 반영한다
 
-log "완료. http://$TAILNET_IP:$PORT  검증: scripts/verify/07-expose.sh"
+log "완료. http://$TAILNET_IP:$PORT  검증: scripts/verify/07-1-port-forward.sh"

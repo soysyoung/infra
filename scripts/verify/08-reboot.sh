@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 08 검증: 재부팅 후 사람이 아무것도 하지 않아도 서버로 돌아왔는가
-# 재부팅하고 로그인하지 않은 채 기다린 뒤(다른 기기에서 tailnet 으로 SSH 하거나 WSL 을 열어) 실행한다.
-# 확인: 서비스(docker, tailscaled, kubeflow-port-forward) -> 노드 컨테이너 재시작 정책 -> 노드 Ready -> tailnet 접속
+# 재부팅하고 몇 분 기다린 뒤 실행한다 (다른 기기에서 tailnet 으로 SSH 하거나 WSL 을 열어).
+# 확인: 서비스(docker, tailscaled) -> 노드 컨테이너 재시작 정책 -> 노드 Ready -> 파드 -> 적용된 노출 방식의 tailnet 접속
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
-for s in docker tailscaled kubeflow-port-forward; do
+for s in docker tailscaled; do
   systemctl is-active --quiet "$s" || die "$s 서비스가 실행 중이 아닙니다 (systemctl status $s)."
   log "$s: active"
 done
@@ -18,8 +18,16 @@ done
 log "노드 컨테이너 재시작 정책: unless-stopped"
 
 kubectl wait --for=condition=Ready node --all --timeout=300s
-kubectl get pods -A --no-headers | awk '$4!="Running" && $4!="Completed" {bad++; print} END{exit bad>0}' \
-  || die "Running/Completed 가 아닌 파드가 있습니다 (재부팅 직후에는 몇 분 걸릴 수 있으니 잠시 뒤 다시 실행)."
+kubectl get pods -A --no-headers | awk '$4!="Running" && $4!="Completed" {bad++; print} END{exit bad>0}'   || die "Running/Completed 가 아닌 파드가 있습니다 (재부팅 직후에는 몇 분 걸릴 수 있으니 잠시 뒤 다시 실행)."
 
-bash "$(dirname "$0")/07-expose.sh"
+# 적용한 노출 방식만 확인한다. 둘 다 안 했으면 실패.
+checked=0
+if systemctl cat kubeflow-port-forward >/dev/null 2>&1; then
+  bash "$(dirname "$0")/07-1-port-forward.sh"; checked=1
+fi
+if [ "$(kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.spec.type}')" = NodePort ]; then
+  bash "$(dirname "$0")/07-2-nodeport.sh"; checked=1
+fi
+[ "$checked" = 1 ] || die "port-forward 방식(07-1)도 NodePort 방식(07-2)도 적용되어 있지 않습니다."
+
 log "OK: 서비스, 노드, Kubeflow 접속이 모두 정상. 재부팅 시험이라면 위 WSL 가동 시간이 재부팅 이후만큼 짧아야 한다."

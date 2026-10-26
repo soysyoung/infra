@@ -16,7 +16,7 @@ kubeadmConfigPatches:
 nodes:
   - role: control-plane
     image: ${KIND_NODE_IMAGE}
-    # NodePort 방식 (docs/decisions/0009): istio 게이트웨이 NodePort 30080 을 tailnet 주소로 연다. 생성할 때만 정해지고 나중에 바꿀 수 없다.
+    # NodePort 방식 (docs/decisions/0009, scripts/07-2-nodeport.sh): 노드 30080 을 tailnet 주소의 30080 으로 연다. 생성할 때만 정해지고 나중에 바꿀 수 없다.
     extraPortMappings:
       - containerPort: 30080
         hostPort: 30080

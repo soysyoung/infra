@@ -36,3 +36,13 @@ confirm() {
   answer=${answer//[[:space:]]/}   # 앞뒤 공백이 섞여 들어와도 허용한다
   [ "${answer,,}" = yes ] || die "취소했습니다 (입력: '$answer')."
 }
+
+# --- verify/07-* 용: tailnet 주소로 oauth2-proxy -> Dex 리다이렉트가 오는지 본다. 인자: <주소:포트>
+login_flow_ok() {
+  local r
+  r=$(curl -s -m 5 -o /dev/null -w '%{redirect_url}' "http://$1/oauth2/start" || true)
+  case "$r" in
+    */dex/auth*) log "$1: OK  ($r)" ;;
+    *)           log "$1: 응답 없음 또는 로그인 흐름이 아님"; return 1 ;;
+  esac
+}
