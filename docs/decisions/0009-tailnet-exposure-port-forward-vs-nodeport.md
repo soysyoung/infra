@@ -36,7 +36,7 @@ NodePort 방식은 Service 만 바꿔서는 접속되지 않았다. `istio-syste
 - "보안상 서비스는 ClusterIP 만 쓰고 NodePort 나 그와 비슷하게 위험한 것은 쓰지 않는다." 꼭 HTTP 여야 하면 각 웹앱에 `APP_SECURE_COOKIES=false` 를 줄 수 있지만 권장하지 않는다.
 
 우리에게 미치는 영향 (시험 전, 문서 문장에서 추론):
-- 두 방식 모두 `http://100.83.193.87:<포트>` 로 접속한다. 로그인 화면과 대시보드까지는 확인했지만, **Jupyter 웹앱(Notebook 생성) 등 웹앱은 시험하지 않았다.** 공식 문서대로면 tailnet 주소(HTTP)에서는 깨질 가능성이 높다. 이전 절의 "http 로 로그인할 수 있다" 는 oauth2-proxy 쿠키(`FORCE_HTTPS=false`)에 대한 말이었고 웹앱까지 보증하지 않는다.
+- 두 방식 모두 `http://<tailnet IP>:<포트>` 로 접속한다. 로그인 화면과 대시보드까지는 확인했지만, **Jupyter 웹앱(Notebook 생성) 등 웹앱은 시험하지 않았다.** 공식 문서대로면 tailnet 주소(HTTP)에서는 깨질 가능성이 높다. 이전 절의 "http 로 로그인할 수 있다" 는 oauth2-proxy 쿠키(`FORCE_HTTPS=false`)에 대한 말이었고 웹앱까지 보증하지 않는다.
 - NodePort 방식은 공식이 권하지 않는 방식이고, 동작시키려고 게이트웨이 8080 을 모든 파드에 여는 NetworkPolicy 까지 더했다.
 
 공식 문서에 맞는 후보 (미시험):
