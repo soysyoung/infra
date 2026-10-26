@@ -22,4 +22,4 @@ kubectl get pods -A --no-headers | awk '$4!="Running" && $4!="Completed" {bad++;
   || die "Running/Completed 가 아닌 파드가 있습니다 (재부팅 직후에는 몇 분 걸릴 수 있으니 잠시 뒤 다시 실행)."
 
 bash "$(dirname "$0")/07-expose.sh"
-log "OK: 재부팅 후 서비스, 노드, Kubeflow 접속이 모두 돌아옴"
+log "OK: 서비스, 노드, Kubeflow 접속이 모두 정상. 재부팅 시험이라면 위 WSL 가동 시간이 재부팅 이후만큼 짧아야 한다."
