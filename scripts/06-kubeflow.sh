@@ -93,5 +93,8 @@ for ns in cert-manager istio-system auth oauth2-proxy knative-serving kubeflow-s
   kubectl wait --for=condition=Available deployment --all -n "$ns" --timeout=900s
 done
 
+# apply 가 Dex 설정을 기본값(사용자 1명)으로 되돌렸으므로, .env 에 두 번째 사용자가 있으면 다시 반영한다 (없으면 건너뜀).
+bash "$ROOT/scripts/06-2-extra-user.sh"
+
 log "완료. 검증: scripts/verify/06-kubeflow.sh"
 echo "접속: kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80  ->  http://localhost:8080"
