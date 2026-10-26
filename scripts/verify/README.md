@@ -211,4 +211,22 @@ node/mlops-worker3 condition met
 ==> OK: 재부팅 후 서비스, 노드, Kubeflow 접속이 모두 돌아옴
 ```
 
-방식 C 가 "응답 없음" 인 것은 정상이다 (현재 클러스터에 포트 매핑이 없다, [ADR 0009](../../docs/decisions/0009-tailnet-exposure-a-vs-c.md)). 마지막 줄의 "재부팅 후" 는 스크립트의 고정 문구라 이 출력이 재부팅을 증명하지 않는다. 재부팅 후 출력은 아직 없다.
+방식 C 가 "응답 없음" 인 것은 정상이다 (현재 클러스터에 포트 매핑이 없다, [ADR 0009](../../docs/decisions/0009-tailnet-exposure-a-vs-c.md)). 마지막 줄의 "재부팅 후" 는 스크립트의 고정 문구라 이 출력이 재부팅을 증명하지 않는다. 재부팅 후 출력 (2026-10-26 10:32, '다시 시작' 재부팅 약 5분 뒤. WSL 가동 시간이 4분이다):
+
+```text
+### WSL 가동: up 4 minutes  / 지금 10:32:34
+==> docker: active
+==> tailscaled: active
+==> kubeflow-port-forward: active
+==> WSL 가동 시간: up 4 minutes
+==> 노드 컨테이너 재시작 정책: unless-stopped
+node/mlops-control-plane condition met
+node/mlops-worker condition met
+node/mlops-worker2 condition met
+node/mlops-worker3 condition met
+==> 방식 A (100.83.193.87:8080): OK  (http://100.83.193.87:8080/dex/auth?client_id=kubeflow-oidc-authservice&...)
+==> 방식 C (100.83.193.87:30080): 응답 없음 또는 로그인 흐름이 아님
+==> OK: tailnet 주소로 Kubeflow 로그인 흐름(oauth2-proxy -> Dex)이 동작함
+```
+
+Ready 시각(UTC): oauth2-proxy 01:28:04, istio 게이트웨이와 dex 01:28:43. 노드 컨테이너 StartedAt 01:27:52 (KST 10:27:52). 타임라인과 한계는 [ADR 0010](../../docs/decisions/0010-reboot-recovery.md).

@@ -32,7 +32,7 @@
 
 ## 열린 항목
 
-- 재부팅 후 전체 복구 (자동 시작 작업, 노드 재시작, tailscaled 와 Docker 의 기동 순서)는 구성만 했고 시험 전이다 ([ADR 0010](decisions/0010-reboot-recovery.md)). 기동 순서: API 서버가 tailnet 주소에 바인딩되어 있어서 tailscaled 가 늦으면 노드 컨테이너가 시작에 실패할 수 있다. `windows/autostart.ps1` 단계에서 확인한다.
+- 재부팅 후 전체 복구 (자동 시작 작업, 노드 재시작)는 2026-10-26 '다시 시작' 1회로 통과했다. 비밀번호 로그인 화면, '종료' 후 전원 켜기, 덮개 닫기는 시험 전이다 ([ADR 0010](decisions/0010-reboot-recovery.md)). 기동 순서(이번에는 tailscaled 가 먼저 떴지만 1회 관찰): API 서버가 tailnet 주소에 바인딩되어 있어서 tailscaled 가 늦으면 노드 컨테이너가 시작에 실패할 수 있다. `windows/autostart.ps1` 단계에서 확인한다.
 - `/etc/sysctl.d` 의 inotify 설정이 재부팅 후에도 유지되는지 (systemd 가 켜져 있어 유지될 것으로 보나 확인하지 않았다).
 - 클러스터를 지우면 GPU 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-2` 가 매번 다시 하지만 외부 apt 저장소가 필요하다.
 - Kubeflow 로그인 비밀번호는 `.env` 로 바꾸고 `06` 이 반영한다. 바꾼 비밀번호로 로그인되는 것을 확인했다 (2026-10-23, 해시는 dex 문서 예시의 `$2y$` 접두사에 맞춤). 로그인 후 기능(Pipelines 실행, Notebook 생성, GPU Notebook)은 아직 시험하지 않았다.

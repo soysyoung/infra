@@ -1,6 +1,6 @@
 # 0010. 재부팅 후 자동 복구: 예약 작업, kind 재시작 정책, 전원 설정
 
-- 상태: 구성함, **재부팅 시험 전** (2026-10-23)
+- 상태: 구성함, **재부팅 시험 1회 통과** (구성 2026-10-23, 시험 2026-10-26). 한계는 아래 '아직 모르는 것'
 
 ## 상황
 원격 서버로 쓰려면 재부팅(윈도우 업데이트, 정전)이나 유휴 뒤에 사람이 로그인하지 않아도 Kubeflow 접속이 돌아와야 한다. 확인한 사실:
@@ -28,12 +28,17 @@
 | `vmIdleTimeout` | VM 이 유휴일 때 종료까지의 시간, 기본 60000ms ([문서](https://learn.microsoft.com/en-us/windows/wsl/wsl-config)) | 옵션은 건드리지 않음 | "유휴"의 정의와 `sleep` 프로세스가 이를 막는지는 문서에 없다 (아래 미검증) |
 | `powercfg /change` | `standby-timeout-ac`, `hibernate-timeout-ac` 가 있고 값은 분 ([문서](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/powercfg-command-line-options)) | 둘 다 0 | 일치 (0 이 "안 함"이라는 문장은 추출된 문서에 없었다. 실행 후 `powercfg /query` 로 확인) |
 
-## 미검증 (재부팅 시험으로 확인)
-- S4U 로 부팅 때 실행한 `wsl.exe` 가 배포판을 띄우고 유지하는지. S4U 는 네트워크 접근이 없다고 하지만 WSL 의 네트워크는 VM 의 것이라 영향이 없을 것으로 **추정**한다.
-- `sleep infinity` 프로세스가 유휴 종료를 막는지.
-- 재부팅 후 `tailscaled` 가 Docker 보다 늦게 떠서 kind API 서버(tailnet 주소 바인딩)나 노드 컨테이너가 시작에 실패하는지 ([troubleshooting.md](../troubleshooting.md) 열린 항목).
-- 재시작 뒤 kind 노드의 IP 가 바뀌어 클러스터가 깨지는지.
-- 덮개를 닫았을 때의 동작: 제어판에서 '아무 것도 안 함' 으로 직접 바꿨고, `powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` 으로 AC/DC 모두 `0x00000000`(아무 것도 안 함)임을 확인했다 (2026-10-23). 숨김 설정이라 `/query` 에는 나오지 않고 `/qh` 로 조회된다. 스크립트가 설정하지는 않는다. 덮개를 닫은 채 재부팅 시험에서 동작하는지는 시험 전이다.
+## 재부팅 시험 결과 (2026-10-26, 1회)
+'다시 시작' 으로 재부팅했다. 시각(KST): Windows 부팅 10:27:15 -> `wsl-keepalive` 실행 10:27:36 -> 바탕화면 10:27:41 -> WSL VM, `tailscaled` 10:27:50 -> kind 노드 4개 10:27:52 -> Kubeflow 게이트웨이와 dex Ready 10:28:43. 08 은 통과했고 출력은 [verify/README.md](../../scripts/verify/README.md).
+
+- S4U 로 실행한 `wsl.exe` 가 배포판을 띄웠다 (확인). 작업이 바탕화면보다 먼저 돌았다. 다만 이 PC 는 비밀번호가 없어 자동으로 로그인되므로 '로그온 세션이 아예 없는 상태' 까지는 확인하지 못했다.
+- 노드 컨테이너가 사람의 조작 없이 시작됐다 (`unless-stopped`, `docker inspect` 의 StartedAt 이 WSL 시작 2초 뒤).
+- `tailscaled` 가 노드보다 먼저 떠서 API 서버(tailnet 주소 바인딩)도 문제없었다. **1회 관찰이라 순서가 보장된다는 뜻은 아니다.**
+- 노드 IP 변경으로 클러스터가 깨지지 않았다 (노드 4개 모두 Ready).
+
+## 아직 모르는 것
+- 윈도우 비밀번호 로그인 화면이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작 `HiberbootEnabled=1`), 덮개를 닫은 채의 동작.
+- `sleep infinity` 프로세스가 유휴 종료를 막는지. 작업이 없던 기간에도 WSL 이 2일 넘게 켜져 있었으므로 켜진 뒤 유지에는 필요 없을 수 있다. 재부팅 뒤 WSL 을 띄우는 역할은 이 작업이 했다.
 
 ## 시험 절차
 1. 관리자 PowerShell: `windows\autostart.ps1`, `windows\power-settings.ps1`

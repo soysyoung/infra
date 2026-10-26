@@ -13,8 +13,8 @@
 - 2026-10-23 (1차 설치): `00` ~ `06` 전체 설치와 검증 통과 (kind 4노드, GPU 노드의 파드에서 RTX 5080 확인, Kubeflow 26.03.1 로그인 흐름). 이어서 삭제 스크립트로 WSL 까지 지웠다.
 - 2026-10-23 (재설치, **진행 중**): 처음부터 다시 설치해 `06` 까지 실행했다. 각 단계의 검증 결과는 아직 기록하지 않았다 (`scripts/verify/README.md` 에 실행 후 반영). 로그인 비밀번호는 `.env` 로 정한다.
 - 2026-10-23: `.env` 비밀번호 반영(`06`)과 tailnet 상시 접속 방식 A (`07-expose.sh`)를 실행했고, 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 새 비밀번호 로그인을 확인했다 ([ADR 0009](docs/decisions/0009-tailnet-exposure-a-vs-c.md)).
-- **아직 시험하지 못한 것**: 방식 C (kind `extraPortMappings` + NodePort, 클러스터 재생성 필요), 재부팅 후 A 의 동작, `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
-- 2026-10-23: 재부팅 후 자동 복구를 구성했다: `windows/autostart.ps1`(부팅 때 WSL 유지), `windows/power-settings.ps1`, kind 노드 재시작 정책(`05-1`), `scripts/verify/08-reboot.sh` ([ADR 0010](docs/decisions/0010-reboot-recovery.md)). **재부팅 시험은 아직 하지 않았다.**
+- **아직 시험하지 못한 것**: 방식 C (kind `extraPortMappings` + NodePort, 클러스터 재생성 필요), `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
+- 2026-10-23: 재부팅 후 자동 복구를 구성했다: `windows/autostart.ps1`(부팅 때 WSL 유지), `windows/power-settings.ps1`, kind 노드 재시작 정책(`05-1`), `scripts/verify/08-reboot.sh` ([ADR 0010](docs/decisions/0010-reboot-recovery.md)). 2026-10-26 '다시 시작' 재부팅 시험 1회 통과 (WSL, 서비스, 노드, Kubeflow 접속이 사람의 조작 없이 돌아옴).
 - 다음 할 일과 시험 목록은 [docs/todo.md](docs/todo.md).
 
 ## 문서
