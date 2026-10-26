@@ -193,4 +193,22 @@ bash scripts/verify/08-reboot.sh
 
 재부팅하고 로그인하지 않은 채 기다린 뒤 실행한다. `docker`, `tailscaled`, `kubeflow-port-forward` 서비스, 노드 컨테이너의 재시작 정책(`unless-stopped`), 노드 Ready, 파드 상태, tailnet 접속(`07` 검증)을 차례로 확인한다. 근거는 [ADR 0010](../../docs/decisions/0010-reboot-recovery.md).
 
-실제 출력: **아직 재부팅하지 않았다.**
+실제 출력 (2026-10-26, **재부팅 전** 상태. WSL 가동 시간이 2일 12시간이라 재부팅 시험이 아니다. 긴 리다이렉트 주소는 줄였다):
+
+```text
+==> docker: active
+==> tailscaled: active
+==> kubeflow-port-forward: active
+==> WSL 가동 시간: up 2 days, 12 hours, 25 minutes
+==> 노드 컨테이너 재시작 정책: unless-stopped
+node/mlops-control-plane condition met
+node/mlops-worker condition met
+node/mlops-worker2 condition met
+node/mlops-worker3 condition met
+==> 방식 A (100.83.193.87:8080): OK  (http://100.83.193.87:8080/dex/auth?client_id=kubeflow-oidc-authservice&...)
+==> 방식 C (100.83.193.87:30080): 응답 없음 또는 로그인 흐름이 아님
+==> OK: tailnet 주소로 Kubeflow 로그인 흐름(oauth2-proxy -> Dex)이 동작함
+==> OK: 재부팅 후 서비스, 노드, Kubeflow 접속이 모두 돌아옴
+```
+
+방식 C 가 "응답 없음" 인 것은 정상이다 (현재 클러스터에 포트 매핑이 없다, [ADR 0009](../../docs/decisions/0009-tailnet-exposure-a-vs-c.md)). 마지막 줄의 "재부팅 후" 는 스크립트의 고정 문구라 이 출력이 재부팅을 증명하지 않는다. 재부팅 후 출력은 아직 없다.
