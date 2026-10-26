@@ -22,14 +22,18 @@
 - [x] 결과를 ADR 0010 의 '미검증' 과 troubleshooting 열린 항목에 반영
 - [ ] (선택) 위 (2)(3): '종료' 후 전원 켜기, 덮개를 닫은 채 재부팅 없이 몇 분 둔 뒤 핸드폰 접속
 
-## NodePort 방식 시험 ([ADR 0009](decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md))
+## HTTPS 접속 시험 ([ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md))
 
-port-forward 방식은 확인했다. NodePort 방식은 호스트 포트 매핑이 **클러스터를 만들 때만** 정해져서, 지금 클러스터에는 없다.
+NodePort 는 쓰지 않기로 했다 (공식 비권장, HTTP 로는 웹앱이 깨짐). 아래 순서로 HTTPS 경로를 시험한다.
 
-- [ ] Kubeflow 안에 보존할 데이터가 없으므로(2026-10-26 사용자 확인) 기능 시험보다 먼저 해도 된다. 클러스터를 다시 만들면 안의 데이터는 사라진다.
-- [ ] 클러스터만 다시 만들기: [scripts/README.md](../scripts/README.md) '클러스터만 다시 만들기'
-- [ ] `bash scripts/07-2-nodeport.sh` 실행 후 `bash scripts/verify/07-2-nodeport.sh` 가 OK 인지, `verify/07-1-port-forward.sh` 와 함께 공존하는지 (`docker port mlops-control-plane` 에 30080 매핑이 보이는 것은 2026-10-26 확인)
-- [ ] port-forward 와 NodePort 중 상시로 쓸 방식을 정하고 ADR 0009 의 '결정' 을 갱신 (선호는 NodePort)
+- [ ] 수동으로 띄운 `kubectl port-forward`(pid 58715, 127.0.0.1:8080) 종료: `kill 58715`
+- [ ] `bash scripts/07-1-port-forward.sh` -> `bash scripts/verify/07-1-port-forward.sh`, 이 PC 에서 `http://localhost:8080`
+- [ ] Tailscale 관리 콘솔 DNS 페이지에서 MagicDNS 와 HTTPS Certificates 켜기
+- [ ] `bash scripts/07-3-tailscale-serve.sh` -> `bash scripts/verify/07-3-tailscale-serve.sh` (리다이렉트가 `https://` 를 유지해야 한다)
+- [ ] 핸드폰에서 `https://<기기>.<tailnet>.ts.net` 접속, 로그인, **Notebook 생성** (이것이 핵심 시험)
+- [ ] 재부팅 후 `tailscale serve` 가 저절로 다시 공유되는지 (`verify/08-reboot.sh`)
+- [ ] 쓰지 않는 NodePort 설정 정리: `kubectl --context kind-mlops -n istio-system delete networkpolicy allow-ingress-to-gateway-nodeport`, Service 는 `06` 재실행 또는 클러스터 재생성
+- [ ] (정리) 쓰지 않는 `07-2-nodeport.sh`, `verify/07-2-nodeport.sh`, `kind-config.yaml` 의 30080 매핑을 삭제할지 결정
 
 ## 기능 시험
 

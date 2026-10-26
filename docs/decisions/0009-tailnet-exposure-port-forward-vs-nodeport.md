@@ -1,6 +1,6 @@
 # 0009. Kubeflow 를 tailnet 에 여는 방식: port-forward (systemd 서비스) 와 NodePort (직결)
 
-- 상태: 두 방식 모두 구성함. **port-forward 방식은 시험함** (2026-10-23: `06` 재실행 -> `07-expose.sh`(지금의 `07-1-port-forward.sh`) -> `verify/07-expose.sh`(지금의 `verify/07-1-port-forward.sh` 와 `07-2-nodeport.sh` 로 나뉨) 를 실행했고 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 `.env` 의 새 비밀번호로 로그인을 확인했다). **NodePort 방식은 아직 시험하지 못했다** (클러스터를 다시 만들어야 한다)
+- 상태: **[ADR 0011](0011-no-nodeport-https-via-tailscale-serve.md) 로 대체됨 (2026-10-26).** NodePort 방식은 쓰지 않기로 했다. 이 문서는 두 방식을 비교하고 시험한 기록으로 남긴다. 시험 결과: port-forward 방식은 tailnet 주소(HTTP)로 접속과 로그인을 확인했고(2026-10-23), NodePort 방식은 Kubeflow 의 NetworkPolicy 를 보완해야 접속됐다(2026-10-26).
 
 ## 상황
 `kubectl port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 tailnet 주소로 Kubeflow 를 상시 쓰려면 tailnet 주소에서 받아 주는 경로가 필요하다. 접속은 Tailscale 하나로 일원화하고 공유기 포트포워딩은 쓰지 않는다 ([architecture.md](../architecture.md)).

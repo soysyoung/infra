@@ -175,16 +175,16 @@ deployment.apps/seaweedfs condition met
 - **로그인 전 `/` 는 `HTTP 403` 이 정상이다.** 응답 본문이 oauth2-proxy 의 "Sign In" 페이지이고 게이트웨이 로그에 `ext_authz_denied` 가 찍힌다. 처음에는 이 403 을 실패로 판정하는 검증을 썼다가 고쳤다 ([troubleshooting.md](../../docs/troubleshooting.md) 15번).
 - `Running/Completed 가 아닌 파드가 있습니다` 이면 `kubectl get pods -A` 로 확인한다. `Init:Error` 면 [troubleshooting.md](../../docs/troubleshooting.md) 10번이다 (`06-kubeflow.sh` 를 다시 실행하면 정리된다).
 
-## 07-1-port-forward.sh, 07-2-nodeport.sh
+## 07-1-port-forward.sh, 07-3-tailscale-serve.sh (07-2-nodeport.sh 는 쓰지 않음)
 
 ```bash
-bash scripts/verify/07-1-port-forward.sh   # port-forward 방식: <tailnet 주소>:8080
-bash scripts/verify/07-2-nodeport.sh       # NodePort 방식:     <tailnet 주소>:30080
+bash scripts/verify/07-1-port-forward.sh   # http://127.0.0.1:8080
+bash scripts/verify/07-3-tailscale-serve.sh   # https://<기기>.<tailnet>.ts.net
 ```
 
-각각 tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지 확인한다. `07-1` 은 `kubeflow-port-forward` 서비스가 실행 중인지도 본다. 적용한 방식만 돌리면 된다. 두 방식의 비교는 [ADR 0009](../../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md).
+각각 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지 확인한다. `07-1` 은 `kubeflow-port-forward` 서비스가 실행 중인지도 본다. `07-3` 은 리다이렉트가 **`https://` 를 유지하는지**도 본다 (`http://` 로 떨어지면 Secure 쿠키가 거부된다). `07-2-nodeport.sh` 의 검증(`verify/07-2-nodeport.sh`)은 시험 기록용이다. 결정 근거는 [ADR 0011](../../docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md).
 
-실제 출력: **아직 없다.** 2026-10-26 까지는 두 방식을 한 스크립트(`verify/07-expose.sh`, 지금은 없음)가 함께 확인했고, 그 출력은 아래 08 절에 있다 (당시 라벨은 '방식 A / 방식 C').
+실제 출력: **아직 없다.** 2026-10-26 까지는 `verify/07-expose.sh`(지금은 없음) 한 스크립트가 tailnet 주소의 HTTP 8080(port-forward)과 30080(NodePort)을 함께 확인했고, 그 출력은 아래 08 절에 있다 (당시 라벨은 '방식 A / 방식 C').
 
 ## 08-reboot.sh
 

@@ -4,7 +4,7 @@
 
 | 순서 | 스크립트 | 지우는 것 | 순서가 중요한 이유 |
 |---|---|---|---|
-| 0 | `07-1-port-forward.sh` | tailnet 노출 서비스 `kubeflow-port-forward` (port-forward 방식) | 클러스터가 사라지면 접속할 곳이 없어 재시작만 반복하므로 먼저 지운다. NodePort 방식(`07-2`)은 클러스터와 함께 사라져서 삭제 스크립트가 없다 |
+| 0 | `07-1-port-forward.sh` | systemd 서비스 `kubeflow-port-forward` | 클러스터가 사라지면 접속할 곳이 없어 재시작만 반복하므로 먼저 지운다. `07-3` 의 `tailscale serve` 설정은 따로 지우지 않는다: 02 의 `tailscale logout` 과 `/var/lib/tailscale` 삭제와 함께 사라진다(추정, 시험 전). 하나만 끄려면 `sudo tailscale serve --https=443 off` |
 | 1 | `06-kubeflow.sh` | 공식 저장소 클론(`~/.cache/infra`), kustomize | Kubeflow 워크로드는 클러스터 안에 있어서 2번에서 함께 사라진다 |
 | 2 | `05-kind-cluster.sh` | kind 클러스터(Kubeflow, device plugin, GPU 노드 설정 포함), kind, kubectl, inotify 설정 | Docker 가 살아 있어야 `kind delete cluster` 가 노드 컨테이너를 지울 수 있다 |
 | 3 | `04-nvidia-toolkit.sh` | NVIDIA Container Toolkit, apt 저장소 | `daemon.json` 을 03 상태로 먼저 되돌리고 Docker 를 재시작한 뒤 패키지를 지운다. 거꾸로 하면 Docker 가 없어진 nvidia 런타임을 찾다가 시작에 실패한다 |

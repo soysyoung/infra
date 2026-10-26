@@ -40,11 +40,11 @@ bash scripts/05-3-device-plugin.sh    # device plugin (GPU 노드에만)
 bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드)
 bash scripts/06-kubeflow.sh           # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
 bash scripts/verify/06-kubeflow.sh
-# tailnet 주소로 상시 접속 (선택, 아래 둘 중 하나 또는 둘 다. 비교는 ADR 0009)
-bash scripts/07-1-port-forward.sh    # port-forward 방식: systemd 로 감싼 kubectl port-forward -> :8080
+# 접속 (ADR 0011). 이 PC 는 07-1 만으로 충분하고, 다른 기기(핸드폰 등)는 07-3 까지 한다
+bash scripts/07-1-port-forward.sh     # systemd 로 감싼 kubectl port-forward -> http://localhost:8080
 bash scripts/verify/07-1-port-forward.sh
-bash scripts/07-2-nodeport.sh        # NodePort 방식: 게이트웨이를 NodePort 로 -> :30080 (kind 포트 매핑이 있는 클러스터 필요)
-bash scripts/verify/07-2-nodeport.sh
+bash scripts/07-3-tailscale-serve.sh  # tailscale serve 로 HTTPS -> https://<기기>.<tailnet>.ts.net (관리 콘솔에서 MagicDNS, HTTPS 인증서를 먼저 켠다)
+bash scripts/verify/07-3-tailscale-serve.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
@@ -52,21 +52,24 @@ bash scripts/verify/07-2-nodeport.sh
 ## Kubeflow 접속
 
 ```bash
-kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80   # http://localhost:8080
+bash scripts/07-1-port-forward.sh   # 상시 서비스로 띄운다 -> http://localhost:8080 (수동으로 kubectl port-forward 를 띄우면 07-1 과 포트가 겹친다)
 ```
 
 로그인은 `user@example.com` 이고, 비밀번호는 저장소 루트의 `.env` (git 제외) 의 `KUBEFLOW_PASSWORD` 다. 바꾼 뒤 `bash scripts/06-kubeflow.sh` 를 다시 실행하면 dex 에 반영된다. `.env` 가 없으면 공개된 기본값 `12341234` 이므로 바꾸기 전에는 외부에 노출하지 않는다 ([ADR 0005](../docs/decisions/0005-kubeflow-26.03.1.md)). 파드는 `kubectl get po -A` 로 본다 (Kubeflow 는 `default` 가 아닌 네임스페이스에 있다).
 
-## 상시 접속 (tailnet)
+## 접속 방식 (ADR 0011)
 
-`port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 쓰려면 두 방식이 있고 차이는 [ADR 0009](../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md) 에 정리했다.
+Kubeflow 공식 문서의 기본 접속은 `kubectl port-forward` 이고, NodePort 는 권하지 않는다. 웹앱(Jupyter 등)이 Secure 쿠키를 써서 **localhost 가 아닌 주소에 HTTP 로 접속하면 동작하지 않기** 때문이다. 그래서 게이트웨이 Service 는 ClusterIP 로 두고 다음처럼 쓴다. 근거와 NodePort 를 쓰지 않는 이유는 [ADR 0011](../docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md).
 
-- **port-forward 방식** `bash scripts/07-1-port-forward.sh` -> `http://<tailnet 주소>:8080` (`tailscale ip -4`). systemd 서비스 `kubeflow-port-forward` 를 만든다. 기존 클러스터에도 바로 된다. 검증 `verify/07-1-port-forward.sh`
-- **NodePort 방식** `bash scripts/07-2-nodeport.sh` -> `http://<tailnet 주소>:30080`. 게이트웨이 Service 를 NodePort 30080 으로 바꾸고, Kubeflow 의 NetworkPolicy 가 막는 게이트웨이 8080 을 허용하는 정책을 더한다 ([troubleshooting.md](../docs/troubleshooting.md) 23번). 호스트 포트는 클러스터를 만들 때 `kind-config.yaml` 의 `extraPortMappings` 가 열어 두므로(`05-1`), 이미 만든 클러스터에 매핑이 없으면 스크립트가 알려 주고, 지우고 `05-1` 부터 다시 해야 한다. `06` 을 다시 실행하면 Service 가 원래대로 돌아가므로 `07-2` 도 다시 실행한다. 검증 `verify/07-2-nodeport.sh`
+| 어디서 | 방법 | 주소 |
+|---|---|---|
+| 이 PC (Windows 브라우저 포함) | `07-1-port-forward.sh` | `http://localhost:8080` |
+| tailnet 의 다른 기기 (핸드폰 등) | `07-1` + `07-3-tailscale-serve.sh` | `https://<기기>.<tailnet>.ts.net` |
 
-**이 PC 의 Windows 브라우저에서는 tailnet 주소(`100.x.x.x`)로 접속되지 않는다.** Tailscale 이 WSL 안에만 있어서 Windows 에는 그 주소가 없다 (2026-10-26: Windows 에서 `:8080` 과 `:30080` 모두 타임아웃, `ipconfig` 에 주소 없음). 접속 확인은 핸드폰 같은 **다른 tailnet 기기**에서 한다. WSL 안에서는 `curl http://<tailnet 주소>:<포트>/oauth2/start` 가 302 로 `/dex/auth` 를 가리키면 서버 쪽은 정상이다.
-
-두 방식은 포트가 달라서 함께 켜 둘 수 있다. 둘 다 `.env` 의 비밀번호를 바꾼 뒤에 연다. 재부팅 후 확인은 `verify/08-reboot.sh` 가 적용된 방식만 골라 본다.
+- **이 PC 의 Windows 브라우저에서는 tailnet 주소(`100.x.x.x`)로 접속되지 않는다.** Tailscale 이 WSL 안에만 있어서 Windows 에는 그 주소가 없다 (2026-10-26: `:8080`, `:30080` 모두 타임아웃, `ipconfig` 에 주소 없음). 이 PC 는 `localhost` 를 쓴다.
+- `07-3` 은 Tailscale 관리 콘솔의 DNS 페이지에서 **MagicDNS 와 HTTPS Certificates** 를 켜야 한다. 아직 시험하지 못했다.
+- `07-2-nodeport.sh` 는 **사용하지 않는다.** 시험 기록으로 남긴 스크립트다.
+- 쿠키 때문에 클러스터를 다시 만든 뒤 옛 쿠키가 남은 브라우저는 `06` 이 `cookie-secret` 을 새로 만들어 로그인 화면으로 돌아간다 ([troubleshooting.md](../docs/troubleshooting.md) 24번).
 
 ## 재부팅 후 자동 복구
 
@@ -85,7 +88,7 @@ bash scripts/verify/08-reboot.sh
 
 ## 클러스터만 다시 만들기
 
-`kind-config.yaml` 이나 `cluster.env` 를 바꾸면(예: NodePort 방식의 포트 매핑, CPU 워커 수) 클러스터를 지우고 `05-1` 부터 다시 해야 한다. kind 는 만든 뒤에 노드나 포트 매핑을 바꿀 수 없다. Windows 와 WSL 설치(`00`~`04`)와 `07` 서비스는 그대로 둔다.
+`kind-config.yaml` 이나 `cluster.env` 를 바꾸면(예: CPU 워커 수) 클러스터를 지우고 `05-1` 부터 다시 해야 한다. kind 는 만든 뒤에 노드나 포트 매핑을 바꿀 수 없다. Windows 와 WSL 설치(`00`~`04`)와 `07` 서비스는 그대로 둔다.
 
 ```bash
 kind delete cluster --name mlops       # Kubeflow 와 그 안의 데이터(PV)가 사라진다
@@ -93,8 +96,7 @@ bash scripts/05-1-kind-cluster.sh
 bash scripts/05-2-gpu-node.sh          # GPU 노드 컨테이너의 설정은 클러스터와 함께 사라지므로 다시 한다
 bash scripts/05-3-device-plugin.sh
 bash scripts/06-kubeflow.sh            # .env 의 비밀번호도 다시 반영된다
-bash scripts/07-2-nodeport.sh          # NodePort 방식을 쓸 때 (06 이 Service 를 원래대로 되돌리므로 매번)
-bash scripts/verify/07-2-nodeport.sh
+bash scripts/verify/07-1-port-forward.sh
 # port-forward 방식은 systemd 서비스가 그대로 있으니 다시 할 것이 없다 (클러스터가 뜨면 다시 연결된다)
 ```
 
