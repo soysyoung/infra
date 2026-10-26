@@ -13,9 +13,9 @@
 2026-10-26 기준. 새 세션에서 이어 하려면 [docs/todo.md](docs/todo.md) 를 먼저 읽는다.
 
 - **동작 중**: kind 4노드(GPU 워커 포함) + Kubeflow 26.03.1. GPU 노드의 파드에서 RTX 5080 확인. 로그인 비밀번호는 `.env`.
-- **접속**: 이 PC 는 `http://localhost:8080`, 핸드폰 등 tailnet 기기는 `tailscale serve` 의 HTTPS 주소. NodePort 는 쓰지 않는다 ([ADR 0011](docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md)). 핸드폰에서 로그인하고 Notebook 을 만들었다 (파드 2/2 Running, 91초).
+- **접속**: 이 PC 는 `http://localhost:8080`, 핸드폰 등 tailnet 기기는 `tailscale serve` 의 HTTPS 주소. NodePort 는 쓰지 않는다 ([ADR 0011](docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md)). 핸드폰에서 로그인하고 Notebook 을 만들었다 (파드 2/2 Running, 91초). 만든 Notebook 을 JupyterLab 으로 열어 코드를 실행했다 (웹소켓 통과).
 - **재부팅**: 예약 작업이 로그온 없이 WSL 을 띄우고 노드가 저절로 올라온다. '다시 시작' 1회 통과 ([ADR 0010](docs/decisions/0010-reboot-recovery.md)).
-- **아직 시험하지 못한 것**: 만든 Notebook 을 열어 코드 실행, GPU Notebook, Pipelines 실행, 재부팅 후 `tailscale serve` 자동 재개, `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
+- **아직 시험하지 못한 것**: GPU Notebook, Pipelines 실행, 재부팅 후 `tailscale serve` 자동 재개, `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
 - **치우지 못한 것**: 쓰지 않는 NodePort 설정(Service, NetworkPolicy, `07-2`). 정리 순서는 todo.
 - 이력: 2026-10-23 처음부터 재설치와 검증, 2026-10-26 재부팅 복구, 접속 방식 결정, 쿠키 문제 해결.
 

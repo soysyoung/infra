@@ -26,7 +26,7 @@
 ## 다음 할 일 (순서대로)
 
 1. **기능 시험** (핸드폰, HTTPS 주소)
-   - [ ] `test01` 의 Connect 로 JupyterLab 열기, 셀 실행 (웹소켓이 `tailscale serve` 를 통과하는지)
+   - [x] `test01` 의 Connect 로 JupyterLab 열기, 셀 실행 (웹소켓이 `tailscale serve` 를 통과하는지) -> 통과 (2026-10-26): 핸드폰에서 JupyterLab 을 열고 셀을 실행했다. 게이트웨이 로그에서 커널 채널 웹소켓(HTTP 101)과 sessions/kernels API 200 확인 (test01 요청 290건)
    - [ ] GPU Notebook (GPU 워커의 taint 에 맞는 toleration 이 필요한지 확인)
    - [ ] Pipelines 실행
 2. **재부팅 후 `tailscale serve` 자동 재개** 확인: '다시 시작' 후 `bash scripts/verify/08-reboot.sh` (07-3 검증을 함께 돈다)
@@ -55,3 +55,4 @@
 | 2026-10-26 | 접속 방식 결정: NodePort 폐기, port-forward(localhost) + `tailscale serve` HTTPS. 서버 쪽 검증과 핸드폰의 Notebook 생성(200, 파드 91초) 통과 | [ADR 0009](decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md), [ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md) |
 | 2026-10-26 | 옛 세션 쿠키로 JWKS 401 이 나는 문제의 원인 확정, `06` 이 `cookie-secret` 을 새로 만들게 함 | [troubleshooting.md](troubleshooting.md) 24번 |
 | 2026-10-26 | README 를 루트와 `scripts/` 로 분리, `main` 에 README 추가 | [README.md](../README.md) |
+| 2026-10-26 | 핸드폰에서 Notebook 을 JupyterLab 으로 열어 코드 실행 (HTTPS + 웹소켓 통과) | 게이트웨이 로그, [ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md) |
