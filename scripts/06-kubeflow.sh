@@ -8,6 +8,7 @@
 #   3) k8s/kubeflow/kustomization.yaml (공식 example 에서 Katib/Trainer/Spark/Hub 만 뺀 것)을 복사해 빌드, server-side apply
 #   4) Istio CNI 가 Ready 가 되도록 보장하고, CNI 없이 만들어져 Init:Error 에 멈춘 파드를 지워 다시 만들게 함
 #   5) 핵심 네임스페이스의 Deployment 가 Available 이 될 때까지 대기
+#   +) .env 의 비밀번호를 dex 에 반영하고, oauth2-proxy 의 cookie-secret 을 설치마다 새로 만든다 (옛 브라우저 쿠키 무효화)
 #   여러 번 실행해도 안전하다 (server-side apply). 중간에 실패하면 같은 명령을 다시 실행하면 된다.
 #
 # 포함되는 공통요소: cert-manager, Istio, Dex, oauth2-proxy, Knative Serving (KServe 기본 모드가 Serverless)
@@ -67,6 +68,16 @@ if [ -n "$pw" ]; then
   kubectl -n auth patch secret dex-passwords -p "{\"stringData\":{\"DEX_USER_PASSWORD\":\"$hash\"}}"
   kubectl -n auth rollout restart deploy/dex   # 비밀번호는 시작할 때만 읽는다
 fi
+
+# oauth2-proxy 의 cookie-secret 은 매니페스트에 공개된 고정값이다. 그대로면 클러스터를 다시 만들어도 브라우저에 남은 옛 세션 쿠키가
+# 통과하고, 옛 dex 키로 서명된 토큰이 붙어 게이트웨이가 "Jwks doesn't have key" 401 을 낸다 (troubleshooting 24번).
+# 설치마다 새로 만들어 옛 쿠키를 무효로 한다. 이미 로그인한 브라우저는 06 을 다시 실행할 때마다 로그인 화면으로 돌아간다.
+# Secret 이름에는 kustomize 가 해시를 붙이므로 Deployment 가 참조하는 이름을 읽는다.
+require_cmd openssl
+cs=$(kubectl -n oauth2-proxy get deploy oauth2-proxy -o jsonpath="{.spec.template.spec.containers[*].env[?(@.name=='OAUTH2_PROXY_COOKIE_SECRET')].valueFrom.secretKeyRef.name}")
+[ -n "$cs" ] || die "oauth2-proxy 의 cookie-secret 시크릿 이름을 찾지 못했습니다."
+kubectl -n oauth2-proxy patch secret "$cs" -p "{\"stringData\":{\"cookie-secret\":\"$(openssl rand -hex 16)\"}}"
+kubectl -n oauth2-proxy rollout restart deploy/oauth2-proxy   # 환경변수는 시작할 때만 읽는다
 
 # Istio CNI 가 준비되기 전에 스케줄된 파드는 istio-validation 이 실패해 Init:Error 에서 멈추고 스스로 복구되지 않는다.
 # CNI 가 Ready 가 된 뒤 그런 파드만 지우면 Deployment 가 CNI 가 있는 상태로 다시 만든다.
