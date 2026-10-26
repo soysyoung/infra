@@ -47,6 +47,7 @@ bash scripts/07-1-port-forward.sh     # systemd 로 감싼 kubectl port-forward 
 bash scripts/verify/07-1-port-forward.sh
 bash scripts/07-3-tailscale-serve.sh  # tailscale serve 로 HTTPS -> https://<기기>.<tailnet>.ts.net (관리 콘솔에서 MagicDNS, HTTPS 인증서를 먼저 켠다)
 bash scripts/verify/07-3-tailscale-serve.sh
+bash scripts/07-4-tailscale-funnel.sh on|off|status   # (선택) tailnet 밖의 사람에게 인터넷으로 공개/해제. 공유할 때만 on 하고 끝나면 off
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
@@ -69,6 +70,7 @@ Kubeflow 공식 문서의 기본 접속은 `kubectl port-forward` 이고, NodePo
 |---|---|---|
 | 이 PC (Windows 브라우저 포함) | `07-1-port-forward.sh` | `http://localhost:8080` |
 | tailnet 의 다른 기기 (핸드폰 등) | `07-1` + `07-3-tailscale-serve.sh` | `https://<기기>.<tailnet>.ts.net` |
+| tailnet 밖의 사람 (Tailscale 계정 없음) | `07-1` + `07-3` + `07-4-tailscale-funnel.sh on` (공유용 계정은 `06-2`) | 위와 같은 주소. 관리자 로그인 화면도 공개되므로 공유할 때만 켠다 |
 
 - **이 PC 의 Windows 브라우저에서는 tailnet 주소(`100.x.x.x`)로 접속되지 않는다.** Tailscale 이 WSL 안에만 있어서 Windows 에는 그 주소가 없다 (2026-10-26: `:8080`, `:30080` 모두 타임아웃, `ipconfig` 에 주소 없음). 이 PC 는 `localhost` 를 쓴다.
 - `07-3` 은 Tailscale 관리 콘솔의 DNS 페이지에서 **MagicDNS 와 HTTPS Certificates** 를 켜야 한다. 아직 시험하지 못했다.
