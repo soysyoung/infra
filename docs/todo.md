@@ -17,12 +17,40 @@
 
 - **Windows**: 예약 작업 `wsl-keepalive`(부팅 때 WSL 을 띄움, 로그온 없이), AC 절전과 최대 절전 끔, 덮개 닫기 '아무 것도 안 함'. Windows 에는 Tailscale 이 없다 (WSL 안에만 있다).
 - **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only).
-- **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1개 광고, 비정상 파드 0. Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01` 이 Running.
+- **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1개 광고, 비정상 파드 0. Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01`, `test03`(CPU) 이 Running (`test02-gpu` 는 중지). 공유용 계정 `guest@example.com`(네임스페이스 `kubeflow-guest-example-com`, GPU 0)이 있고 비밀번호는 `.env` 의 `EXTRA_USER_PASSWORD`. Funnel 은 평소 꺼 둔다 (`07-4 off` 상태가 기본, 공유할 때만 `on`).
 - **접속**: 이 PC 는 `http://localhost:8080` (https 아님). 핸드폰 등 tailnet 기기는 `https://<기기>.<tailnet>.ts.net`. 이 PC 의 Windows 브라우저로는 `.ts.net` 주소가 해석되지 않는다.
 - **남겨 둔 NodePort 흔적**: `kind-config.yaml` 의 30080 매핑, `07-2` 스크립트들 (시험 기록). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
 - **git**: `dev` 에 작업, `main` 은 README 한 파일(작성자 `soysyoung@gmail.com`). `dev` 의 기존 커밋 48개는 작성자 이메일이 `dangim.co.kr` 이다 (히스토리를 다시 쓰지 않기로 했다).
 
-## 다음 할 일 (순서대로)
+## 남은 일 (우선순위 순)
+
+**진행 중**
+1. [ ] **외부 공유 실제 시험** (사용자가 진행): `bash scripts/07-4-tailscale-funnel.sh on` -> 다른 사람이 `https://<기기>.<tailnet>.ts.net` 에 공유용 계정으로 접속 -> 끝나면 반드시 `off`. 결과(접속, 로그인, 자기 네임스페이스만 보이는지, 파이프라인 정의는 공유되는지)를 여기에 기록한다. 켜 둔 동안 관리자 로그인 화면도 공개된다. Let's Encrypt 속도 제한 때문에 켜고 끄기를 자주 반복하지 않는다
+
+**확인만 하면 되는 것** (읽기 전용이거나 명령 한 번)
+2. [ ] SSH: `sudo tailscale set --ssh` 실행 후 다른 기기에서 SSH 접속 확인 (`02` 는 이미 이 형식으로 고쳤다)
+3. [ ] 다음에 `06` 을 전체 재실행할 때 끝의 `06-2` 호출이 정상인지 (아직 시험하지 않았다. `.env` 에 `EXTRA_USER_*` 가 있는 상태에서 `06` 이 `06-2` 를 다시 적용해야 한다)
+4. [ ] GPU Notebook 안에서 `nvidia-smi` 가 RTX 5080 을 보여 주는지 (파드가 GPU 워커에 올라가고 limits 에 `nvidia.com/gpu: 1` 인 것까지만 확인했다)
+
+**공유용 계정을 더 믿고 쓰려면** (아직 하지 않았다)
+5. [ ] 공유용 계정의 CPU, 메모리 할당량 (지금은 파드 20개, 스토리지 20Gi, GPU 0 만 제한한다. KFP 시스템 파드가 requests 없이 거부될 수 있어 일부러 뺐다. 시험 후 추가)
+6. [ ] Dex 로그인 시도 횟수 제한이 있는지 확인 (인터넷에 열 때 비밀번호 대입 공격 대책)
+
+**다음 클러스터 재생성 때**
+7. [ ] 삭제의 수정 경로(패키지 2개 purge, `docker0` 삭제) 실행 확인 ([troubleshooting.md](troubleshooting.md) 18번). `DRY_RUN=1` 먼저
+8. [ ] `kind-config.yaml` 의 30080 매핑과 `07-2` 스크립트(시험 기록) 정리 여부
+9. [ ] 두 번째 사용자 삭제 경로(`kubectl delete profile <이름>`, `.env` 정리, `06` 재실행) 시험
+
+**선택**
+10. [ ] 재부팅의 남은 경우: 로그인 화면(비밀번호)이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작), 덮개를 닫은 채 접속
+11. [ ] [ADR 0012](decisions/0012-official-doc-recheck.md) 의 미확인 항목: `05-1` 노드 재시작 정책의 Docker 문서 인용, `06` 의 kustomize 5.8.1 체크섬, ADR 0006 의 toolkit 1.20.1 WSL2 수정과 CUDA 12.8 요구
+12. [ ] `scripts/verify/00-windows.ps1` 다시 실행 (이번에는 `03`~`06` 만 돌렸다)
+
+**큰 일**
+13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
+14. [ ] IaC (Terraform, 나중에): tailscale ACL 로 이 기기의 6443 접근을 본인 기기로 제한하고 Funnel 사용자를 제한, authkey, 클러스터 플랫폼 구성, ArgoCD 로 Kubeflow 배포 ([architecture.md](architecture.md), [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1)
+
+## 2026-10-26 에 끝낸 일의 상세
 
 1. **기능 시험** (핸드폰, HTTPS 주소)
    - [x] `test01` 의 Connect 로 JupyterLab 열기, 셀 실행 (웹소켓이 `tailscale serve` 를 통과하는지) -> 통과 (2026-10-26): 핸드폰에서 JupyterLab 을 열고 셀을 실행했다. 게이트웨이 로그에서 커널 채널 웹소켓(HTTP 101)과 sessions/kernels API 200 확인 (test01 요청 290건)
@@ -36,17 +64,12 @@
 4. [x] **비밀번호 강화**: `.env` 의 `KUBEFLOW_PASSWORD` 를 바꾸고 `06` 을 다시 실행했다 (3번과 한 번에). 새 비밀번호로 로그인 확인.
 5. **재현성 검증 마무리**
    - [x] `03` 의 `docker.sources` 저장소 등록 확인 (2026-10-26): `/etc/apt/sources.list.d/` 에 `docker.sources` 가 있고 `docker.list` 는 없다. 내용은 `download.docker.com/linux/ubuntu`, `Signed-By: /etc/apt/keyrings/docker.asc`. `verify/03-docker.sh` 는 `hello-world` 만 실행하므로 저장소 등록은 파일을 직접 읽어 확인했다
-   - [ ] 삭제의 수정 경로(패키지 2개 purge, `docker0` 삭제) 실행 확인 ([troubleshooting.md](troubleshooting.md) 18번). `DRY_RUN=1` 먼저
    - [x] `03`~`06` verify 를 다시 실행해 모두 `==> OK` (2026-10-26), 차이점을 verify README 에 반영. `00-windows.ps1` 은 다시 실행하지 않았다
 6. [x] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 ([troubleshooting.md](troubleshooting.md) 5번) -> 2026-10-23 에 삭제함 (사용자 보고)
 7. [x] 이전에 공식 문서 대조 없이 쓴 `00`~`06` 과 ADR 0001~0008 을 다시 대조 (2026-10-26) -> [ADR 0012](decisions/0012-official-doc-recheck.md). 틀린 곳 2개(ADR 0001 지원 종료일, `06` Dex 해시 주석)는 고쳤다. 남은 열린 항목:
    - [x] kind API 서버를 tailnet 주소에 여는 것은 kind 문서의 권고(loopback 유지)와 다르다 -> 다른 기기에서 `kubectl` 을 쓰므로 **유지하기로 했다** (2026-10-26). 근거와 위험은 [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1. 후속: Terraform 에서 tailnet ACL 로 6443 접근을 본인 기기로 제한
-   - [ ] `02` 가 `tailscale up --ssh` 를 썼는데 현재 문서는 `tailscale set --ssh` 다. 스크립트를 문서 형식으로 고쳤다. 이 PC 에서 `sudo tailscale set --ssh` 를 실행하고 다른 기기에서 SSH 로 접속되는지는 아직 확인하지 못했다
-   - [ ] 미확인: `05-1` 노드 재시작 정책의 Docker 문서 인용, `06` 의 kustomize 5.8.1 체크섬, ADR 0006 의 toolkit 1.20.1 WSL2 수정과 CUDA 12.8 요구
-8. [ ] (선택) 재부팅의 남은 경우: 로그인 화면(비밀번호)이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작), 덮개를 닫은 채 접속
-8-1. [ ] 외부 공유: tailnet 밖의 사람이 접속하려면 Tailscale Funnel 로 HTTPS 주소를 인터넷에 연다 (2026-10-26 결정: Funnel 사용). 공유용 계정은 `06-2-extra-user.sh` 로 만들었다. 켜기/끄기는 [scripts/07-4-tailscale-funnel.sh](../scripts/07-4-tailscale-funnel.sh). `on` 을 실행하고 접속을 확인했다 (2026-10-26, 사용자 보고. 출력은 받지 못했다). `off` 를 실행하자 연결이 끊겼다 (사용자 보고). `off` 뒤 `tailscale serve status` 가 `(tailnet only)` 로 `/` -> `http://127.0.0.1:8080` 을 보여 주고 `verify/07-3-tailscale-serve.sh` 가 `==> OK` 였다: 공개는 풀리고 tailnet 안의 HTTPS 는 유지된다. tailnet 밖(핸드폰의 Tailscale 끔)에서는 `ERR_CONNECTION_CLOSED` 로 접속되지 않는다 (사용자 보고). 공유용 계정이 보는 범위: 실험과 Run 은 네임스페이스별로 분리되고, 파이프라인 정의는 모든 네임스페이스가 공유한다 ([공식 문서](https://www.kubeflow.org/docs/components/pipelines/operator-guides/multi-user/)). 주의: 관리자 계정(`user@example.com`)의 로그인 화면도 같은 주소로 공개된다
-9. [ ] 위가 끝나면 `dev` -> `main` PR (`main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
-10. [ ] IaC: Terraform 으로 tailscale ACL/authkey 와 클러스터 플랫폼 구성, ArgoCD 로 Kubeflow 배포 ([architecture.md](architecture.md))
+   - `02` 의 `tailscale up --ssh` 는 현재 문서 형식(`tailscale set --ssh`)으로 고쳤다. 실행 확인은 위 '남은 일' 2번
+8-1. [x] 외부 공유 구성과 켜기/끄기 시험 (실제 다른 사용자 공유 시험은 위 '남은 일' 1번): tailnet 밖의 사람이 접속하려면 Tailscale Funnel 로 HTTPS 주소를 인터넷에 연다 (2026-10-26 결정: Funnel 사용). 공유용 계정은 `06-2-extra-user.sh` 로 만들었다. 켜기/끄기는 [scripts/07-4-tailscale-funnel.sh](../scripts/07-4-tailscale-funnel.sh). `on` 을 실행하고 접속을 확인했다 (2026-10-26, 사용자 보고. 출력은 받지 못했다). `off` 를 실행하자 연결이 끊겼다 (사용자 보고). `off` 뒤 `tailscale serve status` 가 `(tailnet only)` 로 `/` -> `http://127.0.0.1:8080` 을 보여 주고 `verify/07-3-tailscale-serve.sh` 가 `==> OK` 였다: 공개는 풀리고 tailnet 안의 HTTPS 는 유지된다. tailnet 밖(핸드폰의 Tailscale 끔)에서는 `ERR_CONNECTION_CLOSED` 로 접속되지 않는다 (사용자 보고). 공유용 계정이 보는 범위: 실험과 Run 은 네임스페이스별로 분리되고, 파이프라인 정의는 모든 네임스페이스가 공유한다 ([공식 문서](https://www.kubeflow.org/docs/components/pipelines/operator-guides/multi-user/)). 주의: 관리자 계정(`user@example.com`)의 로그인 화면도 같은 주소로 공개된다
 
 ## 끝낸 것 (근거)
 
