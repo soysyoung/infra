@@ -19,27 +19,26 @@
 - **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only).
 - **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1개 광고, 비정상 파드 0. Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01` 이 Running.
 - **접속**: 이 PC 는 `http://localhost:8080` (https 아님). 핸드폰 등 tailnet 기기는 `https://<기기>.<tailnet>.ts.net`. 이 PC 의 Windows 브라우저로는 `.ts.net` 주소가 해석되지 않는다.
-- **치우지 않은 NodePort 잔재**: 게이트웨이 Service 가 NodePort, NetworkPolicy `allow-ingress-to-gateway-nodeport`, `kind-config.yaml` 의 30080 매핑, `07-2` 스크립트들.
-- **이 클러스터에 아직 적용되지 않은 것**: `06` 의 `cookie-secret` 새로 만들기 (고친 뒤 `06` 을 다시 실행한 적이 없다. 다시 실행하면 로그인한 브라우저는 로그인 화면으로 돌아간다).
+- **남겨 둔 NodePort 흔적**: `kind-config.yaml` 의 30080 매핑, `07-2` 스크립트들 (시험 기록). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
 - **git**: `dev` 에 작업, `main` 은 README 한 파일(작성자 `soysyoung@gmail.com`). `dev` 의 기존 커밋 48개는 작성자 이메일이 `dangim.co.kr` 이다 (히스토리를 다시 쓰지 않기로 했다).
 
 ## 다음 할 일 (순서대로)
 
 1. **기능 시험** (핸드폰, HTTPS 주소)
    - [x] `test01` 의 Connect 로 JupyterLab 열기, 셀 실행 (웹소켓이 `tailscale serve` 를 통과하는지) -> 통과 (2026-10-26): 핸드폰에서 JupyterLab 을 열고 셀을 실행했다. 게이트웨이 로그에서 커널 채널 웹소켓(HTTP 101)과 sessions/kernels API 200 확인 (test01 요청 290건)
-   - [ ] GPU Notebook (GPU 워커의 taint 에 맞는 toleration 이 필요한지 확인)
-   - [ ] Pipelines 실행
-2. **재부팅 후 `tailscale serve` 자동 재개** 확인: '다시 시작' 후 `bash scripts/verify/08-reboot.sh` (07-3 검증을 함께 돈다)
+   - [x] GPU Notebook -> 통과 (2026-10-26): GPU 워커에 taint `nvidia.com/gpu=present:NoSchedule` 이 있어 PodDefault [k8s/gpu-poddefault.yaml](../k8s/gpu-poddefault.yaml) 로 toleration 을 넣었다. Notebook `test02-gpu` 파드가 `mlops-worker` 에서 2/2 Running (`kubectl get pod -o wide`), 컨테이너 limits 에 `nvidia.com/gpu: 1`. Notebook 안에서의 `nvidia-smi` 출력은 보지 못했다 (미확인)
+   - [x] Pipelines 실행 -> 통과 (2026-10-26): 컴포넌트 하나짜리 `hello-pipeline` 의 파드 3개(dag-driver, container-driver, impl)가 모두 Completed. 다중 사용자 모드라 Run 은 Experiment 를 먼저 만들고 그 안에서 만들어야 한다 (`Experiment id can not be empty in multi-user mode`). Run 상세 화면의 MLMD 오류(`Cannot find context ... system.PipelineRun`)는 Run 이 시작되기 전에 본 것으로, 이후 상태는 미확인. 노드의 출력값(`hello`)은 화면에서 보지 못했다
+2. [x] **재부팅 후 `tailscale serve` 자동 재개** 확인 -> 통과 (2026-10-26): '다시 시작' 3분 뒤 `bash scripts/verify/08-reboot.sh` 가 docker, tailscaled active, 노드 4개 Ready, 노드 재시작 정책 `unless-stopped`, `127.0.0.1:8080` 과 tailnet HTTPS 주소의 로그인 리다이렉트(oauth2-proxy -> Dex) 정상으로 끝났다. `http://localhost:8080` 접속도 확인. 핸드폰에서 HTTPS 주소로 접속해 Notebook 에 연결됨(사용자 보고). 재부팅 뒤에도 `mlops-worker` 가 `nvidia.com/gpu: 1` 광고
 3. **NodePort 잔재 정리 후 `06` 재실행**
-   - [ ] `kubectl --context kind-mlops -n istio-system delete networkpolicy allow-ingress-to-gateway-nodeport`
-   - [ ] `bash scripts/06-kubeflow.sh` -> Service 가 ClusterIP 로 돌아오는지(추정, 시험 전), `cookie-secret` 이 바뀌는지, 로그인이 다시 되는지
-   - [ ] `07-2-nodeport.sh`, `verify/07-2-nodeport.sh`, `kind-config.yaml` 의 30080 매핑을 삭제할지 결정 (삭제하면 클러스터를 다시 만들어야 매핑이 사라진다)
-4. **비밀번호 강화**: `.env` 의 `KUBEFLOW_PASSWORD` 가 네 자리 숫자다. 더 긴 값으로 바꾸고 `06` 을 다시 실행.
+   - [x] NetworkPolicy `allow-ingress-to-gateway-nodeport` 삭제 -> `get` 이 `NotFound` (2026-10-26)
+   - [x] `bash scripts/06-kubeflow.sh` -> 통과 (2026-10-26): Service 가 ClusterIP 로 돌아왔고, `cookie-secret` 이 patch 됐고(managedFields 의 `kubectl-patch` 06:03:57 UTC, 파드 재시작과 일치), 새 비밀번호로 로그인되고 `http://localhost:8080` 이 열린다
+   - [x] `07-2-nodeport.sh`, `verify/07-2-nodeport.sh`, `kind-config.yaml` 의 30080 매핑은 **삭제하지 않기로 했다** (2026-10-26, 시험 기록으로 남긴다. 스크립트는 이미 '사용하지 않음' 으로 표시했다). 매핑은 다음에 클러스터를 다시 만들 때 정리해도 된다
+4. [x] **비밀번호 강화**: `.env` 의 `KUBEFLOW_PASSWORD` 를 바꾸고 `06` 을 다시 실행했다 (3번과 한 번에). 새 비밀번호로 로그인 확인.
 5. **재현성 검증 마무리**
-   - [ ] `03` 의 `docker.sources` 저장소 등록을 `scripts/verify/03-docker.sh` 로 확인
+   - [x] `03` 의 `docker.sources` 저장소 등록 확인 (2026-10-26): `/etc/apt/sources.list.d/` 에 `docker.sources` 가 있고 `docker.list` 는 없다. 내용은 `download.docker.com/linux/ubuntu`, `Signed-By: /etc/apt/keyrings/docker.asc`. `verify/03-docker.sh` 는 `hello-world` 만 실행하므로 저장소 등록은 파일을 직접 읽어 확인했다
    - [ ] 삭제의 수정 경로(패키지 2개 purge, `docker0` 삭제) 실행 확인 ([troubleshooting.md](troubleshooting.md) 18번). `DRY_RUN=1` 먼저
-   - [ ] 이번 재설치의 `00`~`06` verify 출력을 verify README 에 반영
-6. [ ] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 ([troubleshooting.md](troubleshooting.md) 5번)
+   - [x] `03`~`06` verify 를 다시 실행해 모두 `==> OK` (2026-10-26), 차이점을 verify README 에 반영. `00-windows.ps1` 은 다시 실행하지 않았다
+6. [x] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 ([troubleshooting.md](troubleshooting.md) 5번) -> 2026-10-23 에 삭제함 (사용자 보고)
 7. [ ] 이전에 공식 문서 대조 없이 쓴 `00`~`06` 과 ADR 0001~0008 을 ADR 0008 처럼 다시 대조 (0009~0011 은 대조했다)
 8. [ ] (선택) 재부팅의 남은 경우: 로그인 화면(비밀번호)이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작), 덮개를 닫은 채 접속
 9. [ ] 위가 끝나면 `dev` -> `main` PR (`main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
