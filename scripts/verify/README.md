@@ -11,8 +11,9 @@
 | `05-1-kind-cluster.sh` | WSL | 노드 4개 Ready, GPU 노드 라벨/taint, 일반 파드가 GPU 노드를 피함 | `05-1-kind-cluster.sh` |
 | `05-2-gpu-node.sh` | WSL | GPU 노드 컨테이너에서 GPU 가 보이고 containerd 가 nvidia 런타임인가 | `05-2-gpu-node.sh` |
 | `05-3-device-plugin.sh` | WSL | **2차 관문**: GPU 파드가 GPU 노드에서 GPU 를 잡는가 | `05-3-device-plugin.sh` |
+| `06-kubeflow.sh` | WSL | 핵심 네임스페이스의 Deployment 가 Available 이고 로그인 흐름이 이어지는가 | `06-kubeflow.sh` |
 
-아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다.
+아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03`~`06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
 ## 00-windows.ps1
 
@@ -98,7 +99,7 @@ pod "cpu-smoke" deleted from default namespace
 ```
 
 - 표의 `GPU.PRESENT` 열에서 `true` 인 노드가 GPU 노드다. 정확히 한 개여야 한다.
-- 마지막 줄의 "일반 파드는 ... 에 배치됨"이 GPU 노드가 아닌 CPU 워커여야 한다. GPU 노드면 taint 가 걸리지 않은 것이다.
+- 마지막 줄의 "일반 파드는 ... 에 배치됨"이 GPU 노드가 아닌 CPU 워커여야 한다. GPU 노드면 taint 가 걸리지 않은 것이다. 어느 CPU 워커인지는 실행마다 다르다 (`mlops-worker2` 또는 `mlops-worker3`).
 - `노드가 N 개입니다`: 기대값은 4 이다 (control-plane 1 + 워커 3).
 
 ## 05-2-gpu-node.sh
