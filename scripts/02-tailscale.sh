@@ -2,7 +2,7 @@
 # 02. Tailscale 설치 및 tailnet 가입 (WSL 안에서)
 #
 # 왜: 포트포워딩 없이 외부에서 이 서버에 SSH/kubectl 로 접근하기 위해.
-# 하는 일: 설치 스크립트 실행 -> 'tailscale up --ssh' (브라우저 로그인 URL 출력)
+# 하는 일: 설치 스크립트 실행 -> 'tailscale up' (브라우저 로그인 URL 출력) -> 'tailscale set --ssh'
 #   --ssh : Tailscale SSH 사용. 별도 openssh-server 설정이 필요 없다.
 #
 # 선행: 01-wsl-systemd.sh 후 WSL 재시작
@@ -22,6 +22,8 @@ if ! command -v tailscale >/dev/null; then
   curl -fsSL https://tailscale.com/install.sh | sh
 fi
 
-sudo tailscale up --ssh
+sudo tailscale up
+# SSH 켜기는 현재 문서의 형식(tailscale set --ssh)을 쓴다. 이미 접속 중인 SSH 연결이 있으면 끊긴다고 문서에 적혀 있다.
+sudo tailscale set --ssh
 
 echo "tailnet IP: $(tailscale ip -4)"
