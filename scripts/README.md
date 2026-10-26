@@ -62,7 +62,7 @@ kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80   # http:/
 `port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 쓰려면 두 방식이 있고 차이는 [ADR 0009](../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md) 에 정리했다.
 
 - **port-forward 방식** `bash scripts/07-1-port-forward.sh` -> `http://<tailnet 주소>:8080` (`tailscale ip -4`). systemd 서비스 `kubeflow-port-forward` 를 만든다. 기존 클러스터에도 바로 된다. 검증 `verify/07-1-port-forward.sh`
-- **NodePort 방식** `bash scripts/07-2-nodeport.sh` -> `http://<tailnet 주소>:30080`. 게이트웨이 Service 를 NodePort 30080 으로 바꾼다. 호스트 포트는 클러스터를 만들 때 `kind-config.yaml` 의 `extraPortMappings` 가 열어 두므로(`05-1`), 이미 만든 클러스터에 매핑이 없으면 스크립트가 알려 주고, 지우고 `05-1` 부터 다시 해야 한다. `06` 을 다시 실행하면 Service 가 원래대로 돌아가므로 `07-2` 도 다시 실행한다. 검증 `verify/07-2-nodeport.sh`
+- **NodePort 방식** `bash scripts/07-2-nodeport.sh` -> `http://<tailnet 주소>:30080`. 게이트웨이 Service 를 NodePort 30080 으로 바꾸고, Kubeflow 의 NetworkPolicy 가 막는 게이트웨이 8080 을 허용하는 정책을 더한다 ([troubleshooting.md](../docs/troubleshooting.md) 23번). 호스트 포트는 클러스터를 만들 때 `kind-config.yaml` 의 `extraPortMappings` 가 열어 두므로(`05-1`), 이미 만든 클러스터에 매핑이 없으면 스크립트가 알려 주고, 지우고 `05-1` 부터 다시 해야 한다. `06` 을 다시 실행하면 Service 가 원래대로 돌아가므로 `07-2` 도 다시 실행한다. 검증 `verify/07-2-nodeport.sh`
 
 두 방식은 포트가 달라서 함께 켜 둘 수 있다. 둘 다 `.env` 의 비밀번호를 바꾼 뒤에 연다. 재부팅 후 확인은 `verify/08-reboot.sh` 가 적용된 방식만 골라 본다.
 

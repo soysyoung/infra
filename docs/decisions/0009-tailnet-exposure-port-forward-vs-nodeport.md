@@ -16,10 +16,17 @@
 | 파드가 바뀌면 | 터널이 끊긴다. systemd 가 5초 뒤 다시 붙인다 | 서비스 라우팅이라 영향이 없다 |
 | 언제 적용되나 | 아무 때나, 기존 클러스터에도 | 매핑은 **클러스터를 만들 때만** 정해진다. 매핑이 없는 클러스터면 `07-2` 가 알려 주고 멈춘다. 지우고 `05-1` 부터 다시 해야 한다. `06` 을 다시 실행하면 Service 가 되돌아가서 `07-2` 도 다시 실행한다 |
 | 재부팅 후 | Docker, tailscaled, 클러스터가 늦으면 서비스가 재시도한다 | tailscaled 가 Docker 보다 늦으면 노드 컨테이너 자체가 시작에 실패할 수 있다 (API 서버 6443 의 기존 열린 항목과 같은 위험) |
-| 공식 구성과의 차이 | 없음 | 없음. Kubeflow 매니페스트(`k8s/kubeflow/kustomization.yaml`)는 건드리지 않고, 설치 뒤 `07-2` 가 Service 하나를 패치한다 |
+| 공식 구성과의 차이 | 없음 | 없음. Kubeflow 매니페스트(`k8s/kubeflow/kustomization.yaml`)는 건드리지 않고, 설치 뒤 `07-2` 가 Service 하나를 패치하고 NetworkPolicy 하나를 더한다 |
 | 삭제 | `teardown/07-1-port-forward.sh` 가 서비스를 지운다 | 클러스터와 함께 사라진다 (삭제 스크립트 없음) |
 
 공통: 둘 다 tailnet 주소에만 바인딩한다 (`0.0.0.0` 이 아니므로 LAN 에 열리지 않는다). 로그인 쿠키는 `FORCE_HTTPS=false` 라서 `Secure` 속성이 없고 http 로 로그인할 수 있다 (oauth2-proxy 매니페스트에서 확인). 콜백 주소(`/oauth2/callback`)는 상대 경로다. tailnet 주소(http)로 실제 로그인이 되는 것은 port-forward 방식으로 확인했다 (핸드폰, 2026-10-23).
+
+## 시험에서 드러난 것: NodePort 는 NetworkPolicy 를 보완해야 한다 (2026-10-26)
+NodePort 방식은 Service 만 바꿔서는 접속되지 않았다. `istio-system` 의 Kubeflow NetworkPolicy 가 게이트웨이 8080 을 같은 네임스페이스와 `knative-serving` 에서만 허용해서, NodePort 로 들어온 노드 출발 트래픽이 다른 노드의 게이트웨이 파드에서 막혔다. port-forward 는 kubelet 이 파드에 직접 연결하므로 이 정책을 거치지 않는다. 진단 과정과 실측값은 [troubleshooting.md](../troubleshooting.md) 23번.
+
+- 대응: `07-2` 가 8080 을 모든 출발지에 여는 NetworkPolicy 하나를 더한다. 정책은 합집합으로 적용되어 기존 허용은 그대로다.
+- 대가: 게이트웨이 8080 을 클러스터 안 모든 파드가 직접 부를 수 있게 된다 (이전에는 같은 네임스페이스와 knative 만). 인증은 앞단 oauth2-proxy 가 하고 이 클러스터는 사용자 한 명의 실습 환경이라 허용했다. 좁히려면 `from.ipBlock` 에 kind 도커 네트워크 대역을 쓴다 (미시험).
+- 즉 NodePort 방식은 port-forward 보다 손이 더 간다. 비교표의 "상시 도는 프로세스가 없다" 는 장점은 그대로지만 설치가 간단하다는 인상은 틀렸다.
 
 ## 검토했으나 쓰지 않은 것
 `tailscale serve` 로 로컬 8080 을 노출하는 방법. 명령 하나로 되지만 결국 port-forward 가 떠 있어야 해서 port-forward 방식의 문제가 그대로 남고, 동작과 재부팅 후 유지 여부를 확인하지 못했다.
