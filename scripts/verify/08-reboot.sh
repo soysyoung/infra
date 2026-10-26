@@ -26,8 +26,11 @@ if systemctl cat kubeflow-port-forward >/dev/null 2>&1; then
   bash "$(dirname "$0")/07-1-port-forward.sh"; checked=1
 fi
 if [ "$(kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.spec.type}')" = NodePort ]; then
-  bash "$(dirname "$0")/07-2-nodeport.sh"; checked=1
+  bash "$(dirname "$0")/07-2-nodeport.sh"; checked=1   # 더 이상 권하지 않는 방식 (docs/decisions/0011)
 fi
-[ "$checked" = 1 ] || die "port-forward 방식(07-1)도 NodePort 방식(07-2)도 적용되어 있지 않습니다."
+if tailscale serve status 2>/dev/null | grep -q 'https://'; then
+  bash "$(dirname "$0")/07-3-tailscale-serve.sh"; checked=1
+fi
+[ "$checked" = 1 ] || die "port-forward(07-1), tailscale serve(07-3), NodePort(07-2) 중 어느 것도 적용되어 있지 않습니다."
 
 log "OK: 서비스, 노드, Kubeflow 접속이 모두 정상. 재부팅 시험이라면 위 WSL 가동 시간이 재부팅 이후만큼 짧아야 한다."

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # 07-2. Kubeflow 를 tailnet 에 상시 노출 (NodePort 방식: 게이트웨이 Service 를 NodePort 30080 으로)
 #
+# *** 사용하지 않는다 (docs/decisions/0011) ***
+# Kubeflow 공식 문서가 NodePort 를 권하지 않고("서비스는 ClusterIP 만"), NodePort 로 localhost 가 아닌 주소에 HTTP 로 접속하면
+# Secure 쿠키 때문에 웹앱이 동작하지 않는다. 시험과 기록을 위해 남겨 둔 스크립트다. 접속은 07-1 과 07-3 을 쓴다.
+#
+#
 # 왜: port-forward 방식(07-1)은 kubectl 프로세스 하나가 API 서버를 거쳐 파드 하나로 터널을 연다.
 #     NodePort 방식은 Docker 의 포트 매핑과 kube-proxy 가 처리해서 상시 도는 프로세스가 없고 파드가 바뀌어도 끊기지 않는다.
 # 하는 일 (여러 번 실행해도 안전하다):
