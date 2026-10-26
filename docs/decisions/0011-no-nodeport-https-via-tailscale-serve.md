@@ -1,6 +1,6 @@
 # 0011. Kubeflow 접속: port-forward(localhost) 와 tailscale serve(HTTPS). NodePort 는 쓰지 않는다
 
-- 상태: 채택 (2026-10-26). **HTTPS 경로(`tailscale serve`)는 아직 시험하지 못했다.** NodePort 를 쓰지 않는 이유 중 공식 문서 인용과 서버 쪽 실측은 확인했고, 브라우저 동작은 추정이다.
+- 상태: 채택 (2026-10-26). **서버 쪽 HTTPS 경로는 시험 통과**: `07-1`, `07-3` 의 검증이 통과했고 로그인 리다이렉트가 `https://` 를 유지했다. **핸드폰 브라우저의 로그인과 Notebook 생성, 재부팅 후 `tailscale serve` 재개는 미시험.** NodePort 를 쓰지 않는 이유 중 공식 문서 인용과 서버 쪽 실측은 확인했고, 브라우저 동작은 추정이다.
 - [ADR 0009](0009-tailnet-exposure-port-forward-vs-nodeport.md) 의 비교와 시험 기록을 이어받는다. 0009 가 NodePort 를 후보로 둔 결정과 `tailscale serve` 를 쓰지 않기로 한 판단은 이 결정으로 대체된다.
 
 ## 상황
@@ -37,11 +37,15 @@ tailnet 의 다른 기기(핸드폰)에서도 Kubeflow 를 쓰고 싶다. 0009 �
 | NodePort (07-2) | 비권장 | `http://<tailnet 주소>:30080` | 안 됨 | 안 됨 | HTTP 로만 | 접속은 확인, 웹앱은 깨질 것으로 추정 |
 
 ## 미검증과 위험 (HTTPS 경로)
-- Tailscale 관리 콘솔의 **MagicDNS 와 HTTPS Certificates** 를 켜야 하는지, 켜져 있는지. `07-3` 이 실패하면 안내한다.
-- Kubeflow 로그인이 `*.ts.net` HTTPS 주소에서 정상인지. oauth2-proxy 가 HTTPS 를 인식하지 못해 로그인 리다이렉트가 `http://` 로 떨어질 수 있다. [verify/07-3](../../scripts/verify/07-3-tailscale-serve.sh) 이 리다이렉트가 `https://` 를 유지하는지 확인한다. 떨어지면 oauth2-proxy 의 `FORCE_HTTPS` 매개변수를 `true` 로 바꾸는 것을 검토한다 (미시험).
+- (확인됨, 2026-10-26) MagicDNS 와 HTTPS 인증서가 켜져 있어 `tailscale serve --bg --https=443` 이 성공했고 `tailscale serve status` 가 `https://<기기>.<tailnet>.ts.net (tailnet only)` 를 보여 준다.
+- (확인됨, 서버 쪽) 로그인 리다이렉트가 `https://` 를 유지한다 ([verify/07-3](../../scripts/verify/07-3-tailscale-serve.sh) 통과). oauth2-proxy 의 `FORCE_HTTPS` 를 바꿀 필요가 없었다. 이후의 로그인 완료와 콜백은 브라우저로 확인해야 한다.
 - HTTPS 로 접속한 뒤 **Notebook 생성이 실제로 되는지**. 이것이 이 결정의 핵심 시험이다.
 - `APP_SECURE_COOKIES=false` 로 우회하는 방법은 쓰지 않는다 (공식: 보안 위험).
 - `tailscale serve --bg` 가 재부팅 뒤 자동으로 다시 공유한다는 것은 Tailscale 문서의 설명이고, 이 PC 에서 시험하지 않았다.
+
+## 접속할 때 헷갈리는 점 (2026-10-26 에 실제로 겪음)
+- **`https://127.0.0.1:8080` / `https://localhost:8080` 은 `ERR_SSL_PROTOCOL_ERROR`.** 8080 은 TLS 가 없는 평문 포트다. 이 PC 는 `http://localhost:8080` 을 쓴다.
+- **`https://<기기>.<tailnet>.ts.net` 이 이 PC 의 Windows 브라우저에서는 `DNS_PROBE_FINISHED_NXDOMAIN`.** `.ts.net` 이름은 Tailscale 이 설치되어 tailnet 에 연결된 기기에서만 해석된다. 이 PC 의 Windows 는 tailnet 노드가 아니다 (Tailscale 이 WSL 안에만 있다). 핸드폰처럼 tailnet 에 연결된 기기에서 연다.
 
 ## 시험 절차 (사용자 실행, WSL)
 1. 수동으로 띄운 `kubectl port-forward`(pid 58715, 127.0.0.1:8080)를 종료한다: `kill 58715`

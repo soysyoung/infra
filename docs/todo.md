@@ -26,10 +26,10 @@
 
 NodePort 는 쓰지 않기로 했다 (공식 비권장, HTTP 로는 웹앱이 깨짐). 아래 순서로 HTTPS 경로를 시험한다.
 
-- [ ] 수동으로 띄운 `kubectl port-forward`(pid 58715, 127.0.0.1:8080) 종료: `kill 58715`
-- [ ] `bash scripts/07-1-port-forward.sh` -> `bash scripts/verify/07-1-port-forward.sh`, 이 PC 에서 `http://localhost:8080`
-- [ ] Tailscale 관리 콘솔 DNS 페이지에서 MagicDNS 와 HTTPS Certificates 켜기
-- [ ] `bash scripts/07-3-tailscale-serve.sh` -> `bash scripts/verify/07-3-tailscale-serve.sh` (리다이렉트가 `https://` 를 유지해야 한다)
+- [x] 수동으로 띄운 `kubectl port-forward`(pid 58715, 127.0.0.1:8080) 종료: `kill 58715` -> 정리됨 (2026-10-26, 8080 은 서비스가 127.0.0.1 에서 잡고 있음)
+- [x] `bash scripts/07-1-port-forward.sh` -> `bash scripts/verify/07-1-port-forward.sh`, 이 PC 에서 `http://localhost:8080` -> 통과 (2026-10-26)
+- [x] Tailscale 관리 콘솔 DNS 페이지에서 MagicDNS 와 HTTPS Certificates 켜기 -> 켜져 있음 (serve 성공으로 확인)
+- [x] `bash scripts/07-3-tailscale-serve.sh` -> `bash scripts/verify/07-3-tailscale-serve.sh` (리다이렉트가 `https://` 를 유지해야 한다) -> 통과: 리다이렉트가 https:// 유지 (2026-10-26)
 - [ ] 핸드폰에서 `https://<기기>.<tailnet>.ts.net` 접속, 로그인, **Notebook 생성** (이것이 핵심 시험)
 - [ ] 재부팅 후 `tailscale serve` 가 저절로 다시 공유되는지 (`verify/08-reboot.sh`)
 - [ ] 쓰지 않는 NodePort 설정 정리: `kubectl --context kind-mlops -n istio-system delete networkpolicy allow-ingress-to-gateway-nodeport`, Service 는 `06` 재실행 또는 클러스터 재생성

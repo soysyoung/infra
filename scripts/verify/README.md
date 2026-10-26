@@ -184,7 +184,19 @@ bash scripts/verify/07-3-tailscale-serve.sh   # https://<기기>.<tailnet>.ts.ne
 
 각각 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지 확인한다. `07-1` 은 `kubeflow-port-forward` 서비스가 실행 중인지도 본다. `07-3` 은 리다이렉트가 **`https://` 를 유지하는지**도 본다 (`http://` 로 떨어지면 Secure 쿠키가 거부된다). `07-2-nodeport.sh` 의 검증(`verify/07-2-nodeport.sh`)은 시험 기록용이다. 결정 근거는 [ADR 0011](../../docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md).
 
-실제 출력: **아직 없다.** 2026-10-26 까지는 `verify/07-expose.sh`(지금은 없음) 한 스크립트가 tailnet 주소의 HTTP 8080(port-forward)과 30080(NodePort)을 함께 확인했고, 그 출력은 아래 08 절에 있다 (당시 라벨은 '방식 A / 방식 C').
+실제 출력 (2026-10-26, tailnet 이름은 가렸다):
+
+```text
+==> 127.0.0.1:8080: OK  (http://127.0.0.1:8080/dex/auth?client_id=kubeflow-oidc-authservice&...)
+==> OK: port-forward 방식으로 Kubeflow 로그인 흐름(oauth2-proxy -> Dex)이 동작함
+
+==> https://<기기>.<tailnet>.ts.net/oauth2/start 의 리다이렉트: https://<기기>.<tailnet>.ts.net/dex/auth?client_id=kubeflow-oidc-authservice&...
+==> OK: https://<기기>.<tailnet>.ts.net 로 Kubeflow 로그인 흐름이 HTTPS 를 유지하며 동작함
+```
+
+`tailscale serve status`: `https://<기기>.<tailnet>.ts.net (tailnet only)` -> `/ proxy http://127.0.0.1:8080`.
+
+이전 기록: 2026-10-26 까지는 `verify/07-expose.sh`(지금은 없음) 한 스크립트가 tailnet 주소의 HTTP 8080(port-forward)과 30080(NodePort)을 함께 확인했고, 그 출력은 아래 08 절에 있다 (당시 라벨은 '방식 A / 방식 C').
 
 ## 08-reboot.sh
 
