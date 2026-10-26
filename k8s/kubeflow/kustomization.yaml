@@ -110,7 +110,7 @@ resources:
 # components:
 # - ../applications/workspaces/components/centraldashboard
 
-# 추가: 방식 C (docs/decisions/0009). 게이트웨이를 NodePort 30080 으로 열어 kind-config.yaml 의 extraPortMappings 가 tailnet 주소로 연결한다.
+# 추가: NodePort 방식 (docs/decisions/0009). 게이트웨이를 NodePort 30080 으로 열어 kind-config.yaml 의 extraPortMappings 가 tailnet 주소로 연결한다.
 patches:
 - patch: |-
     apiVersion: v1

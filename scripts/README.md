@@ -40,7 +40,7 @@ bash scripts/05-3-device-plugin.sh    # device plugin (GPU 노드에만)
 bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드)
 bash scripts/06-kubeflow.sh           # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
 bash scripts/verify/06-kubeflow.sh
-bash scripts/07-expose.sh            # (선택) tailnet 주소로 상시 접속: systemd 로 감싼 port-forward (방식 A)
+bash scripts/07-expose.sh            # (선택) tailnet 주소로 상시 접속: systemd 로 감싼 port-forward (port-forward 방식)
 bash scripts/verify/07-expose.sh
 ```
 
@@ -56,7 +56,7 @@ kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80   # http:/
 
 ## 상시 접속 (tailnet)
 
-`port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 쓰려면 두 방식이 있고 차이는 [ADR 0009](../docs/decisions/0009-tailnet-exposure-a-vs-c.md) 에 정리했다.
+`port-forward` 는 `127.0.0.1` 에만 열리고 터미널을 닫으면 끊긴다. 다른 기기에서 쓰려면 두 방식이 있고 차이는 [ADR 0009](../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md) 에 정리했다.
 
 - **A**: `bash scripts/07-expose.sh` -> `http://<tailnet 주소>:8080` (`tailscale ip -4`). 기존 클러스터에도 바로 된다.
 - **C**: 클러스터를 만들 때 `kind-config.yaml` 이 포트를 열고 `06` 이 게이트웨이를 NodePort 로 바꾼다 -> `http://<tailnet 주소>:30080`. 별도 스크립트가 없고, 이미 만든 클러스터에는 지우고 `05-1` 부터 다시 해야 한다.
@@ -80,7 +80,7 @@ bash scripts/verify/08-reboot.sh
 
 ## 클러스터만 다시 만들기
 
-`kind-config.yaml` 이나 `cluster.env` 를 바꾸면(예: 방식 C 의 포트 매핑, CPU 워커 수) 클러스터를 지우고 `05-1` 부터 다시 해야 한다. kind 는 만든 뒤에 노드나 포트 매핑을 바꿀 수 없다. Windows 와 WSL 설치(`00`~`04`)와 `07` 서비스는 그대로 둔다.
+`kind-config.yaml` 이나 `cluster.env` 를 바꾸면(예: NodePort 방식의 포트 매핑, CPU 워커 수) 클러스터를 지우고 `05-1` 부터 다시 해야 한다. kind 는 만든 뒤에 노드나 포트 매핑을 바꿀 수 없다. Windows 와 WSL 설치(`00`~`04`)와 `07` 서비스는 그대로 둔다.
 
 ```bash
 kind delete cluster --name mlops       # Kubeflow 와 그 안의 데이터(PV)가 사라진다

@@ -3,7 +3,7 @@
 앞으로 할 일과 시험할 것. 끝낸 항목은 지우지 않고 결과를 적어 남긴다. 막힌 곳은 [troubleshooting.md](troubleshooting.md), 결정 근거는 [decisions/](decisions/).
 `[ ]` 아직 안 함, `[x]` 끝남 (결과 기록).
 
-## 지금: 재부팅 후 자동 복구 시험 ([ADR 0010](decisions/0010-reboot-recovery.md))
+## 재부팅 후 자동 복구 시험 (1회 통과) ([ADR 0010](decisions/0010-reboot-recovery.md))
 
 구성은 끝났고(2026-10-23) 시험 전이다. 순서대로 한다.
 
@@ -12,7 +12,7 @@
 - [x] 덮개 닫기 동작: 제어판에서 '아무 것도 안 함' 으로 설정, `powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` 으로 AC/DC 모두 0 확인 (2026-10-23). 덮개를 닫은 채로도 접속되는지는 재부팅 시험 때 같이 본다
 - [x] WSL: `bash scripts/05-1-kind-cluster.sh` (노드 재시작 정책 `unless-stopped` 적용, 멱등) -> 4개 노드 모두 `unless-stopped` 확인 (08 출력)
 - [x] Windows 다시 시작 -> 2026-10-26 10:27:15 부팅. 이 PC 는 윈도우 비밀번호가 없어 로그인 화면 없이 바탕화면까지 자동으로 들어간다 (AutoAdminLogon=0 이지만 암호 없는 계정)
-- [x] 08 실행 (10:32, WSL 가동 4분): 서비스 3개 active, 노드 4개 Ready, 재시작 정책 unless-stopped, 방식 A OK. 출력은 [verify/README.md](../scripts/verify/README.md)
+- [x] 08 실행 (10:32, WSL 가동 4분): 서비스 3개 active, 노드 4개 Ready, 재시작 정책 unless-stopped, port-forward 방식 OK. 출력은 [verify/README.md](../scripts/verify/README.md)
 - [x] 확인할 위험 (1회 시험): S4U 작업이 로그온 없이 `wsl.exe` 를 띄웠다 (작업 10:27:36 < 바탕화면 10:27:41 < WSL 10:27:50, `sleep infinity` 프로세스 실행 중) / `tailscaled`(10:27:50) 가 노드(10:27:52) 보다 먼저 떠서 API 서버 바인딩이 문제 없었다 / 재시작 뒤 노드가 모두 Ready
 
 2026-10-26 재부팅 시험 결과 (이 PC 에서 직접 조회, KST): Windows 부팅 10:27:15 -> `wsl-keepalive` 실행 10:27:36 -> 바탕화면 10:27:41 -> WSL VM/tailscaled 10:27:50 -> kind 노드 4개 10:27:52 -> oauth2-proxy Ready 10:28:04, 게이트웨이/dex Ready 10:28:43 -> VS Code 시작 10:29:24.
@@ -22,14 +22,14 @@
 - [x] 결과를 ADR 0010 의 '미검증' 과 troubleshooting 열린 항목에 반영
 - [ ] (선택) 위 (2)(3): '종료' 후 전원 켜기, 덮개를 닫은 채 재부팅 없이 몇 분 둔 뒤 핸드폰 접속
 
-## 방식 C (NodePort 직결) 시험 ([ADR 0009](decisions/0009-tailnet-exposure-a-vs-c.md))
+## NodePort 방식 시험 ([ADR 0009](decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md))
 
-방식 A 는 확인했다. C 는 호스트 포트 매핑이 **클러스터를 만들 때만** 정해져서, 지금 클러스터에는 없다.
+port-forward 방식은 확인했다. NodePort 방식은 호스트 포트 매핑이 **클러스터를 만들 때만** 정해져서, 지금 클러스터에는 없다.
 
-- [ ] 재부팅 시험(위)을 끝낸 뒤에 한다. 클러스터를 다시 만들면 그 안의 Kubeflow 데이터가 사라진다.
+- [ ] Kubeflow 안에 보존할 데이터가 없으므로(2026-10-26 사용자 확인) 기능 시험보다 먼저 해도 된다. 클러스터를 다시 만들면 안의 데이터는 사라진다.
 - [ ] 클러스터만 다시 만들기: [scripts/README.md](../scripts/README.md) '클러스터만 다시 만들기'
-- [ ] `bash scripts/verify/07-expose.sh` 에서 방식 C (`<tailnet 주소>:30080`) 가 OK 인지, A 와 공존하는지
-- [ ] A 와 C 중 상시로 쓸 것을 정하고 ADR 0009 의 '결정' 을 갱신 (선호는 C)
+- [ ] `bash scripts/verify/07-expose.sh` 에서 NodePort 방식(`<tailnet 주소>:30080`)이 OK 인지, port-forward 방식과 공존하는지
+- [ ] port-forward 와 NodePort 중 상시로 쓸 방식을 정하고 ADR 0009 의 '결정' 을 갱신 (선호는 NodePort)
 
 ## 기능 시험
 

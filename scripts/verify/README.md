@@ -181,9 +181,9 @@ deployment.apps/seaweedfs condition met
 bash scripts/verify/07-expose.sh
 ```
 
-tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지를 방식 A (포트 8080, `07-expose.sh`) 와 방식 C (포트 30080, kind `extraPortMappings`) 각각 확인하고, 하나라도 되면 통과한다. 두 방식의 비교는 [ADR 0009](../../docs/decisions/0009-tailnet-exposure-a-vs-c.md).
+tailnet 주소의 `/oauth2/start` 가 `/dex/auth` 로 리다이렉트하는지를 port-forward 방식 (포트 8080, `07-expose.sh`) 와 NodePort 방식 (포트 30080, kind `extraPortMappings`) 각각 확인하고, 하나라도 되면 통과한다. 두 방식의 비교는 [ADR 0009](../../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md).
 
-실제 출력: A 는 2026-10-23 에 실행해 통과했다는 보고를 받았지만 **출력은 받지 못했다.** C 는 클러스터에 포트 매핑이 없어 실행하지 못했다. 출력을 받으면 이 자리에 붙인다.
+실제 출력: port-forward 방식은 2026-10-23 에 실행해 통과했다는 보고를 받았지만 **출력은 받지 못했다.** NodePort 방식은 클러스터에 포트 매핑이 없어 실행하지 못했다. 출력을 받으면 이 자리에 붙인다.
 
 ## 08-reboot.sh
 
@@ -192,6 +192,8 @@ bash scripts/verify/08-reboot.sh
 ```
 
 재부팅하고 로그인하지 않은 채 기다린 뒤 실행한다. `docker`, `tailscaled`, `kubeflow-port-forward` 서비스, 노드 컨테이너의 재시작 정책(`unless-stopped`), 노드 Ready, 파드 상태, tailnet 접속(`07` 검증)을 차례로 확인한다. 근거는 [ADR 0010](../../docs/decisions/0010-reboot-recovery.md).
+
+아래 출력에 찍힌 '방식 A / 방식 C' 는 당시 스크립트의 라벨이고, 지금은 'port-forward 방식 / NodePort 방식' 으로 찍힌다.
 
 실제 출력 (2026-10-26, **재부팅 전** 상태. WSL 가동 시간이 2일 12시간이라 재부팅 시험이 아니다. 긴 리다이렉트 주소는 줄였다):
 
@@ -211,7 +213,7 @@ node/mlops-worker3 condition met
 ==> OK: 재부팅 후 서비스, 노드, Kubeflow 접속이 모두 돌아옴
 ```
 
-방식 C 가 "응답 없음" 인 것은 정상이다 (현재 클러스터에 포트 매핑이 없다, [ADR 0009](../../docs/decisions/0009-tailnet-exposure-a-vs-c.md)). 마지막 줄의 "재부팅 후" 는 스크립트의 고정 문구라 이 출력이 재부팅을 증명하지 않는다. 재부팅 후 출력 (2026-10-26 10:32, '다시 시작' 재부팅 약 5분 뒤. WSL 가동 시간이 4분이다):
+NodePort 방식이 "응답 없음" 인 것은 정상이다 (현재 클러스터에 포트 매핑이 없다, [ADR 0009](../../docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md)). 마지막 줄의 "재부팅 후" 는 스크립트의 고정 문구라 이 출력이 재부팅을 증명하지 않는다. 재부팅 후 출력 (2026-10-26 10:32, '다시 시작' 재부팅 약 5분 뒤. WSL 가동 시간이 4분이다):
 
 ```text
 ### WSL 가동: up 4 minutes  / 지금 10:32:34
