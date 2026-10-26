@@ -10,15 +10,14 @@
 
 ## 상태
 
-- 2026-10-23 (1차 설치): `00` ~ `06` 전체 설치와 검증 통과 (kind 4노드, GPU 노드의 파드에서 RTX 5080 확인, Kubeflow 26.03.1 로그인 흐름). 이어서 삭제 스크립트로 WSL 까지 지웠다.
-- 2026-10-23 (재설치, **진행 중**): 처음부터 다시 설치해 `06` 까지 실행했다. 각 단계의 검증 결과는 아직 기록하지 않았다 (`scripts/verify/README.md` 에 실행 후 반영). 로그인 비밀번호는 `.env` 로 정한다.
-- 2026-10-23: `.env` 비밀번호 반영(`06`)과 tailnet 상시 접속 port-forward 방식(`07-1-port-forward.sh`)을 실행했고, 핸드폰에서 `http://<tailnet 주소>:8080` 접속과 새 비밀번호 로그인을 확인했다 ([ADR 0009](docs/decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md)).
-- 2026-10-26: Kubeflow 공식 접속 안내를 읽고 접속 구성을 바꿨다 ([ADR 0011](docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md)). NodePort 는 쓰지 않고(공식 비권장, HTTP 로는 웹앱이 깨짐), 게이트웨이는 ClusterIP, 이 PC 는 `http://localhost:8080`, 다른 기기는 `tailscale serve` HTTPS.
-- 2026-10-26: `07-1`(port-forward `127.0.0.1`)과 `07-3`(tailscale serve HTTPS)의 서버 쪽 검증이 통과했고 로그인 리다이렉트가 `https://` 를 유지한다.
-- 2026-10-26: 핸드폰에서 `tailscale serve` HTTPS 주소로 접속해 로그인하고 **Notebook 을 만들었다** (파드 2/2 Running, 91초).
-- **아직 시험하지 못한 것**: 만든 Notebook 을 열어 코드 실행, Pipelines 실행, GPU Notebook, 재부팅 후 `tailscale serve` 자동 재개, `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
-- 2026-10-23: 재부팅 후 자동 복구를 구성했다: `windows/autostart.ps1`(부팅 때 WSL 유지), `windows/power-settings.ps1`, kind 노드 재시작 정책(`05-1`), `scripts/verify/08-reboot.sh` ([ADR 0010](docs/decisions/0010-reboot-recovery.md)). 2026-10-26 '다시 시작' 재부팅 시험 1회 통과 (WSL, 서비스, 노드, Kubeflow 접속이 사람의 조작 없이 돌아옴).
-- 다음 할 일과 시험 목록은 [docs/todo.md](docs/todo.md).
+2026-10-26 기준. 새 세션에서 이어 하려면 [docs/todo.md](docs/todo.md) 를 먼저 읽는다.
+
+- **동작 중**: kind 4노드(GPU 워커 포함) + Kubeflow 26.03.1. GPU 노드의 파드에서 RTX 5080 확인. 로그인 비밀번호는 `.env`.
+- **접속**: 이 PC 는 `http://localhost:8080`, 핸드폰 등 tailnet 기기는 `tailscale serve` 의 HTTPS 주소. NodePort 는 쓰지 않는다 ([ADR 0011](docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md)). 핸드폰에서 로그인하고 Notebook 을 만들었다 (파드 2/2 Running, 91초).
+- **재부팅**: 예약 작업이 로그온 없이 WSL 을 띄우고 노드가 저절로 올라온다. '다시 시작' 1회 통과 ([ADR 0010](docs/decisions/0010-reboot-recovery.md)).
+- **아직 시험하지 못한 것**: 만든 Notebook 을 열어 코드 실행, GPU Notebook, Pipelines 실행, 재부팅 후 `tailscale serve` 자동 재개, `03` 의 `docker.sources` 등록, 삭제의 수정 경로.
+- **치우지 못한 것**: 쓰지 않는 NodePort 설정(Service, NetworkPolicy, `07-2`). 정리 순서는 todo.
+- 이력: 2026-10-23 처음부터 재설치와 검증, 2026-10-26 재부팅 복구, 접속 방식 결정, 쿠키 문제 해결.
 
 ## 문서
 

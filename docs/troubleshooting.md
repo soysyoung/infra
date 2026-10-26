@@ -37,8 +37,10 @@
 
 ## 열린 항목
 
-- 재부팅 후 전체 복구 (자동 시작 작업, 노드 재시작)는 2026-10-26 '다시 시작' 1회로 통과했다. 비밀번호 로그인 화면, '종료' 후 전원 켜기, 덮개 닫기는 시험 전이다 ([ADR 0010](decisions/0010-reboot-recovery.md)). 기동 순서(이번에는 tailscaled 가 먼저 떴지만 1회 관찰): API 서버가 tailnet 주소에 바인딩되어 있어서 tailscaled 가 늦으면 노드 컨테이너가 시작에 실패할 수 있다. `windows/autostart.ps1` 단계에서 확인한다.
-- `/etc/sysctl.d` 의 inotify 설정이 재부팅 후에도 유지되는지 (systemd 가 켜져 있어 유지될 것으로 보나 확인하지 않았다).
+- **tailscale serve 의 재부팅 후 자동 재개**: Tailscale 문서는 `--bg` 면 재부팅 뒤 다시 공유한다고 하지만 이 PC 에서 시험하지 않았다 ([ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md)).
+- **만든 Notebook 을 열어 코드 실행, GPU Notebook, Pipelines 실행**은 아직 시험하지 않았다 (Notebook 생성까지는 통과).
+- **쓰지 않는 NodePort 설정이 클러스터에 남아 있다** (Service 타입, NetworkPolicy). 정리 순서는 [todo.md](todo.md). `06` 의 `cookie-secret` 새로 만들기(24번의 대책)도 이 클러스터에는 `06` 을 다시 실행해야 적용된다.
+- **재부팅의 남은 경우**: 윈도우 비밀번호 로그인 화면이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작 `HiberbootEnabled=1`), 덮개를 닫은 채의 접속, `tailscaled` 가 Docker 보다 늦게 뜰 때의 노드 시작은 시험 전이다 (이번 1회는 순서가 맞았지만 보장은 아니다, [ADR 0010](decisions/0010-reboot-recovery.md)).
+- `/etc/sysctl.d` 의 inotify 설정이 재부팅 후에도 유지되는지 (이번 재부팅에서 노드와 Istio CNI 가 정상이라 유지된 것으로 보이나 값을 직접 확인하지 않았다).
 - 클러스터를 지우면 GPU 노드 안의 toolkit 설치와 containerd 설정이 사라진다. `05-2` 가 매번 다시 하지만 외부 apt 저장소가 필요하다.
-- Kubeflow 로그인 비밀번호는 `.env` 로 바꾸고 `06` 이 반영한다. 바꾼 비밀번호로 로그인되는 것을 확인했다 (2026-10-23, 해시는 dex 문서 예시의 `$2y$` 접두사에 맞춤). 로그인 후 기능(Pipelines 실행, Notebook 생성, GPU Notebook)은 아직 시험하지 않았다.
-- tailnet 상시 접속: port-forward 방식(`07-1-port-forward.sh`)은 핸드폰 접속을 확인했다. NodePort 방식(`07-2-nodeport.sh`, kind `extraPortMappings`)은 클러스터를 다시 만들어야 해서 아직 시험하지 못했다. 재부팅 후 동작은 2026-10-26 1회 확인했다. 비교는 [ADR 0009](decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md).
+- 비밀번호가 네 자리 숫자다 (`.env`). tailnet 안에서만 열려 있지만 더 긴 값으로 바꾼다.
