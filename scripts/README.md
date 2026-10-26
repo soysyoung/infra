@@ -40,6 +40,8 @@ bash scripts/05-3-device-plugin.sh    # device plugin (GPU 노드에만)
 bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드)
 bash scripts/06-kubeflow.sh           # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
 bash scripts/verify/06-kubeflow.sh
+bash scripts/06-2-extra-user.sh       # (선택) 두 번째 사용자. .env 의 EXTRA_USER_EMAIL, EXTRA_USER_PASSWORD 가 있을 때만 동작
+bash scripts/verify/06-2-extra-user.sh
 # 접속 (ADR 0011). 이 PC 는 07-1 만으로 충분하고, 다른 기기(핸드폰 등)는 07-3 까지 한다
 bash scripts/07-1-port-forward.sh     # systemd 로 감싼 kubectl port-forward -> http://localhost:8080
 bash scripts/verify/07-1-port-forward.sh
@@ -56,6 +58,8 @@ bash scripts/07-1-port-forward.sh   # 상시 서비스로 띄운다 -> http://lo
 ```
 
 로그인은 `user@example.com` 이고, 비밀번호는 저장소 루트의 `.env` (git 제외) 의 `KUBEFLOW_PASSWORD` 다. 바꾼 뒤 `bash scripts/06-kubeflow.sh` 를 다시 실행하면 dex 에 반영된다. `.env` 가 없으면 공개된 기본값 `12341234` 이므로 바꾸기 전에는 외부에 노출하지 않는다 ([ADR 0005](../docs/decisions/0005-kubeflow-26.03.1.md)). 파드는 `kubectl get po -A` 로 본다 (Kubeflow 는 `default` 가 아닌 네임스페이스에 있다).
+
+**두 번째 사용자**(외부에 공유할 계정): `.env` 에 `EXTRA_USER_EMAIL`(소문자 이메일 형식, 실제 메일일 필요 없음)과 `EXTRA_USER_PASSWORD`(12자 이상)를 넣고 `06-2-extra-user.sh` 를 실행한다. Dex 로그인 계정과 Profile(네임스페이스 `kubeflow-<이메일의 @ . _ 를 - 로 바꾼 값>`)이 만들어지고, 소유자는 자기 네임스페이스에서만 `kubeflow-admin` 권한을 가진다. 할당량은 파드 20개, 스토리지 20Gi, GPU 0개다. `06` 이 Dex 설정을 매번 기본값으로 되돌리므로 `06` 이 끝에서 이 스크립트를 다시 부른다. 비밀번호를 바꾸려면 `.env` 를 고치고 `06-2` 를 다시 실행한다. 사용자를 지우려면 `kubectl delete profile <이름>`(네임스페이스도 함께 지워진다)과 `.env` 의 두 줄 삭제 후 `06` 재실행이 필요하다 (이 삭제 경로는 시험하지 않았다).
 
 ## 접속 방식 (ADR 0011)
 
