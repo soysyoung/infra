@@ -63,7 +63,7 @@ done
 pw=$(sed -n 's/^KUBEFLOW_PASSWORD=//p' "$ROOT/.env" 2>/dev/null | tr -d '\r')
 if [ -n "$pw" ]; then
   python3 -c 'import bcrypt' 2>/dev/null || die "python3-bcrypt 가 필요합니다. sudo apt install python3-bcrypt"
-  # dex 문서의 예시(htpasswd -B)는 $2y$ 접두사다. 파이썬은 $2b$ 를 내므로 문서 형식에 맞춘다.
+  # dex 문서의 예시는 htpasswd -BinC 10 이 만든 bcrypt 해시($2a$ 로 적혀 있음)다. htpasswd -B 가 내는 $2y$ 로 맞춘다 (파이썬은 $2b$ 를 낸다). $2y$ 로 로그인되는 것은 확인했다.
   hash=$(PW="$pw" python3 -c 'import bcrypt,os;print(bcrypt.hashpw(os.environ["PW"].encode(),bcrypt.gensalt(12)).decode().replace("$2b$","$2y$",1))')
   kubectl -n auth patch secret dex-passwords -p "{\"stringData\":{\"DEX_USER_PASSWORD\":\"$hash\"}}"
   kubectl -n auth rollout restart deploy/dex   # 비밀번호는 시작할 때만 읽는다
