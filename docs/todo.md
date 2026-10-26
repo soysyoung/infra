@@ -30,14 +30,14 @@ NodePort 는 쓰지 않기로 했다 (공식 비권장, HTTP 로는 웹앱이 �
 - [x] `bash scripts/07-1-port-forward.sh` -> `bash scripts/verify/07-1-port-forward.sh`, 이 PC 에서 `http://localhost:8080` -> 통과 (2026-10-26)
 - [x] Tailscale 관리 콘솔 DNS 페이지에서 MagicDNS 와 HTTPS Certificates 켜기 -> 켜져 있음 (serve 성공으로 확인)
 - [x] `bash scripts/07-3-tailscale-serve.sh` -> `bash scripts/verify/07-3-tailscale-serve.sh` (리다이렉트가 `https://` 를 유지해야 한다) -> 통과: 리다이렉트가 https:// 유지 (2026-10-26)
-- [ ] 핸드폰에서 `https://<기기>.<tailnet>.ts.net` 접속, 로그인, **Notebook 생성** (이것이 핵심 시험)
+- [x] 핸드폰에서 `https://<기기>.<tailnet>.ts.net` 접속, 로그인, **Notebook 생성** (이것이 핵심 시험) -> 통과 (2026-10-26): Notebook 생성 요청 200, 파드 2/2 Running (91초)
 - [ ] 재부팅 후 `tailscale serve` 가 저절로 다시 공유되는지 (`verify/08-reboot.sh`)
 - [ ] 쓰지 않는 NodePort 설정 정리: `kubectl --context kind-mlops -n istio-system delete networkpolicy allow-ingress-to-gateway-nodeport`, Service 는 `06` 재실행 또는 클러스터 재생성
 - [ ] (정리) 쓰지 않는 `07-2-nodeport.sh`, `verify/07-2-nodeport.sh`, `kind-config.yaml` 의 30080 매핑을 삭제할지 결정
 
 ## 기능 시험
 
-- [ ] 로그인 후 기능: Pipelines 실행, Notebook 생성, GPU Notebook (아직 하나도 시험하지 않았다)
+- [ ] 로그인 후 기능: Notebook 생성은 통과(HTTPS, 2026-10-26). 남은 것: 만든 Notebook 을 열어 코드 실행(웹소켓), Pipelines 실행, GPU Notebook
 - [ ] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 ([troubleshooting.md](troubleshooting.md) 5번)
 
 ## 재현성 검증 (재설치 마무리)

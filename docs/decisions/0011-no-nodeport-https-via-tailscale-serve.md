@@ -1,6 +1,6 @@
 # 0011. Kubeflow 접속: port-forward(localhost) 와 tailscale serve(HTTPS). NodePort 는 쓰지 않는다
 
-- 상태: 채택 (2026-10-26). **서버 쪽 HTTPS 경로는 시험 통과**: `07-1`, `07-3` 의 검증이 통과했고 로그인 리다이렉트가 `https://` 를 유지했다. **핸드폰 브라우저의 로그인과 Notebook 생성, 재부팅 후 `tailscale serve` 재개는 미시험.** NodePort 를 쓰지 않는 이유 중 공식 문서 인용과 서버 쪽 실측은 확인했고, 브라우저 동작은 추정이다.
+- 상태: 채택 (2026-10-26). **핵심 시험 통과**: 핸드폰에서 `tailscale serve` 의 HTTPS 주소로 접속해 로그인하고 Notebook 을 만들었다 (게이트웨이 로그: `POST /jupyter/api/namespaces/<사용자>/notebooks` 200, 접속 주소는 `.ts.net`). 파드는 생성 91초 만에 2/2 Running 이 됐다. **아직 시험하지 못한 것**: 만든 Notebook 을 HTTPS 로 열어 쓰는 것(웹소켓), 재부팅 후 `tailscale serve` 재개, 같은 요청을 HTTP 로 했을 때 실제로 실패하는지(대조 시험은 하지 않았다). NodePort 를 쓰지 않는 이유 중 공식 문서 인용과 서버 쪽 실측은 확인했고, 브라우저 동작은 추정이다.
 - [ADR 0009](0009-tailnet-exposure-port-forward-vs-nodeport.md) 의 비교와 시험 기록을 이어받는다. 0009 가 NodePort 를 후보로 둔 결정과 `tailscale serve` 를 쓰지 않기로 한 판단은 이 결정으로 대체된다.
 
 ## 상황
