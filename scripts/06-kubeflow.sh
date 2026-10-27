@@ -97,4 +97,5 @@ done
 bash "$ROOT/scripts/06-2-extra-user.sh"
 
 log "완료. 검증: scripts/verify/06-kubeflow.sh"
-echo "접속: kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80  ->  http://localhost:8080"
+echo "다음: scripts/07-1-port-forward.sh  (systemd 서비스로 http://localhost:8080 을 연다. 그 전에는 8080 이 열려 있지 않다)"
+echo "      임시로만 보려면: kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80  (07-1 과 포트가 겹치니 끝나면 종료)"
