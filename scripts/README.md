@@ -48,6 +48,7 @@ bash scripts/verify/07-1-port-forward.sh
 bash scripts/07-3-tailscale-serve.sh  # tailscale serve 로 HTTPS -> https://<기기>.<tailnet>.ts.net (관리 콘솔에서 MagicDNS, HTTPS 인증서를 먼저 켠다)
 bash scripts/verify/07-3-tailscale-serve.sh
 bash scripts/07-4-tailscale-funnel.sh on|off|status   # (선택) tailnet 밖의 사람에게 인터넷으로 공개/해제. 공유할 때만 on 하고 끝나면 off
+bash scripts/08-boot-resilience.sh    # 재부팅·이더넷/와이파이 전환에도 8080 이 돌아오게 한다 (docker 시작 전 tailscale wait, port-forward 를 컨테이너 IP 로, 1분 감시). ADR 0010. 아직 시험 전
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
