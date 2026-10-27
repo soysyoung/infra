@@ -70,7 +70,7 @@ if [ -n "$pw" ]; then
 fi
 
 # oauth2-proxy 의 cookie-secret 은 매니페스트에 공개된 고정값이다. 그대로면 클러스터를 다시 만들어도 브라우저에 남은 옛 세션 쿠키가
-# 통과하고, 옛 dex 키로 서명된 토큰이 붙어 게이트웨이가 "Jwks doesn't have key" 401 을 낸다 (troubleshooting 24번).
+# 통과하고, 옛 dex 키로 서명된 토큰이 붙어 게이트웨이가 "Jwks doesn't have key" 401 을 낸다 (troubleshooting 23번).
 # 설치마다 새로 만들어 옛 쿠키를 무효로 한다. 이미 로그인한 브라우저는 06 을 다시 실행할 때마다 로그인 화면으로 돌아간다.
 # Secret 이름에는 kustomize 가 해시를 붙이므로 Deployment 가 참조하는 이름을 읽는다.
 require_cmd openssl
