@@ -11,7 +11,7 @@
 - 새 사실은 **공식 문서나 이 PC 에서의 실측으로 확인**하고 출처를 적는다. 확인하지 못한 것은 '미검증' 이라고 쓴다. 구성을 만들기 전에 공식 접속/설치 안내를 먼저 읽는다 (NodePort 를 안내 없이 만들었다가 폐기했다, ADR 0011).
 - 커밋: `dev` 브랜치, `<type>: <subject>`, **한 커밋 한 목적** (코드와 문서는 따로), 작성자는 `git -c user.name=soysyoung -c user.email=soysyoung@gmail.com`. push 는 사용자가 요청할 때만. `main` 은 PR (또는 사용자 승인 아래 fast-forward). 규칙은 [commit-convention.md](commit-convention.md).
 - 문서 배치: 근거는 ADR, 사용법은 README, 실제 출력은 verify/teardown README, 막힌 곳은 troubleshooting. 저장소는 공개이므로 **tailnet 이름, 기기 모델, 사설 IP 는 쓰지 않는다** (`<기기>.<tailnet>.ts.net`).
-- 도구 함정: `wsl.exe -- bash -c "..."` 로 넘긴 명령의 `$` 는 한 번 더 해석된다. 복잡한 명령은 스크립트를 표준입력으로 넘긴다 (`cat <<'EOF' | wsl.exe -- bash -s`). 문서를 파이썬으로 쓸 때 Windows 경로의 백슬래시가 이스케이프로 해석되어 파일이 깨진다 ([troubleshooting.md](troubleshooting.md) 19번). 쓴 뒤 제어문자와 탭을 검사한다.
+- 도구 함정: `wsl.exe -- bash -c "..."` 로 넘긴 명령의 `$` 는 한 번 더 해석된다. 복잡한 명령은 스크립트를 표준입력으로 넘긴다 (`cat <<'EOF' | wsl.exe -- bash -s`). 문서를 파이썬으로 쓸 때 Windows 경로의 백슬래시가 이스케이프로 해석되어 파일이 깨진다 ([troubleshooting.md](troubleshooting.md) 18번). 쓴 뒤 제어문자와 탭을 검사한다.
 
 ## 현재 환경 (2026-10-26 기준, WSL 줄은 2026-10-27 갱신)
 
@@ -47,7 +47,7 @@
 6. [ ] Dex 로그인 시도 횟수 제한이 있는지 확인 (인터넷에 열 때 비밀번호 대입 공격 대책)
 
 **다음 클러스터 재생성 때**
-7. [x] 삭제의 수정 경로 실행 확인 -> 부분 통과 (2026-10-27 실제 삭제): 패키지 2개 purge 는 출력으로 확인. `docker0` 삭제는 출력이 없고 이어서 배포판을 지워 확인하지 못했다 ([troubleshooting.md](troubleshooting.md) 18번)
+7. [x] 삭제의 수정 경로 실행 확인 -> 부분 통과 (2026-10-27 실제 삭제): 패키지 2개 purge 는 출력으로 확인. `docker0` 삭제는 출력이 없고 이어서 배포판을 지워 확인하지 못했다 ([troubleshooting.md](troubleshooting.md) 17번)
 8. [x] `kind-config.yaml` 의 30080 매핑 제거와 `apiServerAddress` 를 `127.0.0.1` 로 변경 -> 저장소에 반영 (2026-10-27, [ADR 0010](decisions/0010-reboot-recovery.md) '결정 변경'). 클러스터에는 위 18~19번 재설치로 적용된다. `07-2` 스크립트는 시험 기록으로 남기고 새 클러스터에서는 안내하고 멈춘다
 9. [ ] 두 번째 사용자 삭제 경로(`kubectl delete profile <이름>`, `.env` 정리, `06` 재실행) 시험
 
@@ -75,7 +75,7 @@
 5. **재현성 검증 마무리**
    - [x] `03` 의 `docker.sources` 저장소 등록 확인 (2026-10-26): `/etc/apt/sources.list.d/` 에 `docker.sources` 가 있고 `docker.list` 는 없다. 내용은 `download.docker.com/linux/ubuntu`, `Signed-By: /etc/apt/keyrings/docker.asc`. `verify/03-docker.sh` 는 `hello-world` 만 실행하므로 저장소 등록은 파일을 직접 읽어 확인했다
    - [x] `03`~`06` verify 를 다시 실행해 모두 `==> OK` (2026-10-26), 차이점을 verify README 에 반영. `00-windows.ps1` 은 다시 실행하지 않았다
-6. [x] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 ([troubleshooting.md](troubleshooting.md) 5번) -> 2026-10-23 에 삭제함 (사용자 보고)
+6. [x] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 -> 2026-10-23 에 삭제함 (사용자 보고)
 7. [x] 이전에 공식 문서 대조 없이 쓴 `00`~`06` 과 ADR 0001~0008 을 다시 대조 (2026-10-26) -> [ADR 0012](decisions/0012-official-doc-recheck.md). 틀린 곳 2개(ADR 0001 지원 종료일, `06` Dex 해시 주석)는 고쳤다. 남은 열린 항목:
    - [x] kind API 서버를 tailnet 주소에 여는 것은 kind 문서의 권고(loopback 유지)와 다르다 -> 다른 기기에서 `kubectl` 을 쓰므로 **유지하기로 했다** (2026-10-26. **2026-10-27 에 `127.0.0.1` 로 바꾸기로 결정을 바꿨다**, ADR 0010). 근거와 위험은 [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1. 후속: Terraform 에서 tailnet ACL 로 6443 접근을 본인 기기로 제한
    - `02` 의 `tailscale up --ssh` 는 현재 문서 형식(`tailscale set --ssh`)으로 고쳤다. 실행 확인은 위 '남은 일' 2번
@@ -89,7 +89,7 @@
 | 2026-10-23 | `.env` 의 비밀번호를 dex 에 반영 (`06`), 새 비밀번호로 로그인 | [ADR 0005](decisions/0005-kubeflow-26.03.1.md) |
 | 2026-10-26 | 재부팅 후 자동 복구 1회 통과 (예약 작업, 노드 `unless-stopped`, 전원 설정) | [ADR 0010](decisions/0010-reboot-recovery.md) |
 | 2026-10-26 | 접속 방식 결정: NodePort 폐기, port-forward(localhost) + `tailscale serve` HTTPS. 서버 쪽 검증과 핸드폰의 Notebook 생성(200, 파드 91초) 통과 | [ADR 0009](decisions/0009-tailnet-exposure-port-forward-vs-nodeport.md), [ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md) |
-| 2026-10-26 | 옛 세션 쿠키로 JWKS 401 이 나는 문제의 원인 확정, `06` 이 `cookie-secret` 을 새로 만들게 함 | [troubleshooting.md](troubleshooting.md) 24번 |
+| 2026-10-26 | 옛 세션 쿠키로 JWKS 401 이 나는 문제의 원인 확정, `06` 이 `cookie-secret` 을 새로 만들게 함 | [troubleshooting.md](troubleshooting.md) 23번 |
 | 2026-10-26 | README 를 루트와 `scripts/` 로 분리, `main` 에 README 추가 | [README.md](../README.md) |
 | 2026-10-26 | 핸드폰에서 Notebook 을 JupyterLab 으로 열어 코드 실행 (HTTPS + 웹소켓 통과) | 게이트웨이 로그, [ADR 0011](decisions/0011-no-nodeport-https-via-tailscale-serve.md) |
 | 2026-10-26 | `06` 재실행 (ClusterIP 복귀, `cookie-secret` 교체, 새 비밀번호 로그인), GPU Notebook, Pipelines 실행 | 위 '다음 할 일' 1, 3, 4번 |
@@ -97,4 +97,4 @@
 | 2026-10-26 | `00`~`06` 과 ADR 0001~0008 공식 문서 재대조 | [ADR 0012](decisions/0012-official-doc-recheck.md) |
 | 2026-10-26 | 두 번째 사용자(`06-2-extra-user.sh`): Dex 계정, Profile, 소유자 권한, 할당량(GPU 0). 새 계정으로 로그인해 `kubeflow-guest-example-com` 네임스페이스가 보였다 (사용자 보고). `verify/06-2-extra-user.sh` 가 `==> OK` 로 끝났고 할당량 `{"pods":"20","requests.nvidia.com/gpu":"0","requests.storage":"20Gi"}` 가 적용됐다. `06` 전체 재실행에서 끝의 `06-2` 호출은 아직 시험하지 않았다 | [scripts/README.md](../scripts/README.md), [Profile 문서](https://www.kubeflow.org/docs/components/central-dash/profiles/) |
 | 2026-10-26 | Notebook 의 Python(`kfp.Client()`)으로 `hello-pipeline` 을 직접 제출해 YAML 업로드와 같은 결과를 확인. 이 클러스터에는 `access-ml-pipeline` PodDefault 가 없어서 [k8s/access-ml-pipeline-poddefault.yaml](../k8s/access-ml-pipeline-poddefault.yaml) 로 만들었다. 첫 Python Run 은 `container-impl` 파드 없이 끝났는데(캐시 적중으로 추정), `enable_caching=False` 로 다시 제출하자 dag-driver, container-driver, container-impl 파드 3개가 모두 `Completed` 였다 | [공식 안내](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/) |
-| 2026-10-27 | 컨트롤 플레인이 kind 네트워크에서 떨어져 8080 이 막힌 사고를 복구하고 `08-boot-resilience.sh` 를 적용. 대기(`tailscale wait`)가 `tailscale0` 준비를 기다림, 오프라인 부팅에서도 8080 이 NIC 없이 열림, 실행 중 전환 2건에서 port-forward 가 죽지 않음을 확인. 같은 날 감시 서비스 복구 경로(`detach`, `down`)도 통과. 60초 시간 초과 등은 미시험 (위 16번) | [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록', [troubleshooting.md](troubleshooting.md) 28번 |
+| 2026-10-27 | 컨트롤 플레인이 kind 네트워크에서 떨어져 8080 이 막힌 사고를 복구하고 `08-boot-resilience.sh` 를 적용. 대기(`tailscale wait`)가 `tailscale0` 준비를 기다림, 오프라인 부팅에서도 8080 이 NIC 없이 열림, 실행 중 전환 2건에서 port-forward 가 죽지 않음을 확인. 같은 날 감시 서비스 복구 경로(`detach`, `down`)도 통과. 60초 시간 초과 등은 미시험 (위 16번) | [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록', [troubleshooting.md](troubleshooting.md) 27번 |

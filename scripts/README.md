@@ -78,7 +78,7 @@ Kubeflow 공식 문서의 기본 접속은 `kubectl port-forward` 이고, NodePo
 - `07-3` 은 Tailscale 관리 콘솔의 DNS 페이지에서 **MagicDNS 와 HTTPS Certificates** 를 켜야 한다. 아직 시험하지 못했다.
 - `07-2-nodeport.sh` 는 **사용하지 않는다.** 시험 기록으로 남긴 스크립트다. 2026-10-27 부터 `kind-config.yaml` 에 30080 매핑이 없어 새 클러스터에서는 안내하고 멈춘다.
 - kind API 서버는 `127.0.0.1:6443` 에만 연다 (ADR 0010). **다른 기기에서 `kubectl` 은 쓰지 않는다.** 필요하면 tailnet 으로 SSH 해서 이 PC 에서 쓴다 (`tailscale serve --tcp` 로 여는 방법은 시험하지 않았다).
-- 쿠키 때문에 클러스터를 다시 만든 뒤 옛 쿠키가 남은 브라우저는 `06` 이 `cookie-secret` 을 새로 만들어 로그인 화면으로 돌아간다 ([troubleshooting.md](../docs/troubleshooting.md) 24번).
+- 쿠키 때문에 클러스터를 다시 만든 뒤 옛 쿠키가 남은 브라우저는 `06` 이 `cookie-secret` 을 새로 만들어 로그인 화면으로 돌아간다 ([troubleshooting.md](../docs/troubleshooting.md) 23번).
 
 ## 재부팅 후 자동 복구
 

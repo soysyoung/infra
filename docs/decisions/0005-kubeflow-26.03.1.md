@@ -31,7 +31,7 @@ Kubeflow Community Distribution **26.03.1** (2026-06-15). 설치 구성요소는
 - 커뮤니티는 연 2회(26.03, 26.10) 릴리스하고 각 릴리스를 약 6개월 best-effort 로 지원한다. 26.03 은 2026-03-22 출시라 **지원 기간이 끝났을 수 있다.** 포트폴리오 시연용 단일 PC 에서는 26.03.1 을 고정해도 되지만 알고 쓴다.
 - **기본 로그인(user@example.com / 12341234)은 공개된 값이다.** 클러스터 API 는 tailnet 에서만 열려 있고 접속은 `kubectl port-forward` 로 하지만, 비밀번호를 바꾸기 전에는 외부에 노출하지 않는다. 비밀번호는 저장소 루트 `.env` (git 제외) 의 `KUBEFLOW_PASSWORD` 로 정하고 `06` 이 bcrypt 해시로 dex 시크릿에 반영한다 (아이디는 dex 설정과 Profile 에 묶여 있어 고정). tailnet 에 여는 방식은 [0009](0009-tailnet-exposure-port-forward-vs-nodeport.md).
 - Katib/Notebooks 의 개별 버전은 확인하지 못했다 (Katib 은 제외, Notebooks 는 v1).
-- 설치 결과 (2026-10-23): 파드 64개가 모두 Running/Completed, Deployment 전부 Available, 로그인 흐름(oauth2-proxy -> Dex) 동작. 설치 중 겪은 문제는 [troubleshooting.md](../troubleshooting.md) 9~12번, 15번.
+- 설치 결과 (2026-10-23): 파드 64개가 모두 Running/Completed, Deployment 전부 Available, 로그인 흐름(oauth2-proxy -> Dex) 동작. 설치 중 겪은 문제는 [troubleshooting.md](../troubleshooting.md) 8~11번, 14번.
 - 부하 (설치 후 유휴): WSL 사용 7.0Gi (가용 16Gi), 노드 컨테이너 합계 약 7.8GiB (control-plane 1.7, CPU 워커 각 2.8~3.0, GPU 워커 0.27). 24GB 할당으로 충분하다.
 - **로그인 후 기능(Pipelines 실행, Notebook 생성, GPU Notebook)은 아직 시험하지 않았다.**
 

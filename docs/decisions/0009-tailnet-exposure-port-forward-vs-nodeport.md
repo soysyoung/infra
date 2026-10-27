@@ -22,7 +22,7 @@
 공통: 둘 다 tailnet 주소에만 바인딩한다 (`0.0.0.0` 이 아니므로 LAN 에 열리지 않는다). 로그인 쿠키는 `FORCE_HTTPS=false` 라서 `Secure` 속성이 없고 http 로 로그인할 수 있다 (oauth2-proxy 매니페스트에서 확인). 콜백 주소(`/oauth2/callback`)는 상대 경로다. tailnet 주소(http)로 실제 로그인이 되는 것은 port-forward 방식으로 확인했다 (핸드폰, 2026-10-23).
 
 ## 시험에서 드러난 것: NodePort 는 NetworkPolicy 를 보완해야 한다 (2026-10-26)
-NodePort 방식은 Service 만 바꿔서는 접속되지 않았다. `istio-system` 의 Kubeflow NetworkPolicy 가 게이트웨이 8080 을 같은 네임스페이스와 `knative-serving` 에서만 허용해서, NodePort 로 들어온 노드 출발 트래픽이 다른 노드의 게이트웨이 파드에서 막혔다. port-forward 는 kubelet 이 파드에 직접 연결하므로 이 정책을 거치지 않는다. 진단 과정과 실측값은 [troubleshooting.md](../troubleshooting.md) 23번.
+NodePort 방식은 Service 만 바꿔서는 접속되지 않았다. `istio-system` 의 Kubeflow NetworkPolicy 가 게이트웨이 8080 을 같은 네임스페이스와 `knative-serving` 에서만 허용해서, NodePort 로 들어온 노드 출발 트래픽이 다른 노드의 게이트웨이 파드에서 막혔다. port-forward 는 kubelet 이 파드에 직접 연결하므로 이 정책을 거치지 않는다. 진단 과정과 실측값은 [troubleshooting.md](../troubleshooting.md) 22번.
 
 - 대응: `07-2` 가 8080 을 모든 출발지에 여는 NetworkPolicy 하나를 더한다. 정책은 합집합으로 적용되어 기존 허용은 그대로다.
 - 대가: 게이트웨이 8080 을 클러스터 안 모든 파드가 직접 부를 수 있게 된다 (이전에는 같은 네임스페이스와 knative 만). 인증은 앞단 oauth2-proxy 가 하고 이 클러스터는 사용자 한 명의 실습 환경이라 허용했다. 좁히려면 `from.ipBlock` 에 kind 도커 네트워크 대역을 쓴다 (미시험).
