@@ -10,7 +10,7 @@
 #   3) GPU 워커(mlops-worker)에 라벨 nvidia.com/gpu.present=true 와 taint nvidia.com/gpu=present:NoSchedule
 #   접속 정보는 kind 공식 기본값대로 ~/.kube/config 에 병합된다 (컨텍스트 kind-mlops)
 #
-# 선행: 02-tailscale.sh (인증서 SAN 에 tailnet 주소가 들어간다), 03-docker.sh, 04-nvidia-toolkit.sh
+# 선행: 03-docker.sh, 04-nvidia-toolkit.sh (API 서버는 127.0.0.1 에만 연다. tailnet 주소를 쓰지 않으므로 02 는 필요 없다, docs/decisions/0010)
 # 다음: 05-2-gpu-node.sh -> 05-3-device-plugin.sh
 # 검증: scripts/verify/05-1-kind-cluster.sh
 #
@@ -21,7 +21,6 @@ set -euo pipefail
 source "$(dirname "$0")/lib/common.sh"
 
 require_cmd docker "03-docker.sh 를 먼저 하세요."
-require_cmd tailscale "02-tailscale.sh 를 먼저 하세요."
 require_cmd envsubst "sudo apt-get install -y gettext-base"
 # GPU 노드의 마커 마운트는 Docker 의 기본 런타임이 nvidia 일 때만 동작한다.
 [ "$(docker info --format '{{.DefaultRuntime}}')" = nvidia ] || die "Docker 기본 런타임이 nvidia 가 아닙니다. 04-nvidia-toolkit.sh 를 먼저 하세요."
@@ -51,8 +50,7 @@ if ! kubectl version --client 2>/dev/null | grep -q "$KUBECTL_VERSION"; then
   sudo install -m 0755 "$tmp/kubectl" /usr/local/bin/kubectl
 fi
 
-TAILNET_IP=$(tailscale ip -4)
-export TAILNET_IP KIND_NODE_IMAGE
+export KIND_NODE_IMAGE
 mkdir -p "$HOME/.kube"
 
 if kind get clusters | grep -qx "$CLUSTER"; then
@@ -61,7 +59,7 @@ if kind get clusters | grep -qx "$CLUSTER"; then
 else
   [[ "$CPU_WORKERS" =~ ^[0-9]+$ ]] || die "cluster.env 의 CPU_WORKERS 는 0 이상의 정수여야 합니다 (현재: '$CPU_WORKERS')."
   {
-    envsubst '${TAILNET_IP} ${KIND_NODE_IMAGE}' < "$ROOT/k8s/kind-config.yaml"
+    envsubst '${KIND_NODE_IMAGE}' < "$ROOT/k8s/kind-config.yaml"
     for _ in $(seq "$CPU_WORKERS"); do printf '  - role: worker\n    image: %s\n' "$KIND_NODE_IMAGE"; done
   } | kind create cluster --name "$CLUSTER" --config -
 fi

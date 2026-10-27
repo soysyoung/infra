@@ -1,26 +1,17 @@
-# 05-1-kind-cluster.sh 가 envsubst 로 ${TAILNET_IP}, ${KIND_NODE_IMAGE} 를 채워서 kind 에 넘긴다.
+# 05-1-kind-cluster.sh 가 envsubst 로 ${KIND_NODE_IMAGE} 를 채워서 kind 에 넘긴다.
 # 노드: control-plane 1 + GPU 워커 1 + CPU 워커 CPU_WORKERS 개 (기본 2, 컨테이너 4개). 한 PC 위의 스케줄링 실습용 구성이라 고가용성은 아니다.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  # API 서버를 tailnet 주소에만 연다 (0.0.0.0 이면 LAN 에도 노출된다).
-  # shortcut: tailscaled 가 Docker 보다 늦게 뜨면 재부팅 후 노드 컨테이너가 시작 실패할 수 있다. 서버 단계(autostart)에서 순서를 확인한다.
-  apiServerAddress: "${TAILNET_IP}"
+  # kind 문서가 "강하게 권장" 하는 기본값(127.0.0.1)이다. 예전에는 tailnet 주소로 열었으나, 부팅 때 Docker 가 컨트롤 플레인을
+  # 복원하는 순간 tailscale0 의 주소가 아직 없으면 컨테이너가 kind 네트워크에서 떨어지는 사고가 났다 (docs/decisions/0010).
+  # 다른 기기에서는 kubectl 을 쓰지 않는다 (필요하면 tailnet 으로 SSH 해서 이 PC 에서 쓴다).
+  # shortcut: 포트를 6443 으로 고정했다. 같은 PC 에서 6443 을 쓰는 다른 프로세스가 있으면 클러스터 생성이 실패하니 그때 이 줄을 지운다 (무작위 포트).
+  apiServerAddress: "127.0.0.1"
   apiServerPort: 6443
-kubeadmConfigPatches:
-  - |
-    kind: ClusterConfiguration
-    apiServer:
-      certSANs:
-        - "${TAILNET_IP}"
 nodes:
   - role: control-plane
     image: ${KIND_NODE_IMAGE}
-    # NodePort 방식 (docs/decisions/0009, scripts/07-2-nodeport.sh): 노드 30080 을 tailnet 주소의 30080 으로 연다. 생성할 때만 정해지고 나중에 바꿀 수 없다.
-    extraPortMappings:
-      - containerPort: 30080
-        hostPort: 30080
-        listenAddress: "${TAILNET_IP}"
   # 첫 번째 워커(kind 이름: mlops-worker)가 GPU 노드다. 05-1 이 이 이름으로 라벨과 taint 를 건다.
   - role: worker
     image: ${KIND_NODE_IMAGE}
