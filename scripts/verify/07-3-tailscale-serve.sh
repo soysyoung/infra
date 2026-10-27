@@ -8,7 +8,15 @@ name=$(tailscale status --json | python3 -c 'import sys,json; print(json.load(sy
 [ -n "$name" ] || die "이 기기의 tailnet 이름을 알 수 없습니다 (tailscale status)."
 
 # WSL 의 DNS 설정에 상관없이 이 기기의 tailnet 주소로 직접 연결한다. 인증서 검증은 이름으로 한다.
-r=$(curl -s -m 10 --resolve "$name:443:$(tailscale ip -4)" -o /dev/null -w '%{redirect_url}' "https://$name/oauth2/start" || true)
+# 새로 등록한 기기에서는 첫 HTTPS 요청이 인증서 발급을 시작시키고, 발급이 끝날 때까지(수 초) 연결이 실패할 수 있다 (2026-10-27 재설치).
+# 그래서 응답이 올 때까지 최대 60초 재시도한다.
+r=""
+for i in $(seq 1 12); do
+  r=$(curl -s -m 10 --resolve "$name:443:$(tailscale ip -4)" -o /dev/null -w '%{redirect_url}' "https://$name/oauth2/start" || true)
+  [ -n "$r" ] && break
+  [ "$i" = 1 ] && log "응답이 없어 최대 60초 재시도합니다 (인증서 발급 중일 수 있음)"
+  sleep 5
+done
 log "https://$name/oauth2/start 의 리다이렉트: ${r:-없음}"
 case "$r" in
   https://*/dex/auth*) ;;
