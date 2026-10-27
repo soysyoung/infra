@@ -13,10 +13,10 @@
 - 문서 배치: 근거는 ADR, 사용법은 README, 실제 출력은 verify/teardown README, 막힌 곳은 troubleshooting. 저장소는 공개이므로 **tailnet 이름, 기기 모델, 사설 IP 는 쓰지 않는다** (`<기기>.<tailnet>.ts.net`).
 - 도구 함정: `wsl.exe -- bash -c "..."` 로 넘긴 명령의 `$` 는 한 번 더 해석된다. 복잡한 명령은 스크립트를 표준입력으로 넘긴다 (`cat <<'EOF' | wsl.exe -- bash -s`). 문서를 파이썬으로 쓸 때 Windows 경로의 백슬래시가 이스케이프로 해석되어 파일이 깨진다 ([troubleshooting.md](troubleshooting.md) 19번). 쓴 뒤 제어문자와 탭을 검사한다.
 
-## 현재 환경 (2026-10-26 기준)
+## 현재 환경 (2026-10-26 기준, WSL 줄은 2026-10-27 갱신)
 
 - **Windows**: 예약 작업 `wsl-keepalive`(부팅 때 WSL 을 띄움, 로그온 없이), AC 절전과 최대 절전 끔, 덮개 닫기 '아무 것도 안 함'. Windows 에는 Tailscale 이 없다 (WSL 안에만 있다).
-- **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only).
+- **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only). **`08-boot-resilience.sh` 적용됨 (2026-10-27)**: `docker.service` 시작 전 `tailscale wait --timeout=60s`, `kubeflow-port-forward` 가 전용 kubeconfig(`~/.kube/mlops-local.config`)로 API 서버를 컨트롤 플레인 컨테이너 IP(`172.18.0.4`)로 부름, `mlops-watchdog.timer` 가 1분마다 실행. 근거와 시험 결과는 [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록'. 컨트롤 플레인 IP 는 `/etc/mlops/cp-ip` 에 고정하고 클러스터를 다시 만들면 `08` 을 다시 실행한다. 일부러 `docker stop` 해 둔 클러스터는 감시가 다시 시작하니, 멈추려면 `sudo systemctl stop mlops-watchdog.timer` 부터 한다.
 - **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1개 광고, 비정상 파드 0. Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01`, `test03`(CPU) 이 Running (`test02-gpu` 는 중지). 공유용 계정 `guest@example.com`(네임스페이스 `kubeflow-guest-example-com`, GPU 0)이 있고 비밀번호는 `.env` 의 `EXTRA_USER_PASSWORD`. Funnel 은 평소 꺼 둔다 (`07-4 off` 상태가 기본, 공유할 때만 `on`).
 - **접속**: 이 PC 는 `http://localhost:8080` (https 아님). 핸드폰 등 tailnet 기기는 `https://<기기>.<tailnet>.ts.net`. 이 PC 의 Windows 브라우저로는 `.ts.net` 주소가 해석되지 않는다.
 - **남겨 둔 NodePort 흔적**: `kind-config.yaml` 의 30080 매핑, `07-2` 스크립트들 (시험 기록). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
@@ -26,6 +26,11 @@
 
 **진행 중**
 1. [ ] **외부 공유 실제 시험** (사용자가 진행): `bash scripts/07-4-tailscale-funnel.sh on` -> 다른 사람이 `https://<기기>.<tailnet>.ts.net` 에 공유용 계정으로 접속 -> 끝나면 반드시 `off`. 결과(접속, 로그인, 자기 네임스페이스만 보이는지, 파이프라인 정의는 공유되는지)를 여기에 기록한다. 켜 둔 동안 관리자 로그인 화면도 공개된다. Let's Encrypt 속도 제한 때문에 켜고 끄기를 자주 반복하지 않는다
+
+**부팅 복원력** (2026-10-27 사고, [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록'. 번호는 다른 문서가 참조하는 기존 번호를 지키려고 15번부터 이어 붙였다)
+15. [x] **감시 서비스 복구 경로 시험** -> 통과 (2026-10-27): `bash scripts/verify/08-boot-resilience.sh detach` 와 `down` 을 사용자가 실행했고, 로그로 두 경우 모두 사람 조작 없이 복구됨을 확인했다 (`detach` 59초, `down` 2분 32초, 노드 4개 Ready, 8080 302). 상세와 한계는 [ADR 0010](decisions/0010-reboot-recovery.md) '대책 시험 결과'. 스크립트가 출력한 시간과 `verify/README.md` 의 실제 출력은 받지 못해 기록하지 않았다. 사고의 원인(경합) 자체를 재현하는 시험은 아니다
+16. [ ] 남은 시험 (모두 미시험, 선택): `tailscale` 로그아웃 상태의 60초 시간 초과, 실행 중 전환 뒤 장시간 유지, 핸드폰의 `tailscale serve` 주소가 NIC 전환 뒤 돌아오는지
+17. [ ] 선택: 원인 가설 확정(대기 없이 경합이 재현되는지), ADR 0010 의 10번(노드를 systemd 유닛으로 관리), 부팅 직후 `error: lost connection to pod` 가 반복되는 원인 확인
 
 **확인만 하면 되는 것** (읽기 전용이거나 명령 한 번)
 2. [ ] SSH: `sudo tailscale set --ssh` 실행 후 다른 기기에서 SSH 접속 확인 (`02` 는 이미 이 형식으로 고쳤다)
@@ -38,7 +43,7 @@
 
 **다음 클러스터 재생성 때**
 7. [ ] 삭제의 수정 경로(패키지 2개 purge, `docker0` 삭제) 실행 확인 ([troubleshooting.md](troubleshooting.md) 18번). `DRY_RUN=1` 먼저
-8. [ ] `kind-config.yaml` 의 30080 매핑과 `07-2` 스크립트(시험 기록) 정리 여부
+8. [ ] `kind-config.yaml` 의 30080 매핑과 `07-2` 스크립트(시험 기록) 정리 여부. 이 매핑과 `apiServerAddress` 는 컨트롤 플레인만 tailnet 주소로 포트를 게시하게 만들어 2026-10-27 사고의 원인 후보다. 클러스터를 다시 만들 때 `apiServerAddress` 를 `127.0.0.1` 로 바꾸는 것도 함께 검토한다 ([ADR 0010](decisions/0010-reboot-recovery.md) 6번)
 9. [ ] 두 번째 사용자 삭제 경로(`kubectl delete profile <이름>`, `.env` 정리, `06` 재실행) 시험
 
 **선택**
@@ -87,3 +92,4 @@
 | 2026-10-26 | `00`~`06` 과 ADR 0001~0008 공식 문서 재대조 | [ADR 0012](decisions/0012-official-doc-recheck.md) |
 | 2026-10-26 | 두 번째 사용자(`06-2-extra-user.sh`): Dex 계정, Profile, 소유자 권한, 할당량(GPU 0). 새 계정으로 로그인해 `kubeflow-guest-example-com` 네임스페이스가 보였다 (사용자 보고). `verify/06-2-extra-user.sh` 가 `==> OK` 로 끝났고 할당량 `{"pods":"20","requests.nvidia.com/gpu":"0","requests.storage":"20Gi"}` 가 적용됐다. `06` 전체 재실행에서 끝의 `06-2` 호출은 아직 시험하지 않았다 | [scripts/README.md](../scripts/README.md), [Profile 문서](https://www.kubeflow.org/docs/components/central-dash/profiles/) |
 | 2026-10-26 | Notebook 의 Python(`kfp.Client()`)으로 `hello-pipeline` 을 직접 제출해 YAML 업로드와 같은 결과를 확인. 이 클러스터에는 `access-ml-pipeline` PodDefault 가 없어서 [k8s/access-ml-pipeline-poddefault.yaml](../k8s/access-ml-pipeline-poddefault.yaml) 로 만들었다. 첫 Python Run 은 `container-impl` 파드 없이 끝났는데(캐시 적중으로 추정), `enable_caching=False` 로 다시 제출하자 dag-driver, container-driver, container-impl 파드 3개가 모두 `Completed` 였다 | [공식 안내](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/) |
+| 2026-10-27 | 컨트롤 플레인이 kind 네트워크에서 떨어져 8080 이 막힌 사고를 복구하고 `08-boot-resilience.sh` 를 적용. 대기(`tailscale wait`)가 `tailscale0` 준비를 기다림, 오프라인 부팅에서도 8080 이 NIC 없이 열림, 실행 중 전환 2건에서 port-forward 가 죽지 않음을 확인. 같은 날 감시 서비스 복구 경로(`detach`, `down`)도 통과. 60초 시간 초과 등은 미시험 (위 16번) | [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록', [troubleshooting.md](troubleshooting.md) 28번 |
