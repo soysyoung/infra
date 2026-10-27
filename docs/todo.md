@@ -16,10 +16,10 @@
 ## 현재 환경 (2026-10-26 기준, WSL 줄은 2026-10-27 갱신)
 
 - **Windows**: 예약 작업 `wsl-keepalive`(부팅 때 WSL 을 띄움, 로그온 없이), AC 절전과 최대 절전 끔, 덮개 닫기 '아무 것도 안 함'. Windows 에는 Tailscale 이 없다 (WSL 안에만 있다).
-- **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only). **`08-boot-resilience.sh` 적용됨 (2026-10-27)**: `docker.service` 시작 전 `tailscale wait --timeout=60s`, `kubeflow-port-forward` 가 전용 kubeconfig(`~/.kube/mlops-local.config`)로 API 서버를 컨트롤 플레인 컨테이너 IP(`172.18.0.4`)로 부름, `mlops-watchdog.timer` 가 1분마다 실행. 근거와 시험 결과는 [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록'. 컨트롤 플레인 IP 는 `/etc/mlops/cp-ip` 에 고정하고 클러스터를 다시 만들면 `08` 을 다시 실행한다. 일부러 `docker stop` 해 둔 클러스터는 감시가 다시 시작하니, 멈추려면 `sudo systemctl stop mlops-watchdog.timer` 부터 한다.
+- **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only). **`08-boot-resilience.sh` 이전 버전이 적용돼 있음 (2026-10-27)**: `docker.service` 시작 전 `tailscale wait --timeout=60s`, `kubeflow-port-forward` 가 전용 kubeconfig(`~/.kube/mlops-local.config`)로 API 서버를 컨트롤 플레인 컨테이너 IP(`172.18.0.4`)로 부름, `mlops-watchdog.timer` 가 1분마다 실행. 저장소의 `08` 은 이미 새 버전(감시 서비스만, API 서버는 `127.0.0.1`)으로 바뀌었고 이 PC 에는 재설치로 적용한다. 근거와 시험 결과는 [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록'. 컨트롤 플레인 IP 는 `/etc/mlops/cp-ip` 에 고정하고 클러스터를 다시 만들면 `08` 을 다시 실행한다. 일부러 `docker stop` 해 둔 클러스터는 감시가 다시 시작하니, 멈추려면 `sudo systemctl stop mlops-watchdog.timer` 부터 한다.
 - **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1개 광고, 비정상 파드 0. Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01`, `test03`(CPU) 이 Running (`test02-gpu` 는 중지). 공유용 계정 `guest@example.com`(네임스페이스 `kubeflow-guest-example-com`, GPU 0)이 있고 비밀번호는 `.env` 의 `EXTRA_USER_PASSWORD`. Funnel 은 평소 꺼 둔다 (`07-4 off` 상태가 기본, 공유할 때만 `on`).
 - **접속**: 이 PC 는 `http://localhost:8080` (https 아님). 핸드폰 등 tailnet 기기는 `https://<기기>.<tailnet>.ts.net`. 이 PC 의 Windows 브라우저로는 `.ts.net` 주소가 해석되지 않는다.
-- **남겨 둔 NodePort 흔적**: `kind-config.yaml` 의 30080 매핑, `07-2` 스크립트들 (시험 기록). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
+- **남겨 둔 NodePort 흔적**: `07-2` 스크립트들 (시험 기록). `kind-config.yaml` 의 30080 매핑은 2026-10-27 에 제거했다 (이 PC 의 현재 클러스터에는 재설치 전까지 남아 있다). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
 - **git**: `dev` 에 작업, `main` 은 README 한 파일(작성자 `soysyoung@gmail.com`). `dev` 의 기존 커밋 48개는 작성자 이메일이 `dangim.co.kr` 이다 (히스토리를 다시 쓰지 않기로 했다).
 
 ## 남은 일 (우선순위 순)
@@ -27,9 +27,14 @@
 **진행 중**
 1. [ ] **외부 공유 실제 시험** (사용자가 진행): `bash scripts/07-4-tailscale-funnel.sh on` -> 다른 사람이 `https://<기기>.<tailnet>.ts.net` 에 공유용 계정으로 접속 -> 끝나면 반드시 `off`. 결과(접속, 로그인, 자기 네임스페이스만 보이는지, 파이프라인 정의는 공유되는지)를 여기에 기록한다. 켜 둔 동안 관리자 로그인 화면도 공개된다. Let's Encrypt 속도 제한 때문에 켜고 끄기를 자주 반복하지 않는다
 
+**재현성 증명: 전체 삭제 후 재설치** (2026-10-27 결정, 사용자가 진행. 합격 기준과 근거는 [ADR 0010](decisions/0010-reboot-recovery.md) '결정 변경')
+18. [x] (2026-10-27 완료, 결과는 ADR 0010 '재설치 시험 결과') 삭제: WSL 안에서 `DRY_RUN=1 bash scripts/teardown/all.sh` 로 확인 후 `bash scripts/teardown/all.sh`, 이어서 PowerShell 에서 `scripts\teardown\00-windows-wsl.ps1`. 지워지는 것: Notebook 과 안의 데이터, 파이프라인 기록, 공유용 계정, Docker 이미지 전체. Tailscale 은 로그아웃과 제거까지 하므로 **장치가 새로 등록되고** 이름과 tailnet 주소가 바뀔 수 있다 (관리 콘솔의 옛 장치는 직접 삭제, `tailscale serve` HTTPS 인증서를 다시 받는다. Let's Encrypt 속도 제한이 있어 켜고 끄기를 반복하지 않는다). 삭제 확인은 [teardown/README.md](../scripts/teardown/README.md) '삭제 확인'
+19. [x] (2026-10-27 완료. 개입이 필요했던 2곳은 고쳤고 재시험은 안 했다. `03`~`06` verify 출력은 받지 못함) 재설치: [scripts/README.md](../scripts/README.md) 의 순서대로 `00` 부터 `07-3`, 마지막에 `08`. 각 단계의 `verify/` 를 함께 실행. 이번에 바뀐 것: kind API 서버가 `127.0.0.1`, 30080 매핑 없음, `05-1` 이 Tailscale 에 의존하지 않음, `08` 은 감시 서비스만. 새 계정으로 `.env` 의 비밀번호가 그대로인지 확인
+20. [x] (2026-10-27 통과: 재부팅 1회, `detach` 68초, `down` 143초) 재부팅 뒤 `bash scripts/verify/08-reboot.sh`, 그다음 `bash scripts/verify/08-boot-resilience.sh detach` 와 `down`. 결과와 걸린 시간, 실패한 항목을 ADR 0010 '결정 변경' 과 [troubleshooting.md](troubleshooting.md) 에 있는 그대로 기록한다
+
 **부팅 복원력** (2026-10-27 사고, [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록'. 번호는 다른 문서가 참조하는 기존 번호를 지키려고 15번부터 이어 붙였다)
 15. [x] **감시 서비스 복구 경로 시험** -> 통과 (2026-10-27): `bash scripts/verify/08-boot-resilience.sh detach` 와 `down` 을 사용자가 실행했고, 로그로 두 경우 모두 사람 조작 없이 복구됨을 확인했다 (`detach` 59초, `down` 2분 32초, 노드 4개 Ready, 8080 302). 상세와 한계는 [ADR 0010](decisions/0010-reboot-recovery.md) '대책 시험 결과'. 스크립트가 출력한 시간과 `verify/README.md` 의 실제 출력은 받지 못해 기록하지 않았다. 사고의 원인(경합) 자체를 재현하는 시험은 아니다
-16. [ ] 남은 시험 (모두 미시험, 선택): `tailscale` 로그아웃 상태의 60초 시간 초과, 실행 중 전환 뒤 장시간 유지, 핸드폰의 `tailscale serve` 주소가 NIC 전환 뒤 돌아오는지
+16. [ ] 남은 시험 (모두 미시험, 선택): 실행 중 전환 뒤 장시간 유지, 핸드폰의 `tailscale serve` 주소가 NIC 전환 뒤 돌아오는지. (`tailscale wait` 의 60초 시간 초과는 08 에서 `tailscale wait` 를 뺐으므로 해당 없음)
 17. [ ] 선택: 원인 가설 확정(대기 없이 경합이 재현되는지), ADR 0010 의 10번(노드를 systemd 유닛으로 관리), 부팅 직후 `error: lost connection to pod` 가 반복되는 원인 확인
 
 **확인만 하면 되는 것** (읽기 전용이거나 명령 한 번)
@@ -42,8 +47,8 @@
 6. [ ] Dex 로그인 시도 횟수 제한이 있는지 확인 (인터넷에 열 때 비밀번호 대입 공격 대책)
 
 **다음 클러스터 재생성 때**
-7. [ ] 삭제의 수정 경로(패키지 2개 purge, `docker0` 삭제) 실행 확인 ([troubleshooting.md](troubleshooting.md) 18번). `DRY_RUN=1` 먼저
-8. [ ] `kind-config.yaml` 의 30080 매핑과 `07-2` 스크립트(시험 기록) 정리 여부. 이 매핑과 `apiServerAddress` 는 컨트롤 플레인만 tailnet 주소로 포트를 게시하게 만들어 2026-10-27 사고의 원인 후보다. 클러스터를 다시 만들 때 `apiServerAddress` 를 `127.0.0.1` 로 바꾸는 것도 함께 검토한다 ([ADR 0010](decisions/0010-reboot-recovery.md) 6번)
+7. [x] 삭제의 수정 경로 실행 확인 -> 부분 통과 (2026-10-27 실제 삭제): 패키지 2개 purge 는 출력으로 확인. `docker0` 삭제는 출력이 없고 이어서 배포판을 지워 확인하지 못했다 ([troubleshooting.md](troubleshooting.md) 18번)
+8. [x] `kind-config.yaml` 의 30080 매핑 제거와 `apiServerAddress` 를 `127.0.0.1` 로 변경 -> 저장소에 반영 (2026-10-27, [ADR 0010](decisions/0010-reboot-recovery.md) '결정 변경'). 클러스터에는 위 18~19번 재설치로 적용된다. `07-2` 스크립트는 시험 기록으로 남기고 새 클러스터에서는 안내하고 멈춘다
 9. [ ] 두 번째 사용자 삭제 경로(`kubectl delete profile <이름>`, `.env` 정리, `06` 재실행) 시험
 
 **선택**
@@ -53,7 +58,7 @@
 
 **큰 일**
 13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
-14. [ ] IaC (Terraform, 나중에): tailscale ACL 로 이 기기의 6443 접근을 본인 기기로 제한하고 Funnel 사용자를 제한, authkey, 클러스터 플랫폼 구성, ArgoCD 로 Kubeflow 배포 ([architecture.md](architecture.md), [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1)
+14. [ ] IaC (Terraform, 나중에): Funnel 사용자를 제한 (6443 은 `127.0.0.1` 로 바뀌어 ACL 제한이 필요 없다, ADR 0010), authkey, 클러스터 플랫폼 구성, ArgoCD 로 Kubeflow 배포 ([architecture.md](architecture.md), [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1)
 
 ## 2026-10-26 에 끝낸 일의 상세
 
@@ -72,7 +77,7 @@
    - [x] `03`~`06` verify 를 다시 실행해 모두 `==> OK` (2026-10-26), 차이점을 verify README 에 반영. `00-windows.ps1` 은 다시 실행하지 않았다
 6. [x] Tailscale 관리 콘솔에서 쓰지 않는 offline 장치 7개 삭제 ([troubleshooting.md](troubleshooting.md) 5번) -> 2026-10-23 에 삭제함 (사용자 보고)
 7. [x] 이전에 공식 문서 대조 없이 쓴 `00`~`06` 과 ADR 0001~0008 을 다시 대조 (2026-10-26) -> [ADR 0012](decisions/0012-official-doc-recheck.md). 틀린 곳 2개(ADR 0001 지원 종료일, `06` Dex 해시 주석)는 고쳤다. 남은 열린 항목:
-   - [x] kind API 서버를 tailnet 주소에 여는 것은 kind 문서의 권고(loopback 유지)와 다르다 -> 다른 기기에서 `kubectl` 을 쓰므로 **유지하기로 했다** (2026-10-26). 근거와 위험은 [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1. 후속: Terraform 에서 tailnet ACL 로 6443 접근을 본인 기기로 제한
+   - [x] kind API 서버를 tailnet 주소에 여는 것은 kind 문서의 권고(loopback 유지)와 다르다 -> 다른 기기에서 `kubectl` 을 쓰므로 **유지하기로 했다** (2026-10-26. **2026-10-27 에 `127.0.0.1` 로 바꾸기로 결정을 바꿨다**, ADR 0010). 근거와 위험은 [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1. 후속: Terraform 에서 tailnet ACL 로 6443 접근을 본인 기기로 제한
    - `02` 의 `tailscale up --ssh` 는 현재 문서 형식(`tailscale set --ssh`)으로 고쳤다. 실행 확인은 위 '남은 일' 2번
 8-1. [x] 외부 공유 구성과 켜기/끄기 시험 (실제 다른 사용자 공유 시험은 위 '남은 일' 1번): tailnet 밖의 사람이 접속하려면 Tailscale Funnel 로 HTTPS 주소를 인터넷에 연다 (2026-10-26 결정: Funnel 사용). 공유용 계정은 `06-2-extra-user.sh` 로 만들었다. 켜기/끄기는 [scripts/07-4-tailscale-funnel.sh](../scripts/07-4-tailscale-funnel.sh). `on` 을 실행하고 접속을 확인했다 (2026-10-26, 사용자 보고. 출력은 받지 못했다). `off` 를 실행하자 연결이 끊겼다 (사용자 보고). `off` 뒤 `tailscale serve status` 가 `(tailnet only)` 로 `/` -> `http://127.0.0.1:8080` 을 보여 주고 `verify/07-3-tailscale-serve.sh` 가 `==> OK` 였다: 공개는 풀리고 tailnet 안의 HTTPS 는 유지된다. tailnet 밖(핸드폰의 Tailscale 끔)에서는 `ERR_CONNECTION_CLOSED` 로 접속되지 않는다 (사용자 보고). 공유용 계정이 보는 범위: 실험과 Run 은 네임스페이스별로 분리되고, 파이프라인 정의는 모든 네임스페이스가 공유한다 ([공식 문서](https://www.kubeflow.org/docs/components/pipelines/operator-guides/multi-user/)). 주의: 관리자 계정(`user@example.com`)의 로그인 화면도 같은 주소로 공개된다
 

@@ -48,7 +48,8 @@ bash scripts/verify/07-1-port-forward.sh
 bash scripts/07-3-tailscale-serve.sh  # tailscale serve 로 HTTPS -> https://<기기>.<tailnet>.ts.net (관리 콘솔에서 MagicDNS, HTTPS 인증서를 먼저 켠다)
 bash scripts/verify/07-3-tailscale-serve.sh
 bash scripts/07-4-tailscale-funnel.sh on|off|status   # (선택) tailnet 밖의 사람에게 인터넷으로 공개/해제. 공유할 때만 on 하고 끝나면 off
-bash scripts/08-boot-resilience.sh    # 재부팅·이더넷/와이파이 전환에도 8080 이 돌아오게 한다 (docker 시작 전 tailscale wait, port-forward 를 컨테이너 IP 로, 1분 감시). ADR 0010. 아직 시험 전
+bash scripts/08-boot-resilience.sh    # 컨트롤 플레인이 kind 네트워크에서 떨어지거나 멈추면 스스로 복구하고, 8080 이 멈추면 port-forward 를 재시작하는 1분 감시 서비스. ADR 0010
+bash scripts/verify/08-boot-resilience.sh detach   # (선택, 클러스터가 2~4분 끊긴다) 일부러 장애를 만들어 감시가 복구하는지 시험. down 도 있다
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
@@ -75,7 +76,8 @@ Kubeflow 공식 문서의 기본 접속은 `kubectl port-forward` 이고, NodePo
 
 - **이 PC 의 Windows 브라우저에서는 tailnet 주소(`100.x.x.x`)로 접속되지 않는다.** Tailscale 이 WSL 안에만 있어서 Windows 에는 그 주소가 없다 (2026-10-26: `:8080`, `:30080` 모두 타임아웃, `ipconfig` 에 주소 없음). 이 PC 는 `localhost` 를 쓴다.
 - `07-3` 은 Tailscale 관리 콘솔의 DNS 페이지에서 **MagicDNS 와 HTTPS Certificates** 를 켜야 한다. 아직 시험하지 못했다.
-- `07-2-nodeport.sh` 는 **사용하지 않는다.** 시험 기록으로 남긴 스크립트다.
+- `07-2-nodeport.sh` 는 **사용하지 않는다.** 시험 기록으로 남긴 스크립트다. 2026-10-27 부터 `kind-config.yaml` 에 30080 매핑이 없어 새 클러스터에서는 안내하고 멈춘다.
+- kind API 서버는 `127.0.0.1:6443` 에만 연다 (ADR 0010). **다른 기기에서 `kubectl` 은 쓰지 않는다.** 필요하면 tailnet 으로 SSH 해서 이 PC 에서 쓴다 (`tailscale serve --tcp` 로 여는 방법은 시험하지 않았다).
 - 쿠키 때문에 클러스터를 다시 만든 뒤 옛 쿠키가 남은 브라우저는 `06` 이 `cookie-secret` 을 새로 만들어 로그인 화면으로 돌아간다 ([troubleshooting.md](../docs/troubleshooting.md) 24번).
 
 ## 재부팅 후 자동 복구

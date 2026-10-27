@@ -16,8 +16,8 @@
 - **접속**: 이 PC 는 `http://localhost:8080`, 핸드폰 등 tailnet 기기는 `tailscale serve` 의 HTTPS 주소. NodePort 는 쓰지 않는다 ([ADR 0011](docs/decisions/0011-no-nodeport-https-via-tailscale-serve.md)). 핸드폰에서 로그인하고 Notebook 을 만들었다 (파드 2/2 Running, 91초). 만든 Notebook 을 JupyterLab 으로 열어 코드를 실행했다 (웹소켓 통과).
 - **재부팅**: 예약 작업이 로그온 없이 WSL 을 띄우고 노드가 저절로 올라온다. '다시 시작' 2회 통과, 두 번째에는 `tailscale serve` 의 HTTPS 주소와 GPU 광고도 유지됐다 ([ADR 0010](docs/decisions/0010-reboot-recovery.md)).
 - **기능 시험 통과**: GPU Notebook (GPU 워커의 taint 용 PodDefault [k8s/gpu-poddefault.yaml](k8s/gpu-poddefault.yaml) 필요), Pipelines (다중 사용자 모드라 Experiment 를 먼저 만든다).
-- **아직 시험하지 못한 것**: 삭제의 수정 경로 (패키지 purge, `docker0` 삭제). 다음 클러스터 재생성 때 실제로 지우면서 확인한다.
-- **남겨 둔 것**: `kind-config.yaml` 의 30080 매핑과 `07-2` 스크립트 (시험 기록). 공식 문서 재대조 결과와 열린 항목은 [ADR 0012](docs/decisions/0012-official-doc-recheck.md).
+- **아직 시험하지 못한 것**: 삭제 중 `docker0` 인터페이스 제거의 확인 (패키지 purge 는 2026-10-27 실제 삭제에서 확인).
+- **남겨 둔 것**: `07-2` 스크립트 (시험 기록, 30080 매핑은 2026-10-27 에 `kind-config.yaml` 에서 제거). kind API 서버는 `127.0.0.1` 에만 연다 ([ADR 0010](docs/decisions/0010-reboot-recovery.md)). 공식 문서 재대조 결과와 열린 항목은 [ADR 0012](docs/decisions/0012-official-doc-recheck.md).
 - 이력: 2026-10-23 처음부터 재설치와 검증, 2026-10-26 재부팅 복구, 접속 방식 결정, 쿠키 문제 해결, 기능 시험, 공식 문서 재대조.
 
 ## 문서

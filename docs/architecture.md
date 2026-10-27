@@ -3,8 +3,9 @@
 노트북 한 대를 원격 MLOps 서버로 만든다. 접속은 Tailscale 하나로 일원화하고 공유기 포트포워딩은 쓰지 않는다.
 
 ```
-[원격 클라이언트: 노트북/휴대폰]  (Tailscale 설치, kubectl)
-        |  tailnet (WireGuard)   ssh / kubectl --server https://<tailnet 주소>:6443
+[원격 클라이언트: 노트북/휴대폰]  (Tailscale 설치)
+        |  tailnet (WireGuard)   ssh / https://<기기>.<tailnet>.ts.net (Kubeflow)
+        |  (kind API 서버는 이 PC 의 127.0.0.1 에만 열려 있다. 원격 kubectl 은 ssh 로 들어가 쓴다)
         v
 +-- Windows 11 Home 노트북 (RTX 5080, 32GB) -------------------------------+
 |  NVIDIA 드라이버 (Windows 쪽만)                                          |

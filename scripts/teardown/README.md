@@ -4,7 +4,8 @@
 
 | 순서 | 스크립트 | 지우는 것 | 순서가 중요한 이유 |
 |---|---|---|---|
-| 0 | `07-1-port-forward.sh` | systemd 서비스 `kubeflow-port-forward` | 클러스터가 사라지면 접속할 곳이 없어 재시작만 반복하므로 먼저 지운다. `07-3` 의 `tailscale serve` 설정은 따로 지우지 않는다: 02 의 `tailscale logout` 과 `/var/lib/tailscale` 삭제와 함께 사라진다(추정, 시험 전). 하나만 끄려면 `sudo tailscale serve --https=443 off` |
+| 0-1 | `08-boot-resilience.sh` | 감시 서비스 `mlops-watchdog`(타이머, 서비스, `/usr/local/sbin/mlops-watchdog`, `/etc/mlops`), 이전 버전이 만든 `docker.service` drop-in 과 전용 kubeconfig | 클러스터가 사라지면 할 일이 없고 컨트롤 플레인 IP 기록이 낡은 값이 되므로 먼저 지운다 |
+| 0-2 | `07-1-port-forward.sh` | systemd 서비스 `kubeflow-port-forward` | 클러스터가 사라지면 접속할 곳이 없어 재시작만 반복하므로 먼저 지운다. `07-3` 의 `tailscale serve` 설정은 따로 지우지 않는다: 02 의 `tailscale logout` 과 `/var/lib/tailscale` 삭제와 함께 사라진다(추정, 시험 전). 하나만 끄려면 `sudo tailscale serve --https=443 off` |
 | 1 | `06-kubeflow.sh` | 공식 저장소 클론(`~/.cache/infra`), kustomize | Kubeflow 워크로드는 클러스터 안에 있어서 2번에서 함께 사라진다 |
 | 2 | `05-kind-cluster.sh` | kind 클러스터(Kubeflow, device plugin, GPU 노드 설정 포함), kind, kubectl, inotify 설정 | Docker 가 살아 있어야 `kind delete cluster` 가 노드 컨테이너를 지울 수 있다 |
 | 3 | `04-nvidia-toolkit.sh` | NVIDIA Container Toolkit, apt 저장소 | `daemon.json` 을 03 상태로 먼저 되돌리고 Docker 를 재시작한 뒤 패키지를 지운다. 거꾸로 하면 Docker 가 없어진 nvidia 런타임을 찾다가 시작에 실패한다 |
@@ -94,7 +95,15 @@ Tailscale 관리 콘솔(https://login.tailscale.com/admin/machines)에서 이 �
 
 ## 출력 예시
 
-아래는 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04)에서 2026-10-23 에 실행한 결과다. **실제 삭제를 실행한 출력은 아직 없다** (작동 중인 환경이라 드라이런과 취소 경로만 시험했다). 실제로 지운 뒤에 그 출력을 채운다.
+아래는 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04)에서 2026-10-23 에 실행한 결과다. **아래 드라이런과 취소 경로는 2026-10-23 출력이다.** 실제 삭제는 2026-10-27 에 한 번 실행했다 (아래 '실제 삭제 실행').
+
+### 실제 삭제 실행 (2026-10-27, `DRY_RUN=1` 확인 후 `all.sh`)
+작동 중이던 클러스터를 지웠고 사용자가 출력을 붙여 준 것에서 읽었다. 모든 단계(08, 07-1, 06, 05, 04, 03, 02)가 오류 없이 `==> 완료` 로 끝났다. 그 뒤에 사용자가 `00-windows-wsl.ps1` 도 실행했고, Windows 쪽 확인(배포판 없음 안내와 종료 코드 -1, `.wslconfig` 없음, 백업 `.wslconfig.bak-20261027-160036`, 예약 작업 `wsl-keepalive` 없음)은 기대와 같았다.
+- 08: 감시 서비스와 이전 버전 흔적 7개를 지우고 `mlops-watchdog.timer` 의 `timers.target.wants` 링크를 제거했다.
+- 05: `Deleted nodes: ["mlops-worker" "mlops-worker2" "mlops-worker3" "mlops-control-plane"]`, `fs.inotify.max_user_instances = 128`.
+- 03: `docker-ce-rootless-extras` 와 `docker-compose-plugin` 포함 6개 패키지를 제거했다 (2026-10-23 에 남았던 `docker-ce-rootless-extras` 가 이번에는 제거됨). `dpkg: warning: directory '/etc/docker' not empty so not removed` 는 purge 단계의 경고이고, 스크립트의 `rm -rf /etc/docker` 가 이어서 처리한다 (실제 삭제 여부는 배포판을 지워 확인하지 못했다). `Disabling 'docker.service', but its triggering units are still active: docker.socket` 는 `docker.socket` 도 같은 명령에서 비활성화해서 무해한 경고로 보인다.
+- 02: `tailscale` 과 `tailscale-archive-keyring` 를 제거했다. `tailscale logout` 의 출력은 없어서 성공 여부를 모른다 (스크립트는 `|| true`). 관리 콘솔의 장치는 직접 지워야 한다.
+- **확인하지 못한 것:** `sudo ip link delete docker0` 의 결과, 그리고 WSL 안의 '삭제 확인' 표 전체 (뒤이어 배포판을 지워서). 자동 설치된 의존 패키지(`iptables`, `nftables`, `pigz` 등)는 `sudo apt autoremove` 안내만 나오고 지우지 않는다 (배포판 전체를 지우면 상관없다).
 
 ### 드라이런: `DRY_RUN=1 bash scripts/teardown/all.sh`
 
