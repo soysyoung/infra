@@ -27,5 +27,5 @@ GPU 를 time-slicing 으로 4개 광고한다 ([ADR 0013](0013-gpu-time-slicing.
 
 ## 확인한 것 / 미검증
 - 확인 (2026-10-28, 읽기 전용): Profile 두 개와 현재 쿼터(guest `pods 20 / gpu 0 / storage 20Gi`, 기본 사용자 없음), `kf-resource-quota` 의 소유자가 Profile. 새 patch 두 개는 `--dry-run=server` 로 CRD 스키마를 통과했고 결과 `hard` 가 기대와 같았다 (저장은 하지 않았다). 합계 경고와 형식 오류는 스크립트 함수를 단독 실행해 확인했다.
-- 적용 결과 (2026-10-28, 사용자가 실행한 출력): `06-4` 가 두 Profile 모두 `patched (no change)`, `verify/06-4` 가 `==> OK`. 기본 사용자 `kf-resource-quota` = `requests.nvidia.com/gpu: 1/3` (생성 17분 전), guest = `pods 0/20, requests.nvidia.com/gpu 0/0, requests.storage 0/20Gi` (생성 24시간 전: 06-2 에서 쿼터를 뺀 뒤에도 객체가 지워지지 않았다). 쿼터 객체가 이미 있었으므로 이 실행은 최초 적용이 아니라 멱등 재실행이고, 최초 적용의 출력은 받지 못했다.
+- 적용 결과 (2026-10-28, 사용자가 실행한 출력): `06-4` 가 두 Profile 모두 `patched (no change)`, `verify/06-4` 가 `==> OK`. 기본 사용자 `kf-resource-quota` = `requests.nvidia.com/gpu: 1/3` (생성 17분 전), guest = `pods 0/20, requests.nvidia.com/gpu 0/0, requests.storage 0/20Gi` (생성 24시간 전: 06-2 에서 쿼터를 뺀 뒤에도 객체가 지워지지 않았다). 쿼터 객체가 이미 있었으므로 이 실행은 최초 적용이 아니라 멱등 재실행이다. 사용자가 먼저 `06-4` 를 한 번 실행했고(17분 전), 그 출력은 AI 에게 전달되지 않아 여기에 없다.
 - **미검증:** 컨트롤러가 값을 바꾼 Profile 을 반영하는 시간과 비운 키가 `kf-resource-quota` 에서 사라지는지, `06-2` 재실행 뒤 guest 쿼터가 지워졌다 `06-4` 로 돌아오는지, `06` 전체 재실행 경로, 쿼터를 넘겨 파드가 거부되는 실제 메시지.
