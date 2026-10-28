@@ -12,6 +12,7 @@
 | `05-2-gpu-node.sh` | WSL | GPU 노드 컨테이너에서 GPU 가 보이고 containerd 가 nvidia 런타임인가 | `05-2-gpu-node.sh` |
 | `05-3-device-plugin.sh` | WSL | **2차 관문**: GPU 파드가 GPU 노드에서 GPU 를 잡는가 | `05-3-device-plugin.sh` |
 | `06-kubeflow.sh` | WSL | 핵심 네임스페이스의 Deployment 가 Available 이고 로그인 흐름이 이어지는가 | `06-kubeflow.sh` |
+| `06-4-quotas.sh` | WSL | 프로필 네임스페이스의 `kf-resource-quota` 가 `quotas.env` 와 같은가. `roundtrip` 모드는 갱신, 거부, `06-2` 재실행 뒤 복원을 시험 | `06-4-quotas.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03`~`06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
@@ -175,6 +176,30 @@ deployment.apps/seaweedfs condition met
 - 로그인 흐름은 `/oauth2/start` 가 Dex(`/dex/auth`)로 리다이렉트하는지로 본다.
 - **로그인 전 `/` 는 `HTTP 403` 이 정상이다.** 응답 본문이 oauth2-proxy 의 "Sign In" 페이지이고 게이트웨이 로그에 `ext_authz_denied` 가 찍힌다. 처음에는 이 403 을 실패로 판정하는 검증을 썼다가 고쳤다 ([troubleshooting.md](../../docs/troubleshooting.md) 14번).
 - `Running/Completed 가 아닌 파드가 있습니다` 이면 `kubectl get pods -A` 로 확인한다. `Init:Error` 면 [troubleshooting.md](../../docs/troubleshooting.md) 9번이다 (`06-kubeflow.sh` 를 다시 실행하면 정리된다).
+
+## 06-4-quotas.sh (2026-10-28, 사용자 실행)
+
+```bash
+bash scripts/verify/06-4-quotas.sh             # 읽기 전용
+bash scripts/verify/06-4-quotas.sh roundtrip   # 쿼터를 잠깐 바꾸고 끝나면 되돌린다 (확인 후 진행)
+```
+
+```text
+==> GPU 배분 합계 4 (예약 1 포함) / 광고 4
+==> kubeflow-user-example-com: - - 3 (pods storage gpu)
+NAME                REQUEST                        LIMIT   AGE
+kf-resource-quota   requests.nvidia.com/gpu: 1/3           11s
+==> kubeflow-guest-example-com: 20 20Gi 0 (pods storage gpu)
+NAME                REQUEST                                                              LIMIT   AGE
+kf-resource-quota   pods: 0/20, requests.nvidia.com/gpu: 0/0, requests.storage: 0/20Gi           24h
+==> OK
+```
+
+- `pods storage gpu` 의 `-` 는 제한 없음이다. 기대값은 `quotas.env` 에서 읽고, Profile 컨트롤러가 반영할 때까지 최대 30초 기다린다.
+- 합계가 `GPU_REPLICAS` 를 넘으면 `경고:` 를 출력하지만 실패로 치지 않는다.
+- `roundtrip` 은 A 갱신·비운 키, E·B 한도 초과 거부(서버 dry-run, 파드는 만들어지지 않음), C·D `06-2` 재실행 뒤 복원을 순서대로 하고 끝에 `==> OK (roundtrip)` 를 찍는다. 2026-10-28 에 2회 실행해 모두 통과했다. 출력이 길어(각 단계마다 두 네임스페이스의 쿼터 표) 위 형식의 반복이라 싣지 않았고, 결과와 해석은 [ADR 0015](../../docs/decisions/0015-profile-resource-quota.md) '확인한 것 / 미검증'.
+- 중간에 실패해도 종료할 때 `quotas.env` 값으로 `06-4` 를 다시 실행해 되돌린다. `06-2` 단계에서 Dex 가 재시작되어 로그인이 몇 초 끊기므로 Funnel 이 꺼져 있을 때 실행한다.
+- 위 출력은 첫 적용 직후의 것이라 AGE 가 11s 이다.
 
 ## 07-1-port-forward.sh, 07-3-tailscale-serve.sh (07-2-nodeport.sh 는 쓰지 않음)
 

@@ -29,6 +29,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\teardown\00-windows-wsl.ps1
 
 각 스크립트는 따로 실행할 수도 있다. 이미 지워진 항목은 건너뛰므로 다시 실행해도 안전하다.
 
+`teardown/06-4-quotas.sh` 는 클러스터를 두고 프로필 ResourceQuota 만 걷어 낸다(두 번째 사용자의 GPU 0 제한도 풀린다). 쿼터는 클러스터 안에만 있어 클러스터 삭제와 함께 사라지므로 `all.sh` 에는 넣지 않았다. **실행해 본 적이 없다** (미검증, [ADR 0015](../../docs/decisions/0015-profile-resource-quota.md)).
+
 ## 지우지 않는 것
 
 - **Tailscale 관리 콘솔의 장치 항목**: 직접 삭제한다 (https://login.tailscale.com/admin/machines). 오래된 장치가 쌓이면 ACL/SSH 적용 시 섞일 수 있다.
