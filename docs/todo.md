@@ -56,7 +56,7 @@
 11. [ ] [ADR 0012](decisions/0012-official-doc-recheck.md) 의 미확인 항목: `05-1` 노드 재시작 정책의 Docker 문서 인용, `06` 의 kustomize 5.8.1 체크섬, ADR 0006 의 toolkit 1.20.1 WSL2 수정과 CUDA 12.8 요구
 12. [ ] `scripts/verify/00-windows.ps1` 다시 실행 (이번에는 `03`~`06` 만 돌렸다)
 21. [x] 워크로드용 저장소 (2026-10-28 결정 변경): 파이프라인 정의, 학습·추론 코드, 노트북 예제, 실험 기록은 거기에 두고 이 저장소는 플랫폼만 다룬다. **프로젝트마다 단독 저장소**로 한다 (처음에 쓴 "저장소 하나에 프로젝트별 폴더"는 폐기). 첫 프로젝트는 [fashion-recsys-mlops](https://github.com/soysyoung/fashion-recsys-mlops), [README.md](../README.md) '범위' 에 링크했다. 이 저장소가 제공하는 것(접속 주소, GPU PodDefault [k8s/gpu-poddefault.yaml](../k8s/gpu-poddefault.yaml), GPU time-slicing, OpenSearch, 네임스페이스)은 문서로만 참조하게 한다
-22. [ ] 프로젝트용 네임스페이스와 ResourceQuota: 5번(공유용 계정 할당량)과 같은 주제. 메모리 합계가 24GB 에 빠듯하므로 [ADR 0014](decisions/0014-opensearch-single-node.md) '메모리 실측' 의 수치를 근거로 정한다
+22. [ ] 프로필 ResourceQuota: 스크립트 작성 완료 (2026-10-28, [ADR 0015](decisions/0015-profile-resource-quota.md)), **미실행**. 사용자가 `bash scripts/06-4-quotas.sh` -> `bash scripts/verify/06-4-quotas.sh` 를 실행하고 출력을 여기 기록한다. 기본 사용자 GPU 3 / 두 번째 사용자 0 / 예약 1 은 제안값이라 `quotas.env` 에서 확정한다. CPU, 메모리 쿼터는 5번과 함께 시험 후 (메모리 합계는 [ADR 0014](decisions/0014-opensearch-single-node.md) '메모리 예산' 의 수치를 근거로)
 23. [ ] GPU 동시 실행 시험: 파드 둘 이상이 한 GPU 를 쓸 때 각자의 VRAM 점유와 속도 ([ADR 0013](decisions/0013-gpu-time-slicing.md) 미검증). 워크로드 저장소 README 에 "VRAM 은 코드에서 상한을 건다"는 안내를 남긴다
 24. [ ] OpenSearch 에 실제 벡터(약 10.5만 x 384차원)를 넣은 뒤의 메모리 확인, 파드 재시작과 WSL 재부팅 뒤 색인 보존, 전체 재설치 경로(`05-4`, `09` 포함)에서의 동작
 25. [ ] `scripts/06-3-poddefaults.sh` 와 `verify/06-3-poddefaults.sh` 실행 확인 (2026-10-28 작성, 미시험). 지금 클러스터에는 PodDefault 두 개가 이미 있어 `unchanged` 가 나와야 하고, 재설치 경로에서 처음부터 만들어지는지는 24번의 전체 재설치 때 확인한다
