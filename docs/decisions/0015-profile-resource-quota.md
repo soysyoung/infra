@@ -1,6 +1,6 @@
 # 0015. 프로필 네임스페이스의 ResourceQuota 는 06-4 한 곳이 맡는다
 
-- 상태: 스크립트 작성·구문 검사·서버 dry-run 만 했다 (2026-10-28). 실제 적용과 `verify/06-4` 는 사용자가 실행해야 한다 (미시험)
+- 상태: 적용·부분 검증 (2026-10-28). 아래 '확인한 것 / 미검증' 참고
 
 ## 상황
 GPU 를 time-slicing 으로 4개 광고한다 ([ADR 0013](0013-gpu-time-slicing.md)). 프로필 네임스페이스별로 GPU 개수를 나눠야 한다. 지금은 두 번째 사용자(`kubeflow-guest-example-com`)만 `06-2` 가 할당량(파드 20, 스토리지 20Gi, GPU 0)을 걸고, 기본 사용자(`kubeflow-user-example-com`)는 할당량이 없다 (2026-10-28 읽기 전용 확인).
@@ -27,4 +27,5 @@ GPU 를 time-slicing 으로 4개 광고한다 ([ADR 0013](0013-gpu-time-slicing.
 
 ## 확인한 것 / 미검증
 - 확인 (2026-10-28, 읽기 전용): Profile 두 개와 현재 쿼터(guest `pods 20 / gpu 0 / storage 20Gi`, 기본 사용자 없음), `kf-resource-quota` 의 소유자가 Profile. 새 patch 두 개는 `--dry-run=server` 로 CRD 스키마를 통과했고 결과 `hard` 가 기대와 같았다 (저장은 하지 않았다). 합계 경고와 형식 오류는 스크립트 함수를 단독 실행해 확인했다.
-- **미검증:** `06-4` 실제 실행, `verify/06-4`, 컨트롤러가 값을 바꾼 Profile 을 반영하는 시간과 비운 키가 `kf-resource-quota` 에서 사라지는지, `06-2` 재실행 뒤 guest 쿼터가 지워졌다 `06-4` 로 돌아오는지, `06` 전체 재실행 경로, 쿼터를 넘겨 파드가 거부되는 실제 메시지.
+- 적용 결과 (2026-10-28, 사용자가 실행한 출력): `06-4` 가 두 Profile 모두 `patched (no change)`, `verify/06-4` 가 `==> OK`. 기본 사용자 `kf-resource-quota` = `requests.nvidia.com/gpu: 1/3` (생성 17분 전), guest = `pods 0/20, requests.nvidia.com/gpu 0/0, requests.storage 0/20Gi` (생성 24시간 전: 06-2 에서 쿼터를 뺀 뒤에도 객체가 지워지지 않았다). 쿼터 객체가 이미 있었으므로 이 실행은 최초 적용이 아니라 멱등 재실행이고, 최초 적용의 출력은 받지 못했다.
+- **미검증:** 컨트롤러가 값을 바꾼 Profile 을 반영하는 시간과 비운 키가 `kf-resource-quota` 에서 사라지는지, `06-2` 재실행 뒤 guest 쿼터가 지워졌다 `06-4` 로 돌아오는지, `06` 전체 재실행 경로, 쿼터를 넘겨 파드가 거부되는 실제 메시지.
