@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 06-2 검증: 두 번째 사용자의 Dex 계정, Profile, 네임스페이스 권한, 할당량
+# 06-2 검증: 두 번째 사용자의 Dex 계정, Profile, 네임스페이스 권한
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
@@ -26,5 +26,4 @@ done
 kubectl -n "$name" get rolebinding namespaceAdmin -o jsonpath='{.roleRef.name} {.subjects[*].name}' | grep -q "kubeflow-admin $email" \
   || die "$name 의 namespaceAdmin 이 $email 에게 kubeflow-admin 을 주지 않습니다."
 
-kubectl -n "$name" get resourcequota -o jsonpath='{.items[*].spec.hard}'; echo
-log "OK: $email -> 네임스페이스 $name (소유자 권한, 할당량 적용). 로그인은 브라우저에서 확인하세요."
+log "OK: $email -> 네임스페이스 $name (소유자 권한). 할당량은 verify/06-4-quotas.sh. 로그인은 브라우저에서 확인하세요."

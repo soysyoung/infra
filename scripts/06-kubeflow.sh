@@ -95,6 +95,8 @@ done
 
 # apply 가 Dex 설정을 기본값(사용자 1명)으로 되돌렸으므로, .env 에 두 번째 사용자가 있으면 다시 반영한다 (없으면 건너뜀).
 bash "$ROOT/scripts/06-2-extra-user.sh"
+# 프로필 할당량은 06-2 가 Profile 을 apply 한 뒤에 건다 (06-2 의 apply 가 옛 resourceQuotaSpec 을 지울 수 있다).
+bash "$ROOT/scripts/06-4-quotas.sh"
 
 log "완료. 검증: scripts/verify/06-kubeflow.sh"
 echo "다음: scripts/07-1-port-forward.sh  (systemd 서비스로 http://localhost:8080 을 연다. 그 전에는 8080 이 열려 있지 않다)"

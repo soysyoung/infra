@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# 06-2. 두 번째 Kubeflow 사용자 추가: Dex 로그인 계정 + Profile(네임스페이스, 권한, 할당량)
+# 06-2. 두 번째 Kubeflow 사용자 추가: Dex 로그인 계정 + Profile(네임스페이스, 권한)
 #
 # 왜: 외부 공유(Funnel)에서 관리자 계정(user@example.com)과 분리된 계정과 네임스페이스를 주려고.
 # 하는 일 (여러 번 실행해도 안전, .env 에 값이 없으면 건너뜀):
 #   1) Dex 의 staticPasswords 에 사용자를 추가한다 (hashFromEnv, 비밀번호는 dex-passwords 시크릿의 새 키)
 #   2) dex 를 재시작한다 (설정과 환경변수는 시작할 때만 읽는다)
 #   3) Profile 을 만든다: 소유자는 이 사용자, 네임스페이스는 소유자에게만 kubeflow-admin 권한.
-#      할당량: 파드 20개, 스토리지 20Gi, GPU 0개 (GPU 는 관리자 계정만 쓴다)
+#      할당량은 여기서 걸지 않는다: 06-4-quotas.sh 가 모든 프로필의 할당량을 맡는다 (quotas.env).
+#      이전 버전이 Profile 에 넣어 둔 resourceQuotaSpec 은 이 apply 가 지우므로 06-4 를 이어서 실행한다.
 # 06 이 Dex 설정을 매번 기본값으로 되돌리므로 06 이 끝에서 이 스크립트를 부른다.
 #
 # 설정: 저장소 루트 .env (git 제외)
@@ -67,11 +68,7 @@ spec:
   owner:
     kind: User
     name: $email
-  resourceQuotaSpec:
-    hard:
-      pods: "20"
-      requests.storage: 20Gi
-      requests.nvidia.com/gpu: "0"
 EOF
 
 log "완료: $email -> 네임스페이스 $name.  검증: scripts/verify/06-2-extra-user.sh"
+log "할당량은 06-4-quotas.sh 가 건다. 그 전까지 이 계정은 할당량이 없다 (GPU 도 제한 없음)."
