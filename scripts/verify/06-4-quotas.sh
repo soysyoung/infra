@@ -6,7 +6,9 @@
 # roundtrip 이 보는 것 (ADR 0015 '미검증'):
 #   A. 값을 바꾸면 기존 쿼터 객체가 갱신되고, 값을 비운 키는 사라지는가 (기본 사용자 네임스페이스, 임시 파일 QUOTAS_ENV 로 시험)
 #   B. GPU 0 인 두 번째 사용자 네임스페이스에 GPU 파드를 서버 쪽 dry-run 으로 보내면 쿼터가 거부하는가 (저장되지 않는다)
-#   C. 06-2 를 다시 실행하면 두 번째 사용자의 쿼터가 어떻게 되고, 06-4 로 돌아오는가 (.env 에 EXTRA_USER_* 가 있을 때만.
+#   E. 기본 사용자 네임스페이스에 한도보다 1개 많은 GPU 파드를 같은 방식으로 보내면 거부하는가
+#   C, D. 06-2 를 다시 실행하면 두 번째 사용자의 쿼터가 어떻게 되고, 06-4 로 돌아오는가, 한 번 더 실행하면 지워지지 않는가
+#      (.env 에 EXTRA_USER_* 가 있을 때만.
 #      06-2 가 Dex 를 재시작하므로 로그인이 몇 초 끊기고, 쿼터가 지워진 동안 그 계정은 제한이 없다. Funnel 이 꺼져 있을 때 실행)
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
@@ -40,6 +42,30 @@ check_all() {
   done < <(quota_targets)
 }
 
+# 네임스페이스에 GPU <개수> 파드를 서버 쪽 dry-run 으로 보내 쿼터가 거부하는지 본다 (저장되지 않음). 인자: <네임스페이스> <개수> <라벨>
+reject_check() {
+  local out
+  out=$(kubectl -n "$1" create --dry-run=server -f - 2>&1 <<EOF || true
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: quota-reject-test-
+spec:
+  containers:
+  - name: c
+    image: busybox
+    command: ["sleep", "1"]
+    resources:
+      limits:
+        nvidia.com/gpu: "$2"
+EOF
+)
+  case "$out" in
+    *"exceeded quota"*) log "$3 통과: 쿼터가 거부했다" ;;
+    *) log "$3 판정 불가: 거부 사유에 'exceeded quota' 가 없다 (쿼터가 막지 못하는지, 다른 이유로 거부됐는지 구분하지 못함). 응답:"; echo "$out" | head -5 ;;
+  esac
+}
+
 if [ "${1:-}" != roundtrip ]; then check_all; log "OK"; exit 0; fi
 
 # --- roundtrip ---
@@ -56,32 +82,22 @@ log "A1 갱신: 기본 사용자 GPU 3->2, pods 비제한->50, 스토리지 비�
 try_env QUOTA_USER_GPU=2 QUOTA_USER_PODS=50 QUOTA_USER_STORAGE=30Gi
 log "A2 비운 키: pods 를 다시 비운다 (기대: pods 가 '-' 로 사라짐)"
 try_env QUOTA_USER_GPU=2 QUOTA_USER_PODS= QUOTA_USER_STORAGE=30Gi
+bash "$ROOT/scripts/06-4-quotas.sh" >/dev/null && check_all   # E 는 quotas.env 의 실제 한도로 시험한다
 log "A 통과"
+
+if [[ ${QUOTA_USER_GPU:-} =~ ^[0-9]+$ ]]; then
+  log "E 거부: 기본 사용자 네임스페이스에 GPU $((QUOTA_USER_GPU + 1))개 파드 (한도 $QUOTA_USER_GPU 를 넘김)"
+  reject_check "$USER_PROFILE" $((QUOTA_USER_GPU + 1)) E
+else
+  log "E 건너뜀: QUOTA_USER_GPU 가 비어 있어 한도가 없다."
+fi
 
 guest=$(quota_targets | awk 'NR==2 {print $1}')
 if [ -z "$guest" ] || ! kubectl get profile "$guest" >/dev/null 2>&1; then
-  log "B, C 건너뜀: 두 번째 사용자 Profile 이 없습니다."
+  log "B, C, D 건너뜀: 두 번째 사용자 Profile 이 없습니다."
 else
-  log "B 거부: $guest 에 GPU 1개 파드를 서버 쪽 dry-run 으로 보낸다 (저장되지 않음)"
-  out=$(kubectl -n "$guest" create --dry-run=server -f - 2>&1 <<EOF || true
-apiVersion: v1
-kind: Pod
-metadata:
-  generateName: quota-reject-test-
-spec:
-  containers:
-  - name: c
-    image: busybox
-    command: ["sleep", "1"]
-    resources:
-      limits:
-        nvidia.com/gpu: "1"
-EOF
-)
-  case "$out" in
-    *"exceeded quota"*) log "B 통과: 쿼터가 거부했다" ;;
-    *) log "B 판정 불가: 거부 사유에 'exceeded quota' 가 없다 (dry-run 에서 쿼터가 평가되지 않는지, 막지 못하는지 구분하지 못함). 응답:"; echo "$out" | head -5 ;;
-  esac
+  log "B 거부: $guest (GPU 0) 에 GPU 1개 파드를 서버 쪽 dry-run 으로 보낸다"
+  reject_check "$guest" 1 B
 
   if [ -n "$(sed -n 's/^EXTRA_USER_PASSWORD=//p' "$ROOT/.env" 2>/dev/null | tr -d '\r')" ]; then
     log "C 순서: 06-2 를 다시 실행한다"
@@ -91,6 +107,13 @@ EOF
     bash "$ROOT/scripts/06-4-quotas.sh" >/dev/null
     check_all
     log "C 통과: 06-4 뒤 quotas.env 값으로 돌아왔다"
+
+    log "D 06-2 를 한 번 더 실행한다 (기대: 이제 쿼터가 지워지지 않는다. 06 이 끝에서 매번 06-2 를 부르는 경로)"
+    bash "$ROOT/scripts/06-2-extra-user.sh" >/dev/null
+    sleep 10   # 지워진다면 컨트롤러가 몇 초 안에 지운다
+    [ "$(hard_of "$guest")" != "- - -" ] || die "D 실패: 06-2 를 두 번째로 실행해도 $guest 의 쿼터가 지워졌습니다. 06-2 뒤에는 항상 06-4 를 실행해야 합니다."
+    check_all
+    log "D 통과: 06-2 재실행 뒤에도 쿼터가 남았다"
   else
     log "C 건너뜀: .env 에 EXTRA_USER_PASSWORD 가 없어 06-2 가 아무것도 하지 않는다."
   fi
