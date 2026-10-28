@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 06-4, verify/06-4, teardown/06-4 가 공유한다. common.sh 다음에 'source "$(dirname "$0")/lib/quotas.sh"' 로 읽는다.
 # shellcheck source=/dev/null
-source "$ROOT/quotas.env"
+source "${QUOTAS_ENV:-$ROOT/quotas.env}"   # QUOTAS_ENV 는 verify/06-4 roundtrip 이 임시 값을 시험할 때만 쓴다
 
 QUOTA_KEYS=(pods requests.storage requests.nvidia.com/gpu)
 USER_PROFILE=kubeflow-user-example-com
