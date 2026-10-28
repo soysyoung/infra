@@ -59,6 +59,7 @@
 22. [ ] 프로젝트용 네임스페이스와 ResourceQuota: 5번(공유용 계정 할당량)과 같은 주제. 메모리 합계가 24GB 에 빠듯하므로 [ADR 0014](decisions/0014-opensearch-single-node.md) '메모리 실측' 의 수치를 근거로 정한다
 23. [ ] GPU 동시 실행 시험: 파드 둘 이상이 한 GPU 를 쓸 때 각자의 VRAM 점유와 속도 ([ADR 0013](decisions/0013-gpu-time-slicing.md) 미검증). 워크로드 저장소 README 에 "VRAM 은 코드에서 상한을 건다"는 안내를 남긴다
 24. [ ] OpenSearch 에 실제 벡터(약 10.5만 x 384차원)를 넣은 뒤의 메모리 확인, 파드 재시작과 WSL 재부팅 뒤 색인 보존, 전체 재설치 경로(`05-4`, `09` 포함)에서의 동작
+25. [ ] `scripts/06-3-poddefaults.sh` 와 `verify/06-3-poddefaults.sh` 실행 확인 (2026-10-28 작성, 미시험). 지금 클러스터에는 PodDefault 두 개가 이미 있어 `unchanged` 가 나와야 하고, 재설치 경로에서 처음부터 만들어지는지는 24번의 전체 재설치 때 확인한다
 
 **큰 일**
 13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)

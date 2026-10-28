@@ -42,6 +42,8 @@ bash scripts/05-4-helm.sh             # (선택) helm 설치 (09 OpenSearch 용,
 bash scripts/verify/05-4-helm.sh
 bash scripts/06-kubeflow.sh           # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
 bash scripts/verify/06-kubeflow.sh
+bash scripts/06-3-poddefaults.sh      # PodDefault 2개: gpu-toleration(GPU Notebook 필수), access-ml-pipeline
+bash scripts/verify/06-3-poddefaults.sh
 bash scripts/06-2-extra-user.sh       # (선택) 두 번째 사용자. .env 의 EXTRA_USER_EMAIL, EXTRA_USER_PASSWORD 가 있을 때만 동작
 bash scripts/verify/06-2-extra-user.sh
 # 접속 (ADR 0011). 이 PC 는 07-1 만으로 충분하고, 다른 기기(핸드폰 등)는 07-3 까지 한다
