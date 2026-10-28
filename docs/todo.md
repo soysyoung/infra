@@ -39,7 +39,7 @@
 
 **확인만 하면 되는 것** (읽기 전용이거나 명령 한 번)
 2. [ ] SSH: `sudo tailscale set --ssh` 실행 후 다른 기기에서 SSH 접속 확인 (`02` 는 이미 이 형식으로 고쳤다)
-3. [ ] 다음에 `06` 을 전체 재실행할 때 끝의 `06-2` 호출이 정상인지 (아직 시험하지 않았다. `.env` 에 `EXTRA_USER_*` 가 있는 상태에서 `06` 이 `06-2` 를 다시 적용해야 한다)
+3. [ ] 다음에 `06` 을 전체 재실행할 때 끝의 `06-2` 호출이 정상인지 (이제 그 뒤의 `06-4` 호출과 기본 사용자 쿼터가 유지되는지도 함께 본다, [ADR 0015](decisions/0015-profile-resource-quota.md)) (아직 시험하지 않았다. `.env` 에 `EXTRA_USER_*` 가 있는 상태에서 `06` 이 `06-2` 를 다시 적용해야 한다)
 4. [x] GPU Notebook 안에서 `nvidia-smi` 가 RTX 5080 을 보여 주는지 -> 통과 (2026-10-28): Notebook `test-gpu-01` 파드가 `mlops-worker` 에서 Ready 가 된 뒤 `kubectl exec ... nvidia-smi` 가 RTX 5080 (드라이버 592.27, CUDA 13.1, VRAM 16303MiB, 사용 0MiB)을 보여 줬다. 호스트(WSL)의 출력과 이름, 용량이 같다. 첫 실행은 이미지(`jupyter-pytorch-cuda-full`) 내려받기로 Ready 까지 약 5분. 이때 노드 광고는 `nvidia.com/gpu: 1` (time-slicing 적용 전, [ADR 0013](decisions/0013-gpu-time-slicing.md) 기준선). 연산 중 VRAM 사용은 보지 않았다
 
 **공유용 계정을 더 믿고 쓰려면** (아직 하지 않았다)
@@ -56,7 +56,7 @@
 11. [ ] [ADR 0012](decisions/0012-official-doc-recheck.md) 의 미확인 항목: `05-1` 노드 재시작 정책의 Docker 문서 인용, `06` 의 kustomize 5.8.1 체크섬, ADR 0006 의 toolkit 1.20.1 WSL2 수정과 CUDA 12.8 요구
 12. [ ] `scripts/verify/00-windows.ps1` 다시 실행 (이번에는 `03`~`06` 만 돌렸다)
 21. [x] 워크로드용 저장소 (2026-10-28 결정 변경): 파이프라인 정의, 학습·추론 코드, 노트북 예제, 실험 기록은 거기에 두고 이 저장소는 플랫폼만 다룬다. **프로젝트마다 단독 저장소**로 한다 (처음에 쓴 "저장소 하나에 프로젝트별 폴더"는 폐기). 첫 프로젝트는 [fashion-recsys-mlops](https://github.com/soysyoung/fashion-recsys-mlops), [README.md](../README.md) '범위' 에 링크했다. 이 저장소가 제공하는 것(접속 주소, GPU PodDefault [k8s/gpu-poddefault.yaml](../k8s/gpu-poddefault.yaml), GPU time-slicing, OpenSearch, 네임스페이스)은 문서로만 참조하게 한다
-22. [x] 프로필 ResourceQuota ([ADR 0015](decisions/0015-profile-resource-quota.md)) -> 부분 통과 (2026-10-28, 사용자 실행). 첫 `06-4`: 기본 사용자 Profile `patched`, guest `patched (no change)`, `verify/06-4` `==> OK`. 기본 사용자 `kf-resource-quota` 가 11초 만에 생겨 `requests.nvidia.com/gpu: 1/3` (1개 사용 중), guest 는 `pods 0/20, gpu 0/0, storage 0/20Gi` 그대로. 17분 뒤 재실행은 둘 다 `no change` 로 멱등. 미시험: 값을 비운 키가 사라지는지, 기존 쿼터 객체의 값 갱신, 새 `06-2` 재실행 뒤 guest 쿼터 복구, `06` 전체 재실행, 한도 초과 시 거부 메시지. GPU 배분 3/0/예약 1 은 제안값 그대로 적용 중. CPU, 메모리 쿼터는 5번과 함께 시험 후 (메모리 합계는 [ADR 0014](decisions/0014-opensearch-single-node.md) '메모리 예산' 의 수치를 근거로)
+22. [x] 프로필 ResourceQuota ([ADR 0015](decisions/0015-profile-resource-quota.md)) -> 부분 통과 (2026-10-28, 사용자 실행). 첫 `06-4`: 기본 사용자 Profile `patched`, guest `patched (no change)`, `verify/06-4` `==> OK`. 기본 사용자 `kf-resource-quota` 가 11초 만에 생겨 `requests.nvidia.com/gpu: 1/3` (1개 사용 중), guest 는 `pods 0/20, gpu 0/0, storage 0/20Gi` 그대로. 17분 뒤 재실행은 둘 다 `no change` 로 멱등. 미시험 (시험 절차 `bash scripts/verify/06-4-quotas.sh roundtrip` 작성, 사용자가 실행하고 출력을 여기 기록): 값을 비운 키가 사라지는지, 기존 쿼터 객체의 값 갱신, 새 `06-2` 재실행 뒤 guest 쿼터 복구, GPU 0 네임스페이스의 거부(서버 dry-run), `06` 전체 재실행, 한도 초과 시 거부 메시지. GPU 배분 3/0/예약 1 은 제안값 그대로 적용 중. CPU, 메모리 쿼터는 5번과 함께 시험 후 (메모리 합계는 [ADR 0014](decisions/0014-opensearch-single-node.md) '메모리 예산' 의 수치를 근거로)
 23. [ ] GPU 동시 실행 시험: 파드 둘 이상이 한 GPU 를 쓸 때 각자의 VRAM 점유와 속도 ([ADR 0013](decisions/0013-gpu-time-slicing.md) 미검증). 워크로드 저장소 README 에 "VRAM 은 코드에서 상한을 건다"는 안내를 남긴다
 24. [ ] OpenSearch 에 실제 벡터(약 10.5만 x 384차원)를 넣은 뒤의 메모리 확인, 파드 재시작과 WSL 재부팅 뒤 색인 보존, 전체 재설치 경로(`05-4`, `09` 포함)에서의 동작
 25. [ ] `scripts/06-3-poddefaults.sh` 와 `verify/06-3-poddefaults.sh` 실행 확인 (2026-10-28 작성, 미시험). 지금 클러스터에는 PodDefault 두 개가 이미 있어 `unchanged` 가 나와야 하고, 재설치 경로에서 처음부터 만들어지는지는 24번의 전체 재설치 때 확인한다
