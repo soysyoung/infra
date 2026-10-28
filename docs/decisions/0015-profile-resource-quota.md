@@ -34,5 +34,8 @@ GPU 를 time-slicing 으로 4개 광고한다 ([ADR 0013](0013-gpu-time-slicing.
   - **B 거부 통과.** GPU 0 인 guest 네임스페이스에 `nvidia.com/gpu: 1` 파드를 `--dry-run=server` 로 보내자 응답에 `exceeded quota` 가 있었다: 이 클러스터에서 쿼터 어드미션은 서버 dry-run 에서도 평가된다. 거부 문구 전체는 스크립트가 출력하지 않아 기록하지 않았다. 기본 사용자 네임스페이스의 한도 초과 거부는 시험하지 않았다.
   - **C 순서 통과.** 새 `06-2` 가 guest Profile 을 `configured` 하자 `kf-resource-quota` 가 지워졌다(`- - -`): 예상대로 apply 가 옛 `resourceQuotaSpec` 을 지운다. `06-4` 를 이어서 실행하자 객체가 다시 만들어져 `pods 0/20, gpu 0/0, storage 0/20Gi` 로 돌아왔다(나이 1초). 지워진 동안 guest 는 제한이 없었다. Dex 재시작은 `successfully rolled out` 로 끝났다.
   - 마지막 복원도 `quotas.env` 값으로 돌아와 `verify` 통과(기본 사용자 `gpu 1/3`).
-- **시험 추가, 미실행:** `roundtrip` 에 D(`06-2` 를 한 번 더 실행해도 쿼터가 남는지)와 E(기본 사용자 네임스페이스에 한도보다 1개 많은 GPU 파드를 서버 dry-run 으로 보내 거부되는지)를 넣었다. 앞선 실행에서 새 `06-2` 가 이미 한 번 적용됐으므로 C 의 `06-2` 도 사실상 두 번째 실행이고, 그 직후 출력이 D 의 답을 준다.
+- 두 번째 `roundtrip` (2026-10-28, 사용자가 실행한 출력, 전체 `==> OK (roundtrip)`): A 는 같은 결과로 다시 통과했다.
+  - **E 통과.** 기본 사용자 네임스페이스에 GPU 4개(한도 3 초과) 파드를 서버 dry-run 으로 보내자 `exceeded quota` 로 거부됐다.
+  - **B 통과.** guest 의 GPU 1개 요청이 같은 방식으로 거부됐다.
+  - **C, D 통과.** 이번에는 `06-2` 가 Profile 을 `unchanged` 로 처리했고 `kf-resource-quota` 는 지워지지 않았다(`20 20Gi 0` 유지, 객체 나이가 끊기지 않고 이어짐). 한 번 더 실행한 D 도 같다. 첫 새 `06-2` 에서만 옛 `resourceQuotaSpec` 이 한 번 지워지고(위 첫 `roundtrip`), 그 뒤의 `06-2` 는 쿼터를 건드리지 않는다는 추정이 연속 2회 실행으로 확인됐다.
 - **여전히 미검증:** `06` 전체 재실행 경로(todo 3번). `06` 은 `kubectl apply --server-side --force-conflicts` 로 적용하고 06-4 의 patch 는 다른 관리자(`kubectl-patch`)가 소유한 필드라 지워지지 않을 가능성이 높다고 **추정**하지만 시험하지 않았다. `06` 이 끝에서 06-2 다음에 06-4 를 부르므로 지워져도 되돌아온다. 쿼터 거부 문구 전체도 기록하지 않았다.
