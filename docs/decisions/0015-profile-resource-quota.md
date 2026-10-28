@@ -1,6 +1,6 @@
 # 0015. 프로필 네임스페이스의 ResourceQuota 는 06-4 한 곳이 맡는다
 
-- 상태: 적용·부분 검증 (2026-10-28). 아래 '확인한 것 / 미검증' 참고
+- 상태: 적용·검증 (2026-10-28). 남은 미검증은 아래 '확인한 것 / 미검증' 참고
 
 ## 상황
 GPU 를 time-slicing 으로 4개 광고한다 ([ADR 0013](0013-gpu-time-slicing.md)). 프로필 네임스페이스별로 GPU 개수를 나눠야 한다. 지금은 두 번째 사용자(`kubeflow-guest-example-com`)만 `06-2` 가 할당량(파드 20, 스토리지 20Gi, GPU 0)을 걸고, 기본 사용자(`kubeflow-user-example-com`)는 할당량이 없다 (2026-10-28 읽기 전용 확인).
@@ -29,5 +29,9 @@ GPU 를 time-slicing 으로 4개 광고한다 ([ADR 0013](0013-gpu-time-slicing.
 - 확인 (2026-10-28, 읽기 전용): Profile 두 개와 현재 쿼터(guest `pods 20 / gpu 0 / storage 20Gi`, 기본 사용자 없음), `kf-resource-quota` 의 소유자가 Profile. 새 patch 두 개는 `--dry-run=server` 로 CRD 스키마를 통과했고 결과 `hard` 가 기대와 같았다 (저장은 하지 않았다). 합계 경고와 형식 오류는 스크립트 함수를 단독 실행해 확인했다.
 - 첫 적용 (2026-10-28, 사용자가 실행한 출력): `06-4` 가 기본 사용자 Profile 을 `patched`(변경), guest 를 `patched (no change)` 로 처리했다. 이어 `verify/06-4` 가 `==> OK`. 기본 사용자 `kf-resource-quota` 가 `requests.nvidia.com/gpu: 1/3`, 생성 후 11초로 나타났다: 컨트롤러가 Profile 변경을 몇 초 안에 반영해 쿼터 객체를 **만든다**. guest 는 `pods 0/20, requests.nvidia.com/gpu 0/0, requests.storage 0/20Gi` (객체 24시간 전, 바뀌지 않음). guest 의 `no change` 는 06-2 가 이미 같은 값을 넣어 둔 Profile 이기 때문이고, 06-2 를 쿼터 없이 다시 실행한 적은 없다.
 - 같은 날 17분 뒤 재실행: 두 Profile 모두 `patched (no change)`, `verify/06-4` `==> OK`, 기본 사용자 쿼터 객체 생성 17분 전 (첫 적용과 이어지는 값). 멱등이다.
-- **시험 절차 작성, 미실행 (2026-10-28):** `bash scripts/verify/06-4-quotas.sh roundtrip` 이 아래 중 (A) 갱신과 비운 키 제거, (B) GPU 0 네임스페이스에 GPU 파드를 서버 쪽 dry-run 으로 보냈을 때 거부, (C) `06-2` 재실행 뒤 복원을 확인하고 끝나면 `quotas.env` 값으로 되돌린다. B 는 dry-run 에서 쿼터가 평가되는지 자체가 **미검증**이라 '판정 불가' 로 끝날 수 있다. `06` 전체 재실행은 하지 않고 todo 3번에 맡긴다.
-- **미검증:** 비운 키가 `kf-resource-quota` 에서 사라지는지, 값을 바꾼 기존 쿼터 객체의 갱신(첫 적용은 객체 생성이었다), `06-2` 를 새 버전으로 재실행한 뒤 guest 쿼터가 지워졌다 `06-4` 로 돌아오는지, `06` 전체 재실행 경로, 쿼터를 넘겨 파드가 거부되는 실제 메시지.
+- 시험 결과 `verify/06-4-quotas.sh roundtrip` (2026-10-28, 사용자가 실행한 출력, 전체 `==> OK (roundtrip)`):
+  - **A 갱신·비운 키 통과.** 기본 사용자 쿼터를 GPU 3->2, pods 50, 스토리지 30Gi 로 바꾸자 같은 객체(나이 33분 그대로)가 갱신됐고(`pods 1/50, gpu 1/2, storage 5Gi/30Gi`), pods 를 다시 비우자 그 키가 사라졌다(`gpu 1/2, storage 5Gi/30Gi`). 제한을 푸는 방법이 동작한다.
+  - **B 거부 통과.** GPU 0 인 guest 네임스페이스에 `nvidia.com/gpu: 1` 파드를 `--dry-run=server` 로 보내자 응답에 `exceeded quota` 가 있었다: 이 클러스터에서 쿼터 어드미션은 서버 dry-run 에서도 평가된다. 거부 문구 전체는 스크립트가 출력하지 않아 기록하지 않았다. 기본 사용자 네임스페이스의 한도 초과 거부는 시험하지 않았다.
+  - **C 순서 통과.** 새 `06-2` 가 guest Profile 을 `configured` 하자 `kf-resource-quota` 가 지워졌다(`- - -`): 예상대로 apply 가 옛 `resourceQuotaSpec` 을 지운다. `06-4` 를 이어서 실행하자 객체가 다시 만들어져 `pods 0/20, gpu 0/0, storage 0/20Gi` 로 돌아왔다(나이 1초). 지워진 동안 guest 는 제한이 없었다. Dex 재시작은 `successfully rolled out` 로 끝났다.
+  - 마지막 복원도 `quotas.env` 값으로 돌아와 `verify` 통과(기본 사용자 `gpu 1/3`).
+- **여전히 미검증:** `06-2` 를 한 번 더 실행해도 지워지지 않는지(`last-applied` 에 필드가 없어서라고 추정, 시험하지 않았다), `06` 전체 재실행 경로(todo 3번), 기본 사용자 네임스페이스의 한도 초과 거부, 쿼터 거부 문구 전체.
