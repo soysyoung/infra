@@ -13,11 +13,11 @@ desired=$(kubectl -n kube-system get ds nvidia-device-plugin-daemonset -o jsonpa
 # device plugin 이 Ready 가 된 뒤에도 kubelet 이 GPU 용량을 반영하기까지 몇 초 걸린다.
 for _ in $(seq 30); do
   gpus=$(kubectl get node "$NODE" -o jsonpath='{.status.allocatable.nvidia\.com/gpu}')
-  [ "${gpus:-0}" -ge 1 ] && break
+  [ "${gpus:-0}" -eq "$GPU_REPLICAS" ] && break
   sleep 2
 done
-log "$NODE 가 광고하는 GPU: ${gpus:-0}"
-[ "${gpus:-0}" -ge 1 ] || die "노드가 nvidia.com/gpu 를 광고하지 않습니다 (device plugin 로그 확인)."
+log "$NODE 가 광고하는 GPU: ${gpus:-0} (기대: 물리 GPU 1장 x GPU_REPLICAS=$GPU_REPLICAS)"
+[ "${gpus:-0}" -eq "$GPU_REPLICAS" ] || die "광고 개수가 다릅니다 (device plugin 로그와 ConfigMap nvidia-device-plugin-config 확인)."
 
 kubectl delete pod gpu-smoke --ignore-not-found
 export CUDA_TEST_IMAGE
