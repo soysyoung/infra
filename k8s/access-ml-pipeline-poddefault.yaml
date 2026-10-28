@@ -1,6 +1,6 @@
 # Notebook 안에서 kfp.Client() 가 Pipelines 에 접속할 때 쓰는 ServiceAccount 토큰을 파드에 넣는다.
 # 출처: https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/ (PodDefault 예시)
-# 적용: kubectl --context kind-mlops apply -f k8s/access-ml-pipeline-poddefault.yaml
+# 적용: scripts/06-3-poddefaults.sh (직접 하려면 kubectl --context kind-mlops apply -f k8s/access-ml-pipeline-poddefault.yaml)
 # 프로필 네임스페이스가 다르면 metadata.namespace 를 바꾼다.
 apiVersion: kubeflow.org/v1alpha1
 kind: PodDefault

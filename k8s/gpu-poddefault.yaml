@@ -1,5 +1,5 @@
 # Notebook 생성 화면의 Configurations 에서 고르면 GPU 워커의 taint(nvidia.com/gpu=present:NoSchedule)를 견디는 toleration 이 파드에 들어간다.
-# 공식 PodDefault 스펙의 tolerations 필드 사용. 적용: kubectl --context kind-mlops apply -f k8s/gpu-poddefault.yaml
+# 공식 PodDefault 스펙의 tolerations 필드 사용. 적용: scripts/06-3-poddefaults.sh (직접 하려면 kubectl --context kind-mlops apply -f k8s/gpu-poddefault.yaml)
 # 프로필 네임스페이스가 다르면 metadata.namespace 를 바꾼다.
 apiVersion: kubeflow.org/v1alpha1
 kind: PodDefault
