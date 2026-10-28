@@ -17,7 +17,7 @@
 
 - **Windows**: 예약 작업 `wsl-keepalive`(부팅 때 WSL 을 띄움, 로그온 없이), AC 절전과 최대 절전 끔, 덮개 닫기 '아무 것도 안 함'. Windows 에는 Tailscale 이 없다 (WSL 안에만 있다).
 - **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only). **`08-boot-resilience.sh` 이전 버전이 적용돼 있음 (2026-10-27)**: `docker.service` 시작 전 `tailscale wait --timeout=60s`, `kubeflow-port-forward` 가 전용 kubeconfig(`~/.kube/mlops-local.config`)로 API 서버를 컨트롤 플레인 컨테이너 IP(`172.18.0.4`)로 부름, `mlops-watchdog.timer` 가 1분마다 실행. 저장소의 `08` 은 이미 새 버전(감시 서비스만, API 서버는 `127.0.0.1`)으로 바뀌었고 이 PC 에는 재설치로 적용한다. 근거와 시험 결과는 [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록'. 컨트롤 플레인 IP 는 `/etc/mlops/cp-ip` 에 고정하고 클러스터를 다시 만들면 `08` 을 다시 실행한다. 일부러 `docker stop` 해 둔 클러스터는 감시가 다시 시작하니, 멈추려면 `sudo systemctl stop mlops-watchdog.timer` 부터 한다.
-- **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1개 광고, 비정상 파드 0. Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01`, `test03`(CPU) 이 Running (`test02-gpu` 는 중지). 공유용 계정 `guest@example.com`(네임스페이스 `kubeflow-guest-example-com`, GPU 0)이 있고 비밀번호는 `.env` 의 `EXTRA_USER_PASSWORD`. Funnel 은 평소 꺼 둔다 (`07-4 off` 상태가 기본, 공유할 때만 `on`).
+- **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1장을 4개로 광고(time-slicing, 2026-10-28, [ADR 0013](decisions/0013-gpu-time-slicing.md)), OpenSearch 단일 노드 Running(네임스페이스 `opensearch`, [ADR 0014](decisions/0014-opensearch-single-node.md)), 비정상 파드 0 (2026-10-26 확인). Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01`, `test03`(CPU) 이 Running (`test02-gpu` 는 중지). 공유용 계정 `guest@example.com`(네임스페이스 `kubeflow-guest-example-com`, GPU 0)이 있고 비밀번호는 `.env` 의 `EXTRA_USER_PASSWORD`. Funnel 은 평소 꺼 둔다 (`07-4 off` 상태가 기본, 공유할 때만 `on`).
 - **접속**: 이 PC 는 `http://localhost:8080` (https 아님). 핸드폰 등 tailnet 기기는 `https://<기기>.<tailnet>.ts.net`. 이 PC 의 Windows 브라우저로는 `.ts.net` 주소가 해석되지 않는다.
 - **남겨 둔 NodePort 흔적**: `07-2` 스크립트들 (시험 기록). `kind-config.yaml` 의 30080 매핑은 2026-10-27 에 제거했다 (이 PC 의 현재 클러스터에는 재설치 전까지 남아 있다). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
 - **git**: `dev` 에 작업, `main` 은 README 한 파일(작성자 `soysyoung@gmail.com`). `dev` 의 기존 커밋 48개는 작성자 이메일이 `dangim.co.kr` 이다 (히스토리를 다시 쓰지 않기로 했다).
@@ -40,7 +40,7 @@
 **확인만 하면 되는 것** (읽기 전용이거나 명령 한 번)
 2. [ ] SSH: `sudo tailscale set --ssh` 실행 후 다른 기기에서 SSH 접속 확인 (`02` 는 이미 이 형식으로 고쳤다)
 3. [ ] 다음에 `06` 을 전체 재실행할 때 끝의 `06-2` 호출이 정상인지 (아직 시험하지 않았다. `.env` 에 `EXTRA_USER_*` 가 있는 상태에서 `06` 이 `06-2` 를 다시 적용해야 한다)
-4. [ ] GPU Notebook 안에서 `nvidia-smi` 가 RTX 5080 을 보여 주는지 (파드가 GPU 워커에 올라가고 limits 에 `nvidia.com/gpu: 1` 인 것까지만 확인했다)
+4. [x] GPU Notebook 안에서 `nvidia-smi` 가 RTX 5080 을 보여 주는지 -> 통과 (2026-10-28): Notebook `test-gpu-01` 파드가 `mlops-worker` 에서 Ready 가 된 뒤 `kubectl exec ... nvidia-smi` 가 RTX 5080 (드라이버 592.27, CUDA 13.1, VRAM 16303MiB, 사용 0MiB)을 보여 줬다. 호스트(WSL)의 출력과 이름, 용량이 같다. 첫 실행은 이미지(`jupyter-pytorch-cuda-full`) 내려받기로 Ready 까지 약 5분. 이때 노드 광고는 `nvidia.com/gpu: 1` (time-slicing 적용 전, [ADR 0013](decisions/0013-gpu-time-slicing.md) 기준선). 연산 중 VRAM 사용은 보지 않았다
 
 **공유용 계정을 더 믿고 쓰려면** (아직 하지 않았다)
 5. [ ] 공유용 계정의 CPU, 메모리 할당량 (지금은 파드 20개, 스토리지 20Gi, GPU 0 만 제한한다. KFP 시스템 파드가 requests 없이 거부될 수 있어 일부러 뺐다. 시험 후 추가)
@@ -55,7 +55,10 @@
 10. [ ] 재부팅의 남은 경우: 로그인 화면(비밀번호)이 있는 상태, 시작 메뉴 '종료' 후 전원 켜기(빠른 시작), 덮개를 닫은 채 접속
 11. [ ] [ADR 0012](decisions/0012-official-doc-recheck.md) 의 미확인 항목: `05-1` 노드 재시작 정책의 Docker 문서 인용, `06` 의 kustomize 5.8.1 체크섬, ADR 0006 의 toolkit 1.20.1 WSL2 수정과 CUDA 12.8 요구
 12. [ ] `scripts/verify/00-windows.ps1` 다시 실행 (이번에는 `03`~`06` 만 돌렸다)
-21. [ ] 워크로드용 새 저장소 만들기 (선택): 파이프라인 정의, 학습·추론 코드, 노트북 예제, 실험 기록은 거기에 두고 이 저장소는 플랫폼만 다룬다. 처음에는 저장소 하나에 프로젝트별 폴더로 시작하고, 변경 주기나 공개 범위가 달라지는 프로젝트가 생기면 그때 떼어 낸다. 새 저장소가 생기면 [README.md](../README.md) '범위' 에 링크를 넣는다. 이 저장소가 제공하는 것(접속 주소, GPU PodDefault [k8s/gpu-poddefault.yaml](../k8s/gpu-poddefault.yaml), 네임스페이스)은 문서로만 참조하게 한다
+21. [x] 워크로드용 저장소 (2026-10-28 결정 변경): 파이프라인 정의, 학습·추론 코드, 노트북 예제, 실험 기록은 거기에 두고 이 저장소는 플랫폼만 다룬다. **프로젝트마다 단독 저장소**로 한다 (처음에 쓴 "저장소 하나에 프로젝트별 폴더"는 폐기). 첫 프로젝트는 [fashion-recsys-mlops](https://github.com/soysyoung/fashion-recsys-mlops), [README.md](../README.md) '범위' 에 링크했다. 이 저장소가 제공하는 것(접속 주소, GPU PodDefault [k8s/gpu-poddefault.yaml](../k8s/gpu-poddefault.yaml), GPU time-slicing, OpenSearch, 네임스페이스)은 문서로만 참조하게 한다
+22. [ ] 프로젝트용 네임스페이스와 ResourceQuota: 5번(공유용 계정 할당량)과 같은 주제. 메모리 합계가 24GB 에 빠듯하므로 [ADR 0014](decisions/0014-opensearch-single-node.md) '메모리 실측' 의 수치를 근거로 정한다
+23. [ ] GPU 동시 실행 시험: 파드 둘 이상이 한 GPU 를 쓸 때 각자의 VRAM 점유와 속도 ([ADR 0013](decisions/0013-gpu-time-slicing.md) 미검증). 워크로드 저장소 README 에 "VRAM 은 코드에서 상한을 건다"는 안내를 남긴다
+24. [ ] OpenSearch 에 실제 벡터(약 10.5만 x 384차원)를 넣은 뒤의 메모리 확인, 파드 재시작과 WSL 재부팅 뒤 색인 보존, 전체 재설치 경로(`05-4`, `09` 포함)에서의 동작
 
 **큰 일**
 13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
@@ -98,4 +101,6 @@
 | 2026-10-26 | `00`~`06` 과 ADR 0001~0008 공식 문서 재대조 | [ADR 0012](decisions/0012-official-doc-recheck.md) |
 | 2026-10-26 | 두 번째 사용자(`06-2-extra-user.sh`): Dex 계정, Profile, 소유자 권한, 할당량(GPU 0). 새 계정으로 로그인해 `kubeflow-guest-example-com` 네임스페이스가 보였다 (사용자 보고). `verify/06-2-extra-user.sh` 가 `==> OK` 로 끝났고 할당량 `{"pods":"20","requests.nvidia.com/gpu":"0","requests.storage":"20Gi"}` 가 적용됐다. `06` 전체 재실행에서 끝의 `06-2` 호출은 아직 시험하지 않았다 | [scripts/README.md](../scripts/README.md), [Profile 문서](https://www.kubeflow.org/docs/components/central-dash/profiles/) |
 | 2026-10-26 | Notebook 의 Python(`kfp.Client()`)으로 `hello-pipeline` 을 직접 제출해 YAML 업로드와 같은 결과를 확인. 이 클러스터에는 `access-ml-pipeline` PodDefault 가 없어서 [k8s/access-ml-pipeline-poddefault.yaml](../k8s/access-ml-pipeline-poddefault.yaml) 로 만들었다. 첫 Python Run 은 `container-impl` 파드 없이 끝났는데(캐시 적중으로 추정), `enable_caching=False` 로 다시 제출하자 dag-driver, container-driver, container-impl 파드 3개가 모두 `Completed` 였다 | [공식 안내](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/) |
+| 2026-10-28 | GPU 1장을 4개로 광고(time-slicing). 노드 광고 4, 스모크 파드 통과, 재시작한 Notebook 의 `nvidia-smi` 가 같은 GPU. 동시 실행은 미시험 (위 23번) | [ADR 0013](decisions/0013-gpu-time-slicing.md) |
+| 2026-10-28 | OpenSearch 3.8.0 단일 노드 (Helm 4.2.4). `verify/09` 통과, 클러스터 green, `opensearch-knn` 있음, 파드 4Gi, WSL 사용 9.0GB 로 `.wslconfig` 24GB 유지 | [ADR 0014](decisions/0014-opensearch-single-node.md) |
 | 2026-10-27 | 컨트롤 플레인이 kind 네트워크에서 떨어져 8080 이 막힌 사고를 복구하고 `08-boot-resilience.sh` 를 적용. 대기(`tailscale wait`)가 `tailscale0` 준비를 기다림, 오프라인 부팅에서도 8080 이 NIC 없이 열림, 실행 중 전환 2건에서 port-forward 가 죽지 않음을 확인. 같은 날 감시 서비스 복구 경로(`detach`, `down`)도 통과. 60초 시간 초과 등은 미시험 (위 16번) | [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록', [troubleshooting.md](troubleshooting.md) 27번 |

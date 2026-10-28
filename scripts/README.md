@@ -38,6 +38,8 @@ bash scripts/05-1-kind-cluster.sh     # kind 4노드 (control-plane 1, GPU 1, CP
 bash scripts/05-2-gpu-node.sh         # GPU 노드 컨테이너에 toolkit, containerd 설정
 bash scripts/05-3-device-plugin.sh    # device plugin (GPU 노드에만)
 bash scripts/verify/05-3-device-plugin.sh   # GPU 2차 관문 (GPU 노드의 파드)
+bash scripts/05-4-helm.sh             # (선택) helm 설치 (09 OpenSearch 용, 체크섬 검증)
+bash scripts/verify/05-4-helm.sh
 bash scripts/06-kubeflow.sh           # Pipelines, Notebooks, KServe (첫 설치는 이미지를 많이 받아 오래 걸린다)
 bash scripts/verify/06-kubeflow.sh
 bash scripts/06-2-extra-user.sh       # (선택) 두 번째 사용자. .env 의 EXTRA_USER_EMAIL, EXTRA_USER_PASSWORD 가 있을 때만 동작
@@ -50,6 +52,8 @@ bash scripts/verify/07-3-tailscale-serve.sh
 bash scripts/07-4-tailscale-funnel.sh on|off|status   # (선택) tailnet 밖의 사람에게 인터넷으로 공개/해제. 공유할 때만 on 하고 끝나면 off
 bash scripts/08-boot-resilience.sh    # 컨트롤 플레인이 kind 네트워크에서 떨어지거나 멈추면 스스로 복구하고, 8080 이 멈추면 port-forward 를 재시작하는 1분 감시 서비스. ADR 0010
 bash scripts/verify/08-boot-resilience.sh detach   # (선택, 클러스터가 2~4분 끊긴다) 일부러 장애를 만들어 감시가 복구하는지 시험. down 도 있다
+bash scripts/09-opensearch.sh         # (선택) OpenSearch 단일 노드 + k-NN (Helm). 관리자 비밀번호를 .env 의 OPENSEARCH_ADMIN_PASSWORD 에 만든다. ADR 0014
+bash scripts/verify/09-opensearch.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
