@@ -1,0 +1,21 @@
+# OpenSearch Helm 차트 값 (단일 노드). 09-opensearch.sh 가 -f 로 넘긴다. 근거: docs/decisions/0014
+# 관리자 비밀번호는 여기에 쓰지 않는다. 09 가 Secret 을 만들고 extraEnvs 를 --set 으로 더한다.
+clusterName: opensearch-cluster
+nodeGroup: master
+singleNode: true
+replicas: 1
+
+# 힙은 파드 메모리의 절반 이하. 나머지는 k-NN 그래프(네이티브 메모리)와 파일 캐시가 쓴다.
+opensearchJavaOpts: "-Xms1g -Xmx1g"
+resources:
+  requests: {cpu: 500m, memory: 4Gi}
+  limits: {cpu: "2", memory: 4Gi}
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+# kind 노드는 WSL 커널을 공유하고 vm.max_map_count 가 이미 충분하다 (1048576, 요구 262144 이상).
+# 그래서 특권 init 컨테이너(sysctlInit)는 쓰지 않는다.
+sysctlInit:
+  enabled: false
