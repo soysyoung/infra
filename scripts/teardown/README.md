@@ -186,3 +186,20 @@ $ bash scripts/teardown/06-kubeflow.sh < /dev/null
 - **`apt-get purge` 가 잠금 오류**: 다른 apt 가 실행 중이다. 잠시 뒤 다시 실행한다 (이미 지운 항목은 건너뛴다).
 - **Docker 가 시작하지 않는다 (04 이후)**: `/etc/docker/daemon.json` 에 없는 `nvidia` 런타임이 남아 있는 경우다. 04 삭제는 이를 먼저 되돌리지만, 수동으로 지웠다면 `sudo rm /etc/docker/daemon.json && sudo systemctl restart docker`.
 - **`sudo` 비밀번호를 계속 묻는다**: `all.sh` 는 시작할 때 한 번 묻는다. 개별 스크립트는 각각 묻는다.
+
+### teardown/09-1 단독 실행 (2026-10-30, 사용자 실행)
+클러스터는 두고 OpenSearch 만 지웠다. 출력에서 읽은 것:
+
+```text
+OpenSearch 와 안의 색인 데이터(PVC)를 삭제합니다. 계속하려면 'yes' 를 입력: yes
+Removed "/etc/systemd/system/multi-user.target.wants/opensearch-dashboards-port-forward.service".
+release "opensearch" uninstalled
+namespace "opensearch" deleted
+==> 완료
+Error from server (NotFound): namespaces "opensearch" not found
+```
+
+- Dashboards port-forward 서비스와 `opensearch` 네임스페이스가 사라졌다. Helm 은 `opensearch` 릴리스만 지웠고 `opensearch-dashboards` 릴리스는 네임스페이스와 함께 사라졌다 (릴리스 목록은 확인하지 않았다).
+- 이어서 `09-1`~`09-5` 와 각 `verify` 를 처음부터 실행하면 모두 `==> OK` 였다 (`09-1` 은 `Release "opensearch" does not exist. Installing it now`, 클러스터 green, k-NN 있음, 384차원 색인과 검색 동작). `.env` 의 비밀번호와 게스트 계정 값이 그대로 쓰였고 `verify/09-3` 의 12개 항목, `verify/09-5` 의 Notebook 접속 200(두 네임스페이스)이 다시 통과했다.
+- `09-5` 는 `unchanged` 였다: Secret 과 PodDefault 는 프로필 네임스페이스에 있어 OpenSearch 삭제로 지워지지 않는다.
+- 이 시험은 새 클러스터 설치(Helm 과 Istio 가 처음 설치되는 환경)와 `all.sh` 전체 삭제를 포함하지 않는다. 인덱스 패턴(Global tenant)은 PVC 와 함께 사라지므로 admin 이 다시 만들어야 한다.
