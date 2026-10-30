@@ -1,6 +1,6 @@
 # 0019. Dashboards 노출: tailscale serve(기본)와 funnel(필요할 때만), 포트 8443
 
-- 상태: `private`(tailnet 안) 적용 (2026-10-30). `public`(funnel)과 `off` 는 **미적용**
+- 상태: `private`(tailnet 안), `public`(funnel), `off` 적용 (2026-10-30). 이름 변경 뒤 옛 이름 설정이 남는 문제는 troubleshooting 30번
 
 ## 상황
 Dashboards([ADR 0017](0017-opensearch-dashboards.md))는 이 PC 의 `http://localhost:5601` 로만 열린다. 핸드폰 등 tailnet 기기에서 보고, 필요하면 tailnet 밖의 사람에게도 보여 주고 싶다. Kubeflow 는 이미 443 으로 serve(07-3)와 funnel(07-4)을 쓴다 ([ADR 0011](0011-no-nodeport-https-via-tailscale-serve.md)).
@@ -28,4 +28,7 @@ Dashboards([ADR 0017](0017-opensearch-dashboards.md))는 이 PC 의 `http://loca
 
 ## 적용 결과 (2026-10-30)
 - 사용자 보고: `09-4 private` 를 실행했고 `https://<기기>.<tailnet>.ts.net:8443` 로 접속된다. guest-rw 로 로그인도 된다. `serve` 의 `--https=8443` 이 받아들여졌고, 8443 프록시 뒤에서 로그인과 쿠키가 동작한다.
-- 미확인: `verify/09-4` 의 출력, Kubeflow(443)와 함께 동작하는지 (접속 시험은 8443 만), `public`(funnel)과 `off`, 대역폭 제한, guest-ro 로그인 후 화면. 이 시험에서 guest-rw 는 `kibana_user` 가 없어 화면 일부가 제한될 수 있다 ([ADR 0018](0018-opensearch-guest-accounts.md) 의 미해소 항목).
+- 사용자 보고: Tailscale 관리 콘솔에서 기기 이름을 바꾼 뒤 `09-4 public` 을 다시 실행했고 접속 시험이 된다. 이름을 바꾸면 주소가 새 이름으로 바뀌고, 스크립트를 다시 실행해 맞췄다 (스크립트가 이름을 매번 읽는다). 이름을 바꾼 뒤 `private` 이 저절로 새 이름으로 이어졌는지는 확인하지 못했다.
+- 사용자 실행 `09-4 off`: 새 이름의 8443 항목이 사라졌다 (`off` 단독 동작 확인). 그런데 `serve status` 에 **옛 이름**의 443(Kubeflow)과 8443 항목이 `Funnel on` 으로 남아 있었다. serve, funnel 설정은 호스트 이름을 키로 저장돼 이름 변경 전에 만든 항목을 새 이름의 스크립트가 못 지운다 ([troubleshooting.md](../troubleshooting.md) 30번). `sudo tailscale serve reset` 후 `07-3`, `09-4 private` 를 다시 실행하자 새 이름의 443(8080)과 8443(5601) 둘 다 `(tailnet only)` 로 보였고 `verify/07-3` 이 `==> OK` 였다.
+- 한계: 이름을 바꾸는 순간 옛 이름의 Funnel 항목이 인터넷에 노출되는지는 모른다. `reset` 전에 이 PC 에서 요청한 결과는 새 이름과 같은 TLS 실패였다. 이름을 바꿀 때는 먼저 `off` 를 하고 바꾸는 것이 안전하다 (추정).
+- 미확인: 접속 시험을 한 곳(Tailscale 을 끈 기기인지)과 로그인에 쓴 계정, `verify/09-4` 의 출력, `public` 이 이름 변경 뒤 정말 외부에서 열렸는지, 대역폭 제한, guest-ro 로그인 후 화면. 이 시험에서 guest-rw 는 `kibana_user` 가 없어 화면 일부가 제한될 수 있다 ([ADR 0018](0018-opensearch-guest-accounts.md) 의 미해소 항목).
