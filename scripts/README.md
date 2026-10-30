@@ -66,9 +66,21 @@ bash scripts/09-4-dashboards-tailscale.sh private   # (선택) Dashboards 를 ta
 bash scripts/verify/09-4-dashboards-tailscale.sh
 bash scripts/09-5-opensearch-notebook-access.sh   # (선택) Notebook 에 guest-rw 접속 정보를 환경변수로 주입 (Secret + PodDefault, 모든 사용자 네임스페이스). Notebook 만들 때 Configurations 에서 고른다. ADR 0020
 bash scripts/verify/09-5-opensearch-notebook-access.sh
+bash scripts/10-1-postgres.sh        # (선택) PostgreSQL 단일 인스턴스 (CloudNativePG 연산자 Helm + Cluster). 앱 계정 app 의 비밀번호는 .env 의 POSTGRES_APP_PASSWORD (공식 기본값과 다르다, 아래 'PostgreSQL (10-1)'), 서비스 postgres-rw.postgres.svc:5432. ADR 0021
+bash scripts/verify/10-1-postgres.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
+
+## PostgreSQL (10-1)
+
+CloudNativePG 연산자를 Helm 으로 설치하고 `Cluster` 하나(단일 인스턴스, DB `app`)를 만든다. 접속은 클러스터 안에서 `postgres-rw.postgres.svc:5432`, 이 PC 에서는 `kubectl -n postgres port-forward svc/postgres-rw 5432:5432`. 근거와 미검증 항목은 [ADR 0021](../docs/decisions/0021-postgres-cloudnativepg.md).
+
+**공식 기본값과 다르게 설정한 것: 앱 계정 비밀번호.** 공식 기본값은 연산자가 비밀번호를 무작위로 만들어 Secret 에 두는 것이다. 이 저장소는 대신 `.env` 의 `POSTGRES_APP_PASSWORD` 로 Secret `postgres-app-auth` 를 만들어 쓴다 (직접 만든 비밀번호를 쓰는 방법은 [공식 문서](https://cloudnative-pg.io/docs/1.30/bootstrap/)에 있으나 권장 기본값은 아니다). 이유는 전체 삭제 후 재설치로 재현성을 증명하는 이 저장소에서, 기본값은 재설치할 때마다 비밀번호가 바뀌어 그 값을 쓰는 곳을 매번 고쳐야 하기 때문이다. `.env` 에 두면 재설치해도 같다. 대가는 비밀번호가 `.env` 와 Secret 두 곳에 있고, DB 를 처음 만들 때만 쓰이므로 `.env` 만 고쳐서는 바뀌지 않는다는 점이다.
+
+```bash
+grep '^POSTGRES_APP_' .env    # 계정 이름과 비밀번호
+```
 
 ## Kubeflow 접속
 
