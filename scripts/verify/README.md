@@ -27,7 +27,7 @@
 | `09-4-dashboards-tailscale.sh` | WSL | tailnet 의 `:8443` 으로 Dashboards 가 HTTPS 로 응답하고 Kubeflow 의 443 설정이 그대로인가 | `09-4-dashboards-tailscale.sh` |
 | `09-5-opensearch-notebook-access.sh` | WSL | Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속 | `09-5-opensearch-notebook-access.sh` |
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
-| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. 2026-10-30 통과 (`verify` 시점의 Notebook 에는 `psycopg2` 가 없어 인증 미확인, 이후 셀에서 user, guest 모두 확인) | `10-2-postgres-notebook-access.sh` |
+| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. 2026-10-30 통과했으나 이후 password file 로 바꿔 **다시 실행해야 한다** (이전 실행의 `verify` 시점의 Notebook 에는 `psycopg2` 가 없어 인증 미확인, 이후 셀에서 user, guest 모두 확인) | `10-2-postgres-notebook-access.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03` ~ `06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
@@ -393,8 +393,11 @@ NOTICE:  table "verify_pg" does not exist, skipping
 - 설치(`10-1`) 쪽 출력은 `Release "cnpg" does not exist. Installing it now.` 로 시작해 `deployment "cnpg-cloudnative-pg" successfully rolled out`, `secret/postgres-app-auth created`, `cluster.postgresql.cnpg.io/postgres created`, `condition met` 로 이어졌고 `==> 완료` 로 끝났다. 처음 실행이라 웹훅 거부로 인한 재시도 줄은 없었다.
 - 마지막 줄의 접속은 파드 안에서 `postgres-rw` 로 TCP 접속한 것이다. **Notebook 파드나 다른 네임스페이스에서의 접속은 이 스크립트가 확인하지 않는다** (미시험, [todo.md](../../docs/todo.md) 34번).
 - 이어서 읽기 전용으로 확인한 상태는 [ADR 0021](../../docs/decisions/0021-postgres-cloudnativepg.md) '적용 결과'. Secret 이 `postgres-app-auth` 등만 있고 `postgres-app`, `postgres-superuser` 는 없다는 것도 거기에 있다.
+- 위 출력은 `PGPASSWORD` 로 접속하던 `verify/10-1` 의 것이다. 같은 날 PostgreSQL 공식 권고에 따라 표준입력으로 만든 0600 password file(`PGPASSFILE`)로 바꿨고 **바꾼 `verify/10-1` 은 아직 실행하지 않았다.** 쓰기 가능한 경로가 `/run` 인 것은 `/proc/mounts` 로 확인했다 (`/` 는 읽기 전용).
 
 ## 10-2-postgres-notebook-access.sh (2026-10-30, 사용자 실행)
+
+> **주의:** 아래 실제 출력은 비밀번호를 `PGPASSWORD` 환경변수로 넣던 구성에서 얻은 것이다. 같은 날 PostgreSQL 공식 권고(password file)로 바꿨고 **바꾼 구성은 아직 실행하지 않았다** ([ADR 0022](../../docs/decisions/0022-notebook-postgres-access.md) '비밀번호 전달'). 다시 실행하면 이 절에 출력을 추가한다. `verify/10-1` 도 같은 이유로 바꿨다.
 
 ```bash
 bash scripts/10-2-postgres-notebook-access.sh          # 설치
@@ -405,8 +408,8 @@ bash scripts/verify/10-2-postgres-notebook-access.sh   # 검증
 
 - 역할 `notebook_rw`: 로그인 가능, 슈퍼유저 아님, `pg_read_all_data` 와 `pg_write_all_data` 의 멤버 (DB 에서 직접 조회).
 - `postgres-rw` 로 접속해 `app` 이 만든 시험 테이블 `verify_nb` 를 읽고 쓰고 지울 수 있고, 테이블 생성은 거부되어야 한다 (시험 테이블은 끝에 지운다).
-- 대상 네임스페이스마다 Secret 이 기대한 계정과 `.env` 의 비밀번호와 같고 (기본 사용자 네임스페이스는 `app`, 공유용 계정은 `notebook_rw`), 레이블을 단 파드에 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` 가 주입된다 (서버 쪽 dry-run).
-- 실행 중인 Notebook 이 있으면 그 파드 안에서 `postgres-rw.postgres.svc:5432` 에 접속한다. **이것이 가장 중요하다**: Istio 사이드카가 있는 Notebook 에서 `postgres` 네임스페이스로의 TCP 접속이 허용되는지를 본다 (아래 실행에서 두 네임스페이스 모두 TCP 는 닿았다). Notebook 이미지에 `psycopg2` 가 없으면 TCP 연결까지만 확인하고 `주의:` 로 알린다 (그 경우 인증은 확인되지 않은 것이다). Notebook 이 없으면 건너뛰고 확인 방법을 안내한다.
+- 대상 네임스페이스마다 Secret 이 기대한 계정과 `.env` 의 비밀번호와 같고 (기본 사용자 네임스페이스는 `app`, 공유용 계정은 `notebook_rw`), 레이블을 단 파드에 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSFILE` 과 initContainer 가 주입되고 `PGPASSWORD` 는 없다 (서버 쪽 dry-run). Secret 에는 `pgpass` 키(password file 한 줄)도 있어야 한다.
+- 실행 중인 Notebook 이 있으면 그 파드 안에서 `postgres-rw.postgres.svc:5432` 에 접속한다. **이것이 가장 중요하다**: Istio 사이드카가 있는 Notebook 에서 `postgres` 네임스페이스로의 TCP 접속이 허용되는지를 본다 (아래 실행에서 두 네임스페이스 모두 TCP 는 닿았다). PodDefault 로 만든 Notebook 이면 비밀번호를 주지 않고 `PGPASSFILE` 의 password file 만으로 접속한다 (공식 권고 경로. 파일이 무시되면 `mode`, `file_uid`, `my_uid` 를 출력하고 실패한다). PodDefault 없이 만든 Notebook 은 비밀번호로 접속하고 `주의:` 로 알린다. Notebook 이미지에 `psycopg2` 가 없으면 TCP 연결까지만 확인하고 `주의:` 로 알린다 (그 경우 인증은 확인되지 않은 것이다). Notebook 이 없으면 건너뛰고 확인 방법을 안내한다.
 
 실제 출력 (설치 `10-2` 와 `verify/10-2` 를 이어서 실행한 것. `.env` 의 비밀번호 줄이 처음 만들어졌고 Notebook `test-01-0`, `test-guest-01-0` 이 떠 있었다):
 
