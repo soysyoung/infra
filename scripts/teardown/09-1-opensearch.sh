@@ -8,6 +8,13 @@ set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"
 
 confirm "OpenSearch 와 안의 색인 데이터(PVC)를 삭제합니다."
+# 네임스페이스째 지우면 Dashboards 도 사라지므로 09-2 가 만든 port-forward 서비스도 함께 지운다 (접속할 곳이 없어 재시작만 반복한다).
+unit=/etc/systemd/system/opensearch-dashboards-port-forward.service
+if [ -f "$unit" ]; then
+  run sudo systemctl disable --now opensearch-dashboards-port-forward
+  run sudo rm -f "$unit"
+  run sudo systemctl daemon-reload
+fi
 if type -P helm >/dev/null && docker info >/dev/null 2>&1 && kubectl get ns opensearch >/dev/null 2>&1; then
   run helm --kube-context "kind-$CLUSTER" uninstall opensearch -n opensearch --ignore-not-found
   run kubectl delete ns opensearch   # PVC 와 Secret 도 함께 지워진다
