@@ -1,6 +1,6 @@
 # 0019. Dashboards 노출: tailscale serve(기본)와 funnel(필요할 때만), 포트 8443
 
-- 상태: 스크립트 작성, **미적용** (2026-10-30). `09-4`, `verify/09-4` 는 아직 실행하지 않았다
+- 상태: `private`(tailnet 안) 적용 (2026-10-30). `public`(funnel)과 `off` 는 **미적용**
 
 ## 상황
 Dashboards([ADR 0017](0017-opensearch-dashboards.md))는 이 PC 의 `http://localhost:5601` 로만 열린다. 핸드폰 등 tailnet 기기에서 보고, 필요하면 tailnet 밖의 사람에게도 보여 주고 싶다. Kubeflow 는 이미 443 으로 serve(07-3)와 funnel(07-4)을 쓴다 ([ADR 0011](0011-no-nodeport-https-via-tailscale-serve.md)).
@@ -26,5 +26,6 @@ Dashboards([ADR 0017](0017-opensearch-dashboards.md))는 이 PC 의 `http://loca
 - `public` 의 관리 콘솔 승인 절차, 외부 접속, `off` 후 실제로 닫히는지. Kubeflow 퍼널 시험(todo 1번)과 같은 방식으로 한다. 켜고 끄기를 반복하지 않는다.
 - 대역폭 제한이 Dashboards 사용에 충분한지.
 
-## 적용 결과
-(미실행)
+## 적용 결과 (2026-10-30)
+- 사용자 보고: `09-4 private` 를 실행했고 `https://<기기>.<tailnet>.ts.net:8443` 로 접속된다. guest-rw 로 로그인도 된다. `serve` 의 `--https=8443` 이 받아들여졌고, 8443 프록시 뒤에서 로그인과 쿠키가 동작한다.
+- 미확인: `verify/09-4` 의 출력, Kubeflow(443)와 함께 동작하는지 (접속 시험은 8443 만), `public`(funnel)과 `off`, 대역폭 제한, guest-ro 로그인 후 화면. 이 시험에서 guest-rw 는 `kibana_user` 가 없어 화면 일부가 제한될 수 있다 ([ADR 0018](0018-opensearch-guest-accounts.md) 의 미해소 항목).
