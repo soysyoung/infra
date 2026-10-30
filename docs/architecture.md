@@ -19,11 +19,13 @@
 |  |     +-- kind 클러스터, 노드 4개 = Docker 컨테이너      [완료: 05]  |  |
 |  |           control-plane / GPU 워커 / CPU 워커 x2 (v1.36.4)         |  |
 |  |           +-- Kubeflow 26.03.1                         [완료: 06]  |  |
+|  |           +-- OpenSearch 3.8.0 (Helm, 단일 노드)       [완료: 09]  |  |
+|  |           +-- PostgreSQL 18.6 (CloudNativePG, 단일)    [완료: 10]  |  |
 |  +--------------------------------------------------------------------+  |
 +--------------------------------------------------------------------------+
 ```
 
-`[완료]`, `[예정]` 은 2026-10-23 기준이다. 02~06 은 검증까지 끝났다.
+`[완료]`, `[예정]` 은 2026-10-30 기준이다. 02~10 은 각 단계의 `verify` 를 통과했다. 10(PostgreSQL)은 `verify` 만 통과했고 그 뒤의 시험(재시작, 재설치, 백업, Notebook 접속)은 남았다 ([todo.md](todo.md) 31~34번). 접속은 07 의 port-forward 와 `tailscale serve` 이고, OpenSearch Dashboards 는 `:8443` 으로 따로 연다 (09-4).
 
 ## 설계 원칙
 
@@ -45,7 +47,13 @@
 | 05-1 | WSL | kind 4노드 클러스터, GPU 노드에 라벨/taint |
 | 05-2 | WSL | GPU 노드 컨테이너에 toolkit 설치, containerd 설정 |
 | 05-3 | WSL | device plugin (GPU 노드에만) |
+| 05-4 | WSL | Helm (09, 10 의 차트 설치용) |
 | 06 | WSL | Kubeflow 26.03.1: Pipelines, Notebooks, KServe (+ Istio, Knative, cert-manager, Dex) |
+| 06-2~06-4 | WSL | 두 번째 사용자(공유용), PodDefault(GPU toleration 등), 프로필 ResourceQuota |
+| 07-1, 07-3, 07-4 | WSL | Kubeflow 접속: port-forward 서비스, `tailscale serve` HTTPS, (선택) Funnel |
+| 08 | WSL | 재부팅·장애 복구 감시 서비스 |
+| 09-1~09-5 | WSL | OpenSearch 3.8.0 단일 노드(k-NN), Dashboards, 게스트 계정, Dashboards tailnet/Funnel 노출, Notebook 용 접속 정보 주입 |
+| 10-1 | WSL | PostgreSQL 단일 인스턴스: CloudNativePG 연산자(Helm) + Cluster. 클러스터 안에서만 접근, 비밀번호는 `.env` ([ADR 0021](decisions/0021-postgres-cloudnativepg.md)) |
 
 ## IaC 전환 계획 (설치 완료 후)
 
