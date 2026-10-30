@@ -498,3 +498,36 @@ poddefault.kubeflow.org/postgres-notebook configured
 - **확인된 것:** DB 파드 안에서 표준입력으로 만든 0600 password file 로 `app` 과 `notebook_rw` 가 접속된다 (비밀번호가 명령줄에 나오지 않는다). 서버 쪽 dry-run 에서 PodDefault 웹훅이 `initContainers`(`postgres-pgpass-init`)와 `PGPASSFILE` 을 주입하고 `PGPASSWORD` 는 주입하지 않는다 (두 네임스페이스). 웹훅이 `initContainers` 를 처리하지 못할 수 있다는 위험이 해소됐다.
 - **확인되지 않은 것:** `ok:...:password` 는 시험한 Notebook 두 개(`test-postgres-0`, `test-guest-01-0`)가 새 PodDefault 적용 전에 만들어진 파드라 `PGPASSFILE` 이 없어서 비밀번호 경로로 확인된 것이다. `OK` 줄의 `password file 로 인증까지 0 개` 가 그 뜻이다. **Notebook 파드에서 initContainer 가 만든 파일로 접속하는 것은 아직 확인하지 못했다** (`busybox:1.37.0` pull, root initContainer 허용, uid 1000 이 0600 파일을 읽는지).
 - 시험할 Notebook 은 `postgres-notebook` 라벨이 있는 것을 먼저 고르도록 `verify/10-2` 를 고쳤다 (이전에는 네임스페이스의 첫 Notebook 만 봤다). 이 수정은 이 출력 뒤에 했고 다시 실행하지 않았다.
+
+### 새 PodDefault 로 만든 Notebook 이 뜬 뒤 (2026-10-30, 사용자 실행 + 읽기 전용 확인)
+
+사용자가 'PostgreSQL 접속 정보' 를 골라 Notebook 을 새로 만든 뒤 `verify/10-2` 를 두 번 실행했다. 첫 실행은 user 네임스페이스에서 `test-postgres-02-0` 이 선택됐으나 guest 는 라벨이 없는 옛 `test-guest-02-0` 이 선택돼 `ok:notebook_rw:password` 였다. guest 에 새 Notebook(`test-postgres-01`)을 만든 두 번째 실행의 요약:
+
+```text
+==> kubeflow-user-example-com: Notebook test-postgres-02-0 에서 postgres-rw 접속: tcp-only
+==> kubeflow-guest-example-com: Notebook test-postgres-01-0 에서 postgres-rw 접속: tcp-only
+==> 주의: Notebook 2 개는 psycopg2 가 없어 TCP 연결까지만 확인했고 인증은 확인하지 못했습니다.
+==> OK: 역할 권한이 맞고, Secret 과 PodDefault 가 맞고 주입이 된다 (Notebook 접속 시험 2 개 중 password file 로 인증까지 0 개)
+```
+
+이어서 두 Notebook 파드를 읽기 전용으로 확인한 결과 (비밀번호와 파일 내용은 보지 않았다):
+
+```text
+=== kubeflow-user-example-com / test-postgres-02-0
+Running  initContainer: istio-validation Completed exit=0
+postgres-pgpass-init Completed exit=0
+id: uid=1000(jovyan) gid=0(root) groups=0(root),100(users)
+-rw------- 1 1000 100 55 Oct 30 09:15 pgpass
+읽기: 가능
+PGPORT=5432  PGPASSFILE=/etc/postgres-notebook/pgpass  PGDATABASE=app  PGHOST=postgres-rw.postgres.svc  PGUSER=app
+PGPASSWORD: 없음
+=== kubeflow-guest-example-com / test-postgres-01-0
+postgres-pgpass-init Completed exit=0
+-rw------- 1 1000 100 78 Oct 30 09:17 pgpass
+읽기: 가능
+PGUSER=notebook_rw  PGPASSFILE=/etc/postgres-notebook/pgpass  (나머지 PG* 는 위와 같다)
+PGPASSWORD: 없음
+```
+
+- **확인된 것:** PodDefault 로 만든 Notebook 이 정상으로 뜬다. initContainer `postgres-pgpass-init` 이 exit 0 으로 끝났다 (`busybox:1.37.0` pull 과 root initContainer 가 통했다). password file 은 `0600`, 소유자 uid 1000 이고 Notebook 사용자(`uid=1000`)가 읽을 수 있다. 이는 PostgreSQL 공식 문서의 권한 규칙(그룹/전체 접근 불가)을 만족한다. `PGPASSFILE` 이 있고 `PGPASSWORD` 는 없다. 계정은 user 가 `app`, guest 가 `notebook_rw` 다. 파일 크기(55, 78바이트)는 줄 형식과 맞는다 (guest: 호스트 24 + `:5432:app:notebook_rw:` + 비밀번호 32).
+- **확인되지 않은 것:** libpq 가 이 파일로 **실제로 인증**하는지. 새 Notebook 에 `psycopg2` 도 `psql` 도 없어서 `tcp-only` 로 끝났다. `pip install --user psycopg2-binary` 를 하고 `verify/10-2` 를 다시 실행하면 `ok:...:passfile` 이 나와야 한다 (비밀번호 없이 파일만으로 접속하는 경로).
