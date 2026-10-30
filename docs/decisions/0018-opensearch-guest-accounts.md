@@ -47,5 +47,6 @@ Notebook(퍼널로 공유될 수 있는 계정 포함)과 Dashboards 공유에 a
 - 인덱스 패턴 (2026-10-30): 조회한 역할 `kibana_user`, `guest_ro`, `guest_rw` 모두 `tenant_permissions` 가 비어 있다. 공식 문서는 인덱스 패턴을 만들려면 `kibana_user` 와 별개로 tenant 쓰기 권한(`kibana_all_write`)이 필요하다고 한다([문서](https://docs.opensearch.org/latest/dashboards/management/index-patterns/)). 사용자 보고로 guest-ro 에는 'Create index pattern' 버튼이 없었다. 그래서 `temp-*` 패턴은 admin 이 **Global tenant** 에서 한 번 만들었다 (사용자 실행).
 - 직접 확인 (읽기 전용, Dashboards `/api/saved_objects/_find?type=index-pattern`, 요청 헤더 `securitytenant: Global`): admin 과 guest-ro 모두 `temp-*` 패턴 1개가 보인다. 헤더 `__user__`(Private)와 `global_tenant` 로는 0개였다. 즉 tenant 권한 없이도 guest-ro 가 Global tenant 의 패턴을 읽는다. 패턴 이름은 헤더에 `Global` 을 써야 했다. guest-rw 는 이 조회에서 뺐다.
 - 결정: `09-3` 의 역할에 `tenant_permissions` 는 넣지 않는다 (읽기에 필요하지 않았다). guest 계정은 인덱스 패턴을 만들 수 없으므로 새 인덱스 이름 규칙(`temp-*` 밖)이 생기면 admin 이 패턴을 만들어 준다.
-- 미해소: 브라우저 Discover 화면에서 guest-ro 가 `temp-*` 문서를 보는지(사용자는 확인했다고만 했고 결과는 받지 못했다. 위 API 조회는 패턴 목록만 본 것이다), guest-rw 로 Dashboards 화면 일부가 제한되는지.
+- 사용자 보고: admin 이 패턴을 만든 뒤 guest-ro 로 화면을 확인했다 (완료로 보고했고 화면의 내용은 받지 못했다. 위 API 조회는 패턴 목록만 본 것이다). admin 의 `all_access` 역할은 모든 tenant 에 `kibana_all_write` 를 가져 따로 권한을 줄 필요가 없다 (읽기 전용 조회).
+- 미확인: guest-rw 로 Dashboards 화면 일부가 제한되는지 (로그인은 된다).
 - 직접 정한 비밀번호(19자)가 보안 플러그인에 받아들여졌다 (사용자가 `.env` 에 먼저 적고 `09-3` 을 실행했다).
