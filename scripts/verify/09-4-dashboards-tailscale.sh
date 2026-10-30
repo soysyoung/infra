@@ -26,7 +26,7 @@ log "https://$name:$PORT/ 응답: $code ${loc:+-> $loc}"
 case "$code" in 200|302) ;; *) die "Dashboards 가 HTTPS 로 응답하지 않습니다 (09-4 private 실행 여부, 관리 콘솔의 HTTPS Certificates, journalctl -u opensearch-dashboards-port-forward 확인).";; esac
 case "$loc" in http://*) die "리다이렉트가 http 로 떨어집니다: $loc";; esac
 
-echo "$status" | grep -q ":443" && log "443(Kubeflow) 항목도 그대로 있음" || log "주의: serve 목록에 443 항목이 없습니다 (Kubeflow 를 07-3 으로 열지 않았다면 정상)."
+echo "$status" | grep -qF "https://$name (" && log "443(Kubeflow) 항목도 그대로 있음" || log "주의: serve 목록에 443 항목이 없습니다 (Kubeflow 를 07-3 으로 열지 않았다면 정상)."
 log "Funnel 상태 (공개 중이면 아래에 8443 이 나옵니다):"; sudo tailscale funnel status 2>&1 || true
 
 log "OK: https://$name:$PORT 로 Dashboards 가 HTTPS 로 응답함 (로그인은 브라우저로 확인)"
