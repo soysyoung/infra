@@ -111,7 +111,9 @@ while read -r ns _; do
   fi
 
   # Notebook 파드 이름은 <이름>-0, 컨테이너 이름은 <이름>
-  pod=$(kubectl -n "$ns" get pods -l notebook-name --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+  # 'PostgreSQL 접속 정보' 를 골라 만든 Notebook(라벨 postgres-notebook=true)을 먼저 고른다. 없으면 아무 Notebook 이나 (그 경우 password file 이 없다)
+  pod=$(kubectl -n "$ns" get pods -l notebook-name,postgres-notebook=true --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+  [ -n "$pod" ] || pod=$(kubectl -n "$ns" get pods -l notebook-name --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
   if [ -z "$pod" ]; then
     skipped=$((skipped + 1)); log "$ns: 실행 중인 Notebook 이 없어 접속 시험을 건너뜁니다."; continue
   fi
