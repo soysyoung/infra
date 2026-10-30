@@ -25,7 +25,7 @@
 +--------------------------------------------------------------------------+
 ```
 
-`[완료]`, `[예정]` 은 2026-10-30 기준이다. 02 ~ 10 은 각 단계의 `verify` 를 통과했다. 10-1(PostgreSQL)은 `verify` 만 통과했고 그 뒤의 시험(재시작, 재설치, 백업)은 남았다. 10-2(Notebook 접속)는 `PGPASSWORD` 구성에서 `verify` 를 통과했고 user, guest Notebook 에서 접속을 확인했다. 같은 날 PostgreSQL 공식 권고(password file)로 바꿨고 바꾼 구성은 아직 실행하지 않았다 ([todo.md](todo.md) 31 ~ 34번). 접속은 07 의 port-forward 와 `tailscale serve` 이고, OpenSearch Dashboards 는 `:8443` 으로 따로 연다 (09-4).
+`[완료]`, `[예정]` 은 2026-10-30 기준이다. 02 ~ 10 은 각 단계의 `verify` 를 통과했다. 10-1(PostgreSQL)은 `verify` 만 통과했고 그 뒤의 시험(재시작, 재설치, 백업)은 남았다. 10-2(Notebook 접속)는 `PGPASSWORD` 구성에서 `verify` 를 통과했고 user, guest Notebook 에서 접속을 확인했다. 같은 날 PostgreSQL 공식 권고(password file)로 바꿨고 DB 쪽 verify 와 dry-run 은 통과했으나 Notebook 파드의 password file 접속은 아직 확인하지 못했다 ([todo.md](todo.md) 31 ~ 34번). 접속은 07 의 port-forward 와 `tailscale serve` 이고, OpenSearch Dashboards 는 `:8443` 으로 따로 연다 (09-4).
 
 ## 설계 원칙
 

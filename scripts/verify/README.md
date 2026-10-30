@@ -393,11 +393,11 @@ NOTICE:  table "verify_pg" does not exist, skipping
 - 설치(`10-1`) 쪽 출력은 `Release "cnpg" does not exist. Installing it now.` 로 시작해 `deployment "cnpg-cloudnative-pg" successfully rolled out`, `secret/postgres-app-auth created`, `cluster.postgresql.cnpg.io/postgres created`, `condition met` 로 이어졌고 `==> 완료` 로 끝났다. 처음 실행이라 웹훅 거부로 인한 재시도 줄은 없었다.
 - 마지막 줄의 접속은 파드 안에서 `postgres-rw` 로 TCP 접속한 것이다. **Notebook 파드나 다른 네임스페이스에서의 접속은 이 스크립트가 확인하지 않는다** (미시험, [todo.md](../../docs/todo.md) 34번).
 - 이어서 읽기 전용으로 확인한 상태는 [ADR 0021](../../docs/decisions/0021-postgres-cloudnativepg.md) '적용 결과'. Secret 이 `postgres-app-auth` 등만 있고 `postgres-app`, `postgres-superuser` 는 없다는 것도 거기에 있다.
-- 위 출력은 `PGPASSWORD` 로 접속하던 `verify/10-1` 의 것이다. 같은 날 PostgreSQL 공식 권고에 따라 표준입력으로 만든 0600 password file(`PGPASSFILE`)로 바꿨고 **바꾼 `verify/10-1` 은 아직 실행하지 않았다.** 쓰기 가능한 경로가 `/run` 인 것은 `/proc/mounts` 로 확인했다 (`/` 는 읽기 전용).
+- 위 출력은 `PGPASSWORD` 로 접속하던 `verify/10-1` 의 것이다. 같은 날 PostgreSQL 공식 권고에 따라 표준입력으로 만든 0600 password file(`PGPASSFILE`)로 바꿨고 바꾼 `verify/10-1` 은 실행해 통과했다 (아래 10-2 절 끝의 출력). 쓰기 가능한 경로가 `/run` 인 것은 `/proc/mounts` 로 확인했다 (`/` 는 읽기 전용).
 
 ## 10-2-postgres-notebook-access.sh (2026-10-30, 사용자 실행)
 
-> **주의:** 아래 실제 출력은 비밀번호를 `PGPASSWORD` 환경변수로 넣던 구성에서 얻은 것이다. 같은 날 PostgreSQL 공식 권고(password file)로 바꿨고 **바꾼 구성은 아직 실행하지 않았다** ([ADR 0022](../../docs/decisions/0022-notebook-postgres-access.md) '비밀번호 전달'). 다시 실행하면 이 절에 출력을 추가한다. `verify/10-1` 도 같은 이유로 바꿨다.
+> **주의:** 아래 실제 출력은 비밀번호를 `PGPASSWORD` 환경변수로 넣던 구성에서 얻은 것이다. 같은 날 PostgreSQL 공식 권고(password file)로 바꿨고 바꾼 구성의 실행 결과는 이 절 끝의 'password file 로 바꾼 뒤' 에 있다 ([ADR 0022](../../docs/decisions/0022-notebook-postgres-access.md) '비밀번호 전달'). `verify/10-1` 도 같은 이유로 바꿨다.
 
 ```bash
 bash scripts/10-2-postgres-notebook-access.sh          # 설치
@@ -456,3 +456,45 @@ Successfully installed psycopg2-binary-2.9.13
 ```
 
   환경변수 주입과 `notebook_rw` 로그인이 Notebook 안에서 확인됐다. `PGUSER` 가 `notebook_rw` 라서 guest 네임스페이스의 Notebook 으로 보인다 (사용자가 네임스페이스를 밝히지는 않았다). user 네임스페이스의 Notebook 에서도 같은 셀이 `'PGUSER': 'app'` 과 `('app',)` 를 돌려줬다 (사용자 보고, 출력 형식은 위와 같다). 기본 Notebook 이미지(`/opt/conda`, Python 3.12)에는 `psycopg2` 가 없어서 `pip install psycopg2-binary` 가 필요했고 설치는 됐다.
+
+### password file 로 바꾼 뒤 (2026-10-30, 사용자 실행: `verify/10-1`, `10-2`, `verify/10-2` 를 이어서)
+
+```text
+# verify/10-1
+deployment "cnpg-cloudnative-pg" successfully rolled out
+cluster.postgresql.cnpg.io/postgres condition met
+==> primary 파드: postgres-1
+==> 서버 버전: 18.6 (Debian 18.6-1.pgdg13+2)
+NOTICE:  table "verify_pg" does not exist, skipping
+==> 쓰기/읽기: 동작
+==> OK: postgres-rw 서비스에서 app 계정 접속 동작
+
+# 10-2 (재실행)
+secret/postgres-notebook-rw unchanged
+secret/postgres-notebook-rw not labeled
+databaserole.postgresql.cnpg.io/notebook-rw configured
+==> DB 에 역할 notebook_rw 이 있음
+secret/postgres-notebook configured
+poddefault.kubeflow.org/postgres-notebook configured
+==> kubeflow-user-example-com: 계정 app
+secret/postgres-notebook configured
+poddefault.kubeflow.org/postgres-notebook configured
+==> kubeflow-guest-example-com: 계정 notebook_rw
+==> 완료 (2 개 네임스페이스). 검증: scripts/verify/10-2-postgres-notebook-access.sh
+
+# verify/10-2
+==> 역할 notebook_rw: 로그인 가능, 슈퍼유저 아님, 읽기/쓰기 역할 2개의 멤버
+==> postgres-rw 로 notebook_rw 접속(password file): 읽기/쓰기 동작, 테이블 생성은 거부됨
+==> kubeflow-user-example-com: Secret 이 .env 의 app 와 같음 (password file 줄 포함)
+==> kubeflow-user-example-com: 레이블을 단 파드에 PG* 환경변수 4개, PGPASSFILE, initContainer 가 주입되고 PGPASSWORD 는 없음 (dry-run)
+==> kubeflow-user-example-com: Notebook test-postgres-0 에서 postgres-rw 접속: ok:app:password
+==> kubeflow-guest-example-com: Secret 이 .env 의 notebook_rw 와 같음 (password file 줄 포함)
+==> kubeflow-guest-example-com: 레이블을 단 파드에 PG* 환경변수 4개, PGPASSFILE, initContainer 가 주입되고 PGPASSWORD 는 없음 (dry-run)
+==> kubeflow-guest-example-com: Notebook test-guest-01-0 에서 postgres-rw 접속: ok:notebook_rw:password
+==> 주의: Notebook 2 개는 PodDefault 없이 만들어져 password file 이 없어서 비밀번호로 접속을 확인했습니다 (공식 권고 경로가 아닙니다). 'PostgreSQL 접속 정보' 를 골라 새로 만드세요.
+==> OK: 역할 권한이 맞고, Secret 과 PodDefault 가 맞고 주입이 된다 (Notebook 접속 시험 2 개 중 password file 로 인증까지 0 개)
+```
+
+- **확인된 것:** DB 파드 안에서 표준입력으로 만든 0600 password file 로 `app` 과 `notebook_rw` 가 접속된다 (비밀번호가 명령줄에 나오지 않는다). 서버 쪽 dry-run 에서 PodDefault 웹훅이 `initContainers`(`postgres-pgpass-init`)와 `PGPASSFILE` 을 주입하고 `PGPASSWORD` 는 주입하지 않는다 (두 네임스페이스). 웹훅이 `initContainers` 를 처리하지 못할 수 있다는 위험이 해소됐다.
+- **확인되지 않은 것:** `ok:...:password` 는 시험한 Notebook 두 개(`test-postgres-0`, `test-guest-01-0`)가 새 PodDefault 적용 전에 만들어진 파드라 `PGPASSFILE` 이 없어서 비밀번호 경로로 확인된 것이다. `OK` 줄의 `password file 로 인증까지 0 개` 가 그 뜻이다. **Notebook 파드에서 initContainer 가 만든 파일로 접속하는 것은 아직 확인하지 못했다** (`busybox:1.37.0` pull, root initContainer 허용, uid 1000 이 0600 파일을 읽는지).
+- 시험할 Notebook 은 `postgres-notebook` 라벨이 있는 것을 먼저 고르도록 `verify/10-2` 를 고쳤다 (이전에는 네임스페이스의 첫 Notebook 만 봤다). 이 수정은 이 출력 뒤에 했고 다시 실행하지 않았다.
