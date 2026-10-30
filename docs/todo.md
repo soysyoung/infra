@@ -73,7 +73,7 @@
 31. [x] `10-1` 과 `verify/10-1` 통과 (2026-10-30, 사용자 실행): 연산자 Helm 0.29.1, Cluster Ready, PostgreSQL 18.6, `postgres-rw` 로 `app` 계정 접속. 앱 계정 비밀번호는 공식 기본값(무작위 생성)과 달리 `.env` 의 `POSTGRES_APP_PASSWORD` 로 만든 Secret `postgres-app-auth` 를 쓴다 (이유는 ADR 0021). `postgres-app`, `postgres-superuser` Secret 은 생기지 않았다
 32. [ ] 시험 전부 남음: `app` 비밀번호를 설치 뒤에 바꾸면 반영되는지, 파드 재시작과 WSL 재부팅 뒤 데이터 보존, 전체 재설치 경로(`teardown/10-1`, `all.sh`, 처음부터 `10-1`), 메모리 측정(파드 2Gi 가 `.wslconfig` 24GB 안에서 OpenSearch 와 함께 충분한지)
 33. [ ] 백업 경로 (kind 의 PV 는 클러스터를 지우면 사라진다). 원본 데이터를 두기 전에 정한다
-34. [ ] Notebook 에서 접속 (미착수): 접속 가능 여부(`postgres-rw.postgres:5432`, Kubeflow 네트워크 정책), 소유자 `app` 이 아닌 범위 제한 계정을 `DatabaseRole` 로 만들고 그 Secret 만 사용자 네임스페이스에 복사해 PodDefault 로 주입 (09-5 와 같은 방식). 읽기/쓰기 범위, 대상 네임스페이스를 먼저 정한다
+34. [ ] Notebook 에서 접속 (2026-10-30 스크립트만 작성, **실행하지 않음**, [ADR 0022](decisions/0022-notebook-postgres-access.md)): 요구는 읽기/쓰기, DB 전체, 기본 사용자와 공유용 계정 모두. 소유자 `app` 대신 `notebook_rw`(`pg_read_all_data` + `pg_write_all_data`, DDL 불가)를 `DatabaseRole` 로 만들고 Secret 사본과 PodDefault 를 두 네임스페이스에 둔다. 해야 할 것: `10-2` 와 `verify/10-2` 실행, Notebook 만들 때 'PostgreSQL 접속 정보 (notebook_rw)' 선택, Notebook 파드에서 `postgres-rw.postgres:5432` 로 닿는지(Kubeflow 네트워크 정책, Istio), Notebook 이미지에 `psycopg2` 가 있는지, `.env` 비밀번호를 바꿨을 때 DB 에 반영되는지
 
 **큰 일**
 13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
