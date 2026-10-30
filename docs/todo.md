@@ -65,8 +65,8 @@
 
 **OpenSearch Dashboards 와 게스트 계정** (2026-10-30 적용, 남은 시험)
 27. [ ] guest-ro 로 브라우저에서 Dashboards 에 로그인해 `temp-*` 만 보이는지, guest-rw 는 `kibana_user` 가 없어 화면 일부가 제한되는지 확인 ([ADR 0018](decisions/0018-opensearch-guest-accounts.md) 미해소)
-28. [ ] `09-4 public` 을 Tailscale 을 끈 기기에서 시험하고 `off` 로 닫는다 (이름 변경 뒤 실제로 외부에서 열리는지 미확인, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)). 고친 `verify/09-4` 를 다시 실행해 `443(Kubeflow) 항목도 그대로 있음` 이 나오는지 본다
-29. [ ] 고친 `verify/09-5` 를 다시 실행해 서버 dry-run 이 환경변수 3개 주입을 보여 주는지 확인 (이전 실행은 `apply` 의 `generateName` 제약으로 이 단계가 건너뛰어졌다. Notebook 접속 200 은 두 네임스페이스 모두 통과)
+28. [ ] `09-4 public` 을 Tailscale 을 끈 기기에서 시험하고 `off` 로 닫는다 (이름 변경 뒤 실제로 외부에서 열리는지 미확인, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)). (고친 `verify/09-4` 재실행은 통과했다: `443(Kubeflow) 항목도 그대로 있음`)
+29. [x] 고친 `verify/09-5` 재실행 통과 (2026-10-30): 서버 dry-run 이 환경변수 3개 주입을 보여 주고 Notebook 접속 200 (두 네임스페이스). 이전 실행은 `apply` 의 `generateName` 제약으로 dry-run 이 건너뛰어졌다
 30. [ ] Dashboards 메모리 1Gi 가 충분한지(실측 없음), `.env` 의 admin 비밀번호 12자 이상 유지 (`09-4 public` 의 조건). 전체 재설치 경로에서 `09-1`~`09-5` 가 처음부터 도는지
 
 **큰 일**

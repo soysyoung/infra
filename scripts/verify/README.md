@@ -316,7 +316,7 @@ https://<기기>.<tailnet>.ts.net:8443 (tailnet only)
 ```
 
 - 09-3 의 응답 코드(201, 403 등)가 이 클러스터에서 처음으로 실측됐다. 위 12개 모두 기대와 같았고 k-NN 검색은 `read` 권한만으로 되었다.
-- 09-4 출력의 `443 항목이 없습니다` 는 검사의 버그였다: 기본 포트 443 은 `serve status` 에 `:443` 이 붙지 않는데 `:443` 을 찾았다. `https://<이름> (` 을 찾도록 고쳤고 (예시 출력으로 확인, 이 PC 에서 다시 실행하지는 않았다), 고친 뒤에는 `443(Kubeflow) 항목도 그대로 있음` 이 나와야 한다.
+- 09-4 출력의 `443 항목이 없습니다` 는 검사의 버그였다: 기본 포트 443 은 `serve status` 에 `:443` 이 붙지 않는데 `:443` 을 찾았다. `https://<이름> (` 을 찾도록 고쳤고 (다시 실행해 `443(Kubeflow) 항목도 그대로 있음` 이 나오고 `==> OK` 로 끝나는 것을 사용자가 확인했다).
 - 출력의 기기 이름과 tailnet 이름은 `<기기>`, `<tailnet>` 으로 바꿨다. 줄 끝의 화살표 설명은 출력이 아니라 기록자가 덧붙인 것이다.
 
 ## 09-5-opensearch-notebook-access.sh (2026-10-30, 사용자 실행)
@@ -338,3 +338,17 @@ bash scripts/verify/09-5-opensearch-notebook-access.sh
 - 두 네임스페이스 모두 Notebook 파드에서 OpenSearch 로 가는 경로(Istio 사이드카 포함)와 guest-rw 인증이 200 이었다.
 - 위 출력의 dry-run 단계는 **버그로 건너뛰어졌다**: `kubectl apply` 는 `generateName` 을 쓸 수 없다. `kubectl create --dry-run=server` 로 고쳤고 이 PC 에서 다시 실행하지는 않았다. 그리고 건너뛰어도 마지막 줄이 `OK: ... 환경변수가 주입된다` 를 찍던 것도 고쳐서, 건너뛰면 실패로 끝난다. 위 출력의 `OK` 는 주입을 확인한 것이 아니다.
 - 접속 시험(200)은 `.env` 의 값으로 파드 안에서 요청한 것이라 환경변수 주입을 증명하지 않는다. 주입은 Notebook 셀에서 `os.environ` 으로 만든 시험(쓰기 201, 범위 밖 403)이 보여 준다 (사용자 실행, [ADR 0020](../../docs/decisions/0020-notebook-opensearch-guest-env.md)).
+
+고친 뒤 다시 실행한 출력 (2026-10-30, 사용자 실행):
+
+```text
+==> kubeflow-user-example-com: Secret 이 .env 의 guest-rw 와 같음
+==> kubeflow-user-example-com: 레이블을 단 파드에 환경변수 3개가 주입됨 (dry-run)
+==> kubeflow-user-example-com: Notebook test-01-0 에서 guest-rw 로 /temp-*/_search 응답: 200
+==> kubeflow-guest-example-com: Secret 이 .env 의 guest-rw 와 같음
+==> kubeflow-guest-example-com: 레이블을 단 파드에 환경변수 3개가 주입됨 (dry-run)
+==> kubeflow-guest-example-com: Notebook test-guest-01-0 에서 guest-rw 로 /temp-*/_search 응답: 200
+==> OK: Secret 과 PodDefault 가 맞고 환경변수가 주입된다 (접속 시험: 실행한 Notebook 2 개)
+```
+
+서버 쪽 dry-run 이 PodDefault 웹훅을 거쳐 `OPENSEARCH_URL`, `OPENSEARCH_USER`, `OPENSEARCH_PASSWORD` 를 보여 줬다 (두 네임스페이스). 이 `OK` 는 이제 주입 확인을 포함한다.
