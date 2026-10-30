@@ -44,5 +44,8 @@ Notebook(퍼널로 공유될 수 있는 계정 포함)과 Dashboards 공유에 a
 - 사용자 보고: guest-rw, guest-ro 모두 로그인된다.
 - `verify/09-3` 통과 (2026-10-30, 사용자 실행): guest-rw 가 인덱스 생성(200), 색인(201), bulk(200), k-NN 검색(200), 삭제(200)를 하고 범위 밖 인덱스 생성(403)과 시스템 인덱스 읽기(403)는 막힌다. guest-ro 는 k-NN 검색(200)만 되고 문서 쓰기, 인덱스 삭제, 범위 밖 읽기, 클러스터 설정 읽기는 모두 403 이다. 이 응답 코드는 '미검증' 항목의 가정이었고 이 클러스터에서 실측으로 확인됐다. k-NN 검색은 `read` 만으로 된다.
 - Notebook 에서 guest-rw 로 `temp-*` 쓰기 201, 범위 밖 403 도 확인했다 ([ADR 0020](0020-notebook-opensearch-guest-env.md)).
-- 미해소: 로그인 뒤 Dashboards 화면에서 무엇이 보이는지. guest-rw 는 `kibana_user` 가 없으므로 화면 일부가 제한될 수 있고(guest-rw 로 로그인은 된다), guest-ro 가 브라우저에서 `temp-*` 만 보는지는 확인하지 못했다.
+- 인덱스 패턴 (2026-10-30): 조회한 역할 `kibana_user`, `guest_ro`, `guest_rw` 모두 `tenant_permissions` 가 비어 있다. 공식 문서는 인덱스 패턴을 만들려면 `kibana_user` 와 별개로 tenant 쓰기 권한(`kibana_all_write`)이 필요하다고 한다([문서](https://docs.opensearch.org/latest/dashboards/management/index-patterns/)). 사용자 보고로 guest-ro 에는 'Create index pattern' 버튼이 없었다. 그래서 `temp-*` 패턴은 admin 이 **Global tenant** 에서 한 번 만들었다 (사용자 실행).
+- 직접 확인 (읽기 전용, Dashboards `/api/saved_objects/_find?type=index-pattern`, 요청 헤더 `securitytenant: Global`): admin 과 guest-ro 모두 `temp-*` 패턴 1개가 보인다. 헤더 `__user__`(Private)와 `global_tenant` 로는 0개였다. 즉 tenant 권한 없이도 guest-ro 가 Global tenant 의 패턴을 읽는다. 패턴 이름은 헤더에 `Global` 을 써야 했다. guest-rw 는 이 조회에서 뺐다.
+- 결정: `09-3` 의 역할에 `tenant_permissions` 는 넣지 않는다 (읽기에 필요하지 않았다). guest 계정은 인덱스 패턴을 만들 수 없으므로 새 인덱스 이름 규칙(`temp-*` 밖)이 생기면 admin 이 패턴을 만들어 준다.
+- 미해소: 브라우저 Discover 화면에서 guest-ro 가 `temp-*` 문서를 보는지(사용자는 확인했다고만 했고 결과는 받지 못했다. 위 API 조회는 패턴 목록만 본 것이다), guest-rw 로 Dashboards 화면 일부가 제한되는지.
 - 직접 정한 비밀번호(19자)가 보안 플러그인에 받아들여졌다 (사용자가 `.env` 에 먼저 적고 `09-3` 을 실행했다).
