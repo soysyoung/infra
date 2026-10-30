@@ -25,7 +25,7 @@
 +--------------------------------------------------------------------------+
 ```
 
-`[완료]`, `[예정]` 은 2026-10-30 기준이다. 02~10 은 각 단계의 `verify` 를 통과했다. 10(PostgreSQL)은 `verify` 만 통과했고 그 뒤의 시험(재시작, 재설치, 백업, Notebook 접속)은 남았다 ([todo.md](todo.md) 31~34번). 접속은 07 의 port-forward 와 `tailscale serve` 이고, OpenSearch Dashboards 는 `:8443` 으로 따로 연다 (09-4).
+`[완료]`, `[예정]` 은 2026-10-30 기준이다. 02~10 은 각 단계의 `verify` 를 통과했다. 10-1(PostgreSQL)은 `verify` 만 통과했고 그 뒤의 시험(재시작, 재설치, 백업)은 남았다. 10-2(Notebook 접속)는 스크립트만 만들었고 아직 실행하지 않았다 ([todo.md](todo.md) 31~34번). 접속은 07 의 port-forward 와 `tailscale serve` 이고, OpenSearch Dashboards 는 `:8443` 으로 따로 연다 (09-4).
 
 ## 설계 원칙
 
@@ -54,6 +54,7 @@
 | 08 | WSL | 재부팅·장애 복구 감시 서비스 |
 | 09-1~09-5 | WSL | OpenSearch 3.8.0 단일 노드(k-NN), Dashboards, 게스트 계정, Dashboards tailnet/Funnel 노출, Notebook 용 접속 정보 주입 |
 | 10-1 | WSL | PostgreSQL 단일 인스턴스: CloudNativePG 연산자(Helm) + Cluster. 클러스터 안에서만 접근, 비밀번호는 `.env` ([ADR 0021](decisions/0021-postgres-cloudnativepg.md)) |
+| 10-2 | WSL | Notebook 에서 PostgreSQL 접속: 데이터 읽기/쓰기 전용 계정 `notebook_rw` + Secret + PodDefault, 기본 사용자와 공유용 네임스페이스 ([ADR 0022](decisions/0022-notebook-postgres-access.md)) |
 
 ## IaC 전환 계획 (설치 완료 후)
 
