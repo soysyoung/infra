@@ -27,11 +27,11 @@
 | `09-4-dashboards-tailscale.sh` | WSL | tailnet 의 `:8443` 으로 Dashboards 가 HTTPS 로 응답하고 Kubeflow 의 443 설정이 그대로인가 | `09-4-dashboards-tailscale.sh` |
 | `09-5-opensearch-notebook-access.sh` | WSL | Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속 | `09-5-opensearch-notebook-access.sh` |
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
-| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. **아직 실행하지 않았다** | `10-2-postgres-notebook-access.sh` |
+| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. 2026-10-30 통과 (Notebook 안의 인증은 `psycopg2` 가 없어 미확인) | `10-2-postgres-notebook-access.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03` ~ `06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
-표의 `07-2`, `08-boot-resilience`, `09-1`, `05-4`, `06-2`, `06-3` 은 실제 출력을 이 문서에 싣지 않았다 (결과는 ADR 과 [todo.md](../../docs/todo.md) 에만 있거나 출력을 받지 못했다). 아래 절은 출력이 있는 것만 있다. `10-2` 는 아직 실행하지 않았다.
+표의 `07-2`, `08-boot-resilience`, `09-1`, `05-4`, `06-2`, `06-3` 은 실제 출력을 이 문서에 싣지 않았다 (결과는 ADR 과 [todo.md](../../docs/todo.md) 에만 있거나 출력을 받지 못했다). 아래 절은 출력이 있는 것만 있다. `10-2` 는 마지막 절에 있다.
 
 ## 00-windows.ps1
 
@@ -394,16 +394,53 @@ NOTICE:  table "verify_pg" does not exist, skipping
 - 마지막 줄의 접속은 파드 안에서 `postgres-rw` 로 TCP 접속한 것이다. **Notebook 파드나 다른 네임스페이스에서의 접속은 이 스크립트가 확인하지 않는다** (미시험, [todo.md](../../docs/todo.md) 34번).
 - 이어서 읽기 전용으로 확인한 상태는 [ADR 0021](../../docs/decisions/0021-postgres-cloudnativepg.md) '적용 결과'. Secret 이 `postgres-app-auth` 등만 있고 `postgres-app`, `postgres-superuser` 는 없다는 것도 거기에 있다.
 
-## 10-2-postgres-notebook-access.sh (2026-10-30, 아직 실행하지 않음)
+## 10-2-postgres-notebook-access.sh (2026-10-30, 사용자 실행)
 
 ```bash
 bash scripts/10-2-postgres-notebook-access.sh          # 설치
 bash scripts/verify/10-2-postgres-notebook-access.sh   # 검증
 ```
 
-실행하면 이 절에 실제 출력을 넣는다. 스크립트가 확인하는 것과 판정:
+스크립트가 확인하는 것과 판정:
 
 - 역할 `notebook_rw`: 로그인 가능, 슈퍼유저 아님, `pg_read_all_data` 와 `pg_write_all_data` 의 멤버 (DB 에서 직접 조회).
 - `postgres-rw` 로 접속해 `app` 이 만든 시험 테이블 `verify_nb` 를 읽고 쓰고 지울 수 있고, 테이블 생성은 거부되어야 한다 (시험 테이블은 끝에 지운다).
 - 대상 네임스페이스마다 Secret 이 기대한 계정과 `.env` 의 비밀번호와 같고 (기본 사용자 네임스페이스는 `app`, 공유용 계정은 `notebook_rw`), 레이블을 단 파드에 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` 가 주입된다 (서버 쪽 dry-run).
-- 실행 중인 Notebook 이 있으면 그 파드 안에서 `postgres-rw.postgres.svc:5432` 에 접속한다. **이것이 가장 중요하다**: Istio 사이드카가 있는 Notebook 에서 `postgres` 네임스페이스로의 TCP 접속이 허용되는지는 시험한 적이 없다. Notebook 이미지에 `psycopg2` 가 없으면 TCP 연결까지만 확인하고 `주의:` 로 알린다 (그 경우 인증은 확인되지 않은 것이다). Notebook 이 없으면 건너뛰고 확인 방법을 안내한다.
+- 실행 중인 Notebook 이 있으면 그 파드 안에서 `postgres-rw.postgres.svc:5432` 에 접속한다. **이것이 가장 중요하다**: Istio 사이드카가 있는 Notebook 에서 `postgres` 네임스페이스로의 TCP 접속이 허용되는지를 본다 (아래 실행에서 두 네임스페이스 모두 TCP 는 닿았다). Notebook 이미지에 `psycopg2` 가 없으면 TCP 연결까지만 확인하고 `주의:` 로 알린다 (그 경우 인증은 확인되지 않은 것이다). Notebook 이 없으면 건너뛰고 확인 방법을 안내한다.
+
+실제 출력 (설치 `10-2` 와 `verify/10-2` 를 이어서 실행한 것. `.env` 의 비밀번호 줄이 처음 만들어졌고 Notebook `test-01-0`, `test-guest-01-0` 이 떠 있었다):
+
+```text
+# 10-2 (설치)
+==> .env 에 POSTGRES_NOTEBOOK_PASSWORD 를 만들었습니다.
+secret/postgres-notebook-rw created
+secret/postgres-notebook-rw labeled
+databaserole.postgresql.cnpg.io/notebook-rw created
+==> DB 에 역할 notebook_rw 이 있음
+secret/postgres-notebook created
+poddefault.kubeflow.org/postgres-notebook created
+==> kubeflow-user-example-com: 계정 app
+secret/postgres-notebook created
+poddefault.kubeflow.org/postgres-notebook created
+==> kubeflow-guest-example-com: 계정 notebook_rw
+==> 완료 (2 개 네임스페이스). 검증: scripts/verify/10-2-postgres-notebook-access.sh
+
+# verify/10-2
+cluster.postgresql.cnpg.io/postgres condition met
+==> 역할 notebook_rw: 로그인 가능, 슈퍼유저 아님, 읽기/쓰기 역할 2개의 멤버
+NOTICE:  table "verify_nb" does not exist, skipping
+==> postgres-rw 로 notebook_rw 접속: 읽기/쓰기 동작, 테이블 생성은 거부됨
+==> kubeflow-user-example-com: Secret 이 .env 의 app 와 같음
+==> kubeflow-user-example-com: 레이블을 단 파드에 환경변수 5개가 주입됨 (dry-run)
+==> kubeflow-user-example-com: Notebook test-01-0 에서 postgres-rw 접속: tcp-only
+==> kubeflow-guest-example-com: Secret 이 .env 의 notebook_rw 와 같음
+==> kubeflow-guest-example-com: 레이블을 단 파드에 환경변수 5개가 주입됨 (dry-run)
+==> kubeflow-guest-example-com: Notebook test-guest-01-0 에서 postgres-rw 접속: tcp-only
+==> 주의: Notebook 2 개는 psycopg2 가 없어 TCP 연결까지만 확인했고 인증은 확인하지 못했습니다.
+==> OK: 역할 권한이 맞고, Secret 과 PodDefault 가 맞고 환경변수가 주입된다 (Notebook 접속 시험: 2 개 중 인증까지 0 개)
+```
+
+- 확인된 것: `DatabaseRole` 이 DB 에 역할을 만들었고 (`inRoles` 의 predefined role 2개 포함), `notebook_rw` 는 읽기/쓰기가 되고 테이블 생성은 거부된다. 두 네임스페이스에 계정이 다르게(user 는 `app`, guest 는 `notebook_rw`) 들어갔다. Notebook 파드(Istio 사이드카 있음)에서 `postgres-rw.postgres.svc:5432` 로 TCP 가 닿는다 (네트워크 정책이 막지 않음).
+- **확인되지 않은 것:** 마지막 `OK` 줄에도 `인증까지 0 개` 라고 나오듯 **Notebook 안에서의 인증은 확인하지 못했다** (두 Notebook 모두 `psycopg2` 가 없음). 또 이 두 Notebook 은 PodDefault 없이 만든 것이라 실제 환경변수는 들어 있지 않다. 접속 계정과 비밀번호는 스크립트가 표준입력으로 넘긴다. 환경변수 주입은 서버 쪽 dry-run 으로만 확인했다.
+- `NOTICE: table "verify_nb" does not exist, skipping` 은 오류가 아니다. 시험 테이블을 만들기 전에 `drop table if exists` 를 실행해서 나온다.
+- `Secret 이 .env 의 app 와` 의 조사는 출력 문구의 어색함일 뿐이다.
