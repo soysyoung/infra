@@ -4,6 +4,8 @@
 
 | 순서 | 스크립트 | 지우는 것 | 순서가 중요한 이유 |
 |---|---|---|---|
+| 0-A | `10-1-postgres.sh` | 네임스페이스 `postgres`(`Cluster`, PVC 의 데이터, Secret), 연산자 Helm 릴리스 `cnpg`, 네임스페이스 `cnpg-system`, `cnpg.io` CRD | 연산자가 살아 있는 동안 `Cluster` 가 든 네임스페이스를 먼저 지워야 정리된다. CRD 를 지우면 모든 네임스페이스의 CNPG 리소스와 데이터가 사라지므로 이 클러스터에 다른 Cluster 가 없을 때만 쓴다. **실행해 본 적이 없다** (미검증, [ADR 0021](../../docs/decisions/0021-postgres-cloudnativepg.md)) |
+| 0-B | `09-1-opensearch.sh` | 네임스페이스 `opensearch`(OpenSearch 릴리스, PVC 의 색인 데이터, Secret), Dashboards 의 port-forward 서비스 `opensearch-dashboards-port-forward` | 클러스터는 두고 OpenSearch 만 지울 때도 쓴다. `all.sh` 에서는 10-1 다음에 실행된다. 단독 실행 결과는 아래 'teardown/09-1 단독 실행' |
 | 0-1 | `08-boot-resilience.sh` | 감시 서비스 `mlops-watchdog`(타이머, 서비스, `/usr/local/sbin/mlops-watchdog`, `/etc/mlops`), 이전 버전이 만든 `docker.service` drop-in 과 전용 kubeconfig | 클러스터가 사라지면 할 일이 없고 컨트롤 플레인 IP 기록이 낡은 값이 되므로 먼저 지운다 |
 | 0-2 | `07-1-port-forward.sh` | systemd 서비스 `kubeflow-port-forward` | 클러스터가 사라지면 접속할 곳이 없어 재시작만 반복하므로 먼저 지운다. `07-3` 의 `tailscale serve` 설정은 따로 지우지 않는다: 02 의 `tailscale logout` 과 `/var/lib/tailscale` 삭제와 함께 사라진다(추정, 시험 전). 하나만 끄려면 `sudo tailscale serve --https=443 off` |
 | 1 | `06-kubeflow.sh` | 공식 저장소 클론(`~/.cache/infra`), kustomize | Kubeflow 워크로드는 클러스터 안에 있어서 2번에서 함께 사라진다 |

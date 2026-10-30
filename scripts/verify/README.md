@@ -13,6 +13,7 @@
 | `05-3-device-plugin.sh` | WSL | **2차 관문**: GPU 파드가 GPU 노드에서 GPU 를 잡는가 | `05-3-device-plugin.sh` |
 | `06-kubeflow.sh` | WSL | 핵심 네임스페이스의 Deployment 가 Available 이고 로그인 흐름이 이어지는가 | `06-kubeflow.sh` |
 | `06-4-quotas.sh` | WSL | 프로필 네임스페이스의 `kf-resource-quota` 가 `quotas.env` 와 같은가. `roundtrip` 모드는 갱신, 거부, `06-2` 재실행 뒤 복원을 시험 | `06-4-quotas.sh` |
+| `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03`~`06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
@@ -352,3 +353,27 @@ bash scripts/verify/09-5-opensearch-notebook-access.sh
 ```
 
 서버 쪽 dry-run 이 PodDefault 웹훅을 거쳐 `OPENSEARCH_URL`, `OPENSEARCH_USER`, `OPENSEARCH_PASSWORD` 를 보여 줬다 (두 네임스페이스). 이 `OK` 는 이제 주입 확인을 포함한다.
+
+## 10-1-postgres.sh (2026-10-30, 사용자 실행)
+
+```bash
+bash scripts/10-1-postgres.sh          # 설치
+bash scripts/verify/10-1-postgres.sh   # 검증
+```
+
+`verify/10-1` 의 출력:
+
+```text
+deployment "cnpg-cloudnative-pg" successfully rolled out
+cluster.postgresql.cnpg.io/postgres condition met
+==> primary 파드: postgres-1
+==> 서버 버전: 18.6 (Debian 18.6-1.pgdg13+2)
+NOTICE:  table "verify_pg" does not exist, skipping
+==> 쓰기/읽기: 동작
+==> OK: postgres-rw 서비스에서 app 계정 접속 동작
+```
+
+- `NOTICE: table "verify_pg" does not exist, skipping` 은 오류가 아니다. 시험 테이블을 만들기 전에 `drop table if exists` 를 실행해서 나온다.
+- 설치(`10-1`) 쪽 출력은 `Release "cnpg" does not exist. Installing it now.` 로 시작해 `deployment "cnpg-cloudnative-pg" successfully rolled out`, `secret/postgres-app-auth created`, `cluster.postgresql.cnpg.io/postgres created`, `condition met` 로 이어졌고 `==> 완료` 로 끝났다. 처음 실행이라 웹훅 거부로 인한 재시도 줄은 없었다.
+- 마지막 줄의 접속은 파드 안에서 `postgres-rw` 로 TCP 접속한 것이다. **Notebook 파드나 다른 네임스페이스에서의 접속은 이 스크립트가 확인하지 않는다** (미시험, [todo.md](../../docs/todo.md) 34번).
+- 이어서 읽기 전용으로 확인한 상태는 [ADR 0021](../../docs/decisions/0021-postgres-cloudnativepg.md) '적용 결과'. Secret 이 `postgres-app-auth` 등만 있고 `postgres-app`, `postgres-superuser` 는 없다는 것도 거기에 있다.
