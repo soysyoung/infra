@@ -69,6 +69,12 @@
 29. [x] 고친 `verify/09-5` 재실행 통과 (2026-10-30): 서버 dry-run 이 환경변수 3개 주입을 보여 주고 Notebook 접속 200 (두 네임스페이스). 이전 실행은 `apply` 의 `generateName` 제약으로 dry-run 이 건너뛰어졌다
 30. [ ] 일부 완료 (2026-10-30): Dashboards 메모리 실측 약 376MiB / 한도 1Gi, 재시작 0 (가벼운 사용 기준, [ADR 0017](decisions/0017-opensearch-dashboards.md)). `.env` 의 admin 비밀번호 길이 18 (12 이상 조건 충족). `teardown/09-1` 로 OpenSearch 만 지우고 `09-1`~`09-5` 를 처음부터 다시 실행해 모든 `verify` 가 `==> OK` (2026-10-30, [teardown/README.md](../scripts/teardown/README.md)). 남은 것: 새 클러스터(Helm, Istio 가 처음 설치되는 환경)에서의 `09-1`~`09-5` 와 `all.sh` 전체 삭제 (다음 전체 재설치 때), 무거운 사용에서의 메모리
 
+**PostgreSQL (CloudNativePG)** (2026-10-30 적용, [ADR 0021](decisions/0021-postgres-cloudnativepg.md))
+31. [x] `10-1` 과 `verify/10-1` 통과 (2026-10-30, 사용자 실행): 연산자 Helm 0.29.1, Cluster Ready, PostgreSQL 18.6, `postgres-rw` 로 `app` 계정 접속. 앱 계정 비밀번호는 공식 기본값(무작위 생성)과 달리 `.env` 의 `POSTGRES_APP_PASSWORD` 로 만든 Secret `postgres-app-auth` 를 쓴다 (이유는 ADR 0021). `postgres-app`, `postgres-superuser` Secret 은 생기지 않았다
+32. [ ] 시험 전부 남음: `app` 비밀번호를 설치 뒤에 바꾸면 반영되는지, 파드 재시작과 WSL 재부팅 뒤 데이터 보존, 전체 재설치 경로(`teardown/10-1`, `all.sh`, 처음부터 `10-1`), 메모리 측정(파드 2Gi 가 `.wslconfig` 24GB 안에서 OpenSearch 와 함께 충분한지)
+33. [ ] 백업 경로 (kind 의 PV 는 클러스터를 지우면 사라진다). 원본 데이터를 두기 전에 정한다
+34. [ ] Notebook 에서 접속 (미착수): 접속 가능 여부(`postgres-rw.postgres:5432`, Kubeflow 네트워크 정책), 소유자 `app` 이 아닌 범위 제한 계정을 `DatabaseRole` 로 만들고 그 Secret 만 사용자 네임스페이스에 복사해 PodDefault 로 주입 (09-5 와 같은 방식). 읽기/쓰기 범위, 대상 네임스페이스를 먼저 정한다
+
 **큰 일**
 13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
 14. [ ] IaC (Terraform, 나중에): Funnel 사용자를 제한 (6443 은 `127.0.0.1` 로 바뀌어 ACL 제한이 필요 없다, ADR 0010), authkey, 클러스터 플랫폼 구성, ArgoCD 로 Kubeflow 배포 ([architecture.md](architecture.md), [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1)
