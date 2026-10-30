@@ -3,7 +3,7 @@
 #
 # 왜: 추천 서비스의 벡터 검색(약 10.5만 x 384차원)을 클러스터 안에서 제공한다. 설정과 근거는 docs/decisions/0014.
 # 하는 일:
-#   1) 관리자 비밀번호가 .env 에 없으면 만들어서 추가 (OpenSearch 2.12+ 는 초기 비밀번호가 필수)
+#   1) 관리자 비밀번호가 .env 에 없으면 만들어서 추가 (OpenSearch 2.12+ 는 초기 비밀번호가 필수). 계정 이름 admin 도 참고용으로 적는다
 #   2) 네임스페이스 opensearch 에 Secret 과 차트를 설치 (k8s/opensearch-values.yaml)
 # 주의: 릴리스를 지워도 PVC 는 남고, 다시 설치하면 처음 비밀번호가 그대로 쓰인다 (teardown/09-1 이 PVC 도 지운다).
 #
@@ -29,6 +29,8 @@ if [ -z "$pw" ]; then
   { [ ! -s "$ENV_FILE" ] || [ -z "$(tail -c1 "$ENV_FILE")" ] || echo; echo "OPENSEARCH_ADMIN_PASSWORD=$pw"; } >> "$ENV_FILE"
   log ".env 에 OPENSEARCH_ADMIN_PASSWORD 를 만들었습니다."
 fi
+# 계정 이름은 OpenSearch 에 admin 으로 고정돼 있다 (초기 비밀번호가 admin 의 것). 로그인할 때 보려고 적을 뿐 스크립트는 읽지 않는다.
+grep -q '^OPENSEARCH_ADMIN_USER=' "$ENV_FILE" || { [ -z "$(tail -c1 "$ENV_FILE")" ] || echo >> "$ENV_FILE"; echo "OPENSEARCH_ADMIN_USER=admin" >> "$ENV_FILE"; }
 
 kubectl get ns "$NS" >/dev/null 2>&1 || kubectl create ns "$NS"
 kubectl -n "$NS" create secret generic opensearch-admin --from-literal=password="$pw" \
