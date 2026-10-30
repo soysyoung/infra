@@ -1,6 +1,7 @@
 # 0014. OpenSearch 단일 노드 (Helm 공식 차트, k-NN)
 
 - 상태: 적용·검증 (2026-10-28). `09`, `verify/09` 를 사용자가 실행해 통과했다. 실제 벡터 적재 뒤의 거동은 미시험
+- 이름 변경 (2026-10-28): 이 문서에서 `09`, `verify/09`, `teardown/09` 는 Dashboards(`09-2`)를 더하면서 `09-1-opensearch.sh`, `verify/09-1-opensearch.sh`, `teardown/09-1-opensearch.sh` 로 바뀌었다. 내용은 그대로다. 아래 본문은 당시 이름으로 둔다
 
 ## 상황
 워크로드가 벡터 약 10.5만 개 x 384차원(float32 기준 약 0.16GB, 그래프와 여유를 더해 약 0.2GB 로 본 값)을 k-NN 으로 검색해야 한다. 노드는 하나, replica 0, 힙 1~2GB, 파드 약 4Gi, PVC 수 GB 면 충분하다. 이 PC 의 WSL 은 24GB 이고 `vm.max_map_count` 는 이미 1048576 이다.

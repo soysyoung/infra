@@ -56,8 +56,12 @@ bash scripts/verify/07-3-tailscale-serve.sh
 bash scripts/07-4-tailscale-funnel.sh on|off|status   # (선택) tailnet 밖의 사람에게 인터넷으로 공개/해제. 공유할 때만 on 하고 끝나면 off
 bash scripts/08-boot-resilience.sh    # 컨트롤 플레인이 kind 네트워크에서 떨어지거나 멈추면 스스로 복구하고, 8080 이 멈추면 port-forward 를 재시작하는 1분 감시 서비스. ADR 0010
 bash scripts/verify/08-boot-resilience.sh detach   # (선택, 클러스터가 2~4분 끊긴다) 일부러 장애를 만들어 감시가 복구하는지 시험. down 도 있다
-bash scripts/09-opensearch.sh         # (선택) OpenSearch 단일 노드 + k-NN (Helm). 관리자 비밀번호를 .env 의 OPENSEARCH_ADMIN_PASSWORD 에 만든다. ADR 0014
-bash scripts/verify/09-opensearch.sh
+bash scripts/09-1-opensearch.sh       # (선택) OpenSearch 단일 노드 + k-NN (Helm). 관리자 계정(admin)과 비밀번호를 .env 의 OPENSEARCH_ADMIN_USER, OPENSEARCH_ADMIN_PASSWORD 에 만든다. ADR 0014
+bash scripts/verify/09-1-opensearch.sh
+bash scripts/09-2-opensearch-dashboards.sh   # (선택) 브라우저용 웹 UI. 같은 .env 비밀번호로 로그인. systemd 서비스가 127.0.0.1:5601 port-forward 를 계속 살려 둔다(터미널 불필요). ADR 0017
+bash scripts/verify/09-2-opensearch-dashboards.sh
+bash scripts/09-3-opensearch-guests.sh   # (선택) 게스트 계정 2개: guest-rw(temp-* 에 쓰기·읽기), guest-ro(읽기 전용). 이름과 비밀번호는 .env 의 OPENSEARCH_GUEST_*. ADR 0018
+bash scripts/verify/09-3-opensearch-guests.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).
