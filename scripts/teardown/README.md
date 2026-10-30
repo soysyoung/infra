@@ -9,6 +9,7 @@
 | 0-1 | `08-boot-resilience.sh` | 감시 서비스 `mlops-watchdog`(타이머, 서비스, `/usr/local/sbin/mlops-watchdog`, `/etc/mlops`), 이전 버전이 만든 `docker.service` drop-in 과 전용 kubeconfig | 클러스터가 사라지면 할 일이 없고 컨트롤 플레인 IP 기록이 낡은 값이 되므로 먼저 지운다 |
 | 0-2 | `07-1-port-forward.sh` | systemd 서비스 `kubeflow-port-forward` | 클러스터가 사라지면 접속할 곳이 없어 재시작만 반복하므로 먼저 지운다. `07-3` 의 `tailscale serve` 설정은 따로 지우지 않는다: 02 의 `tailscale logout` 과 `/var/lib/tailscale` 삭제와 함께 사라진다(추정, 시험 전). 하나만 끄려면 `sudo tailscale serve --https=443 off` |
 | 1 | `06-kubeflow.sh` | 공식 저장소 클론(`~/.cache/infra`), kustomize | Kubeflow 워크로드는 클러스터 안에 있어서 2번에서 함께 사라진다 |
+| 1-A | `05-4-helm.sh` | helm 실행 파일과 캐시 | Helm 릴리스(PostgreSQL, OpenSearch)는 앞 단계(0-A, 0-B)가 먼저 지운다. `all.sh` 의 순서는 10-1, 09-1, 08, 07-1, 06, 05-4, 05, 04, 03, 02 다 |
 | 2 | `05-kind-cluster.sh` | kind 클러스터(Kubeflow, device plugin, GPU 노드 설정 포함), kind, kubectl, inotify 설정 | Docker 가 살아 있어야 `kind delete cluster` 가 노드 컨테이너를 지울 수 있다 |
 | 3 | `04-nvidia-toolkit.sh` | NVIDIA Container Toolkit, apt 저장소 | `daemon.json` 을 03 상태로 먼저 되돌리고 Docker 를 재시작한 뒤 패키지를 지운다. 거꾸로 하면 Docker 가 없어진 nvidia 런타임을 찾다가 시작에 실패한다 |
 | 4 | `03-docker.sh` | Docker Engine, 이미지/컨테이너/볼륨, apt 저장소, docker 그룹 멤버십 | 위 둘이 Docker 를 쓰므로 마지막에 지운다 |
@@ -31,7 +32,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\teardown\00-windows-wsl.ps1
 
 각 스크립트는 따로 실행할 수도 있다. 이미 지워진 항목은 건너뛰므로 다시 실행해도 안전하다.
 
-`teardown/06-4-quotas.sh` 는 클러스터를 두고 프로필 ResourceQuota 만 걷어 낸다(두 번째 사용자의 GPU 0 제한도 풀린다). 쿼터는 클러스터 안에만 있어 클러스터 삭제와 함께 사라지므로 `all.sh` 에는 넣지 않았다. **실행해 본 적이 없다** (미검증, [ADR 0015](../../docs/decisions/0015-profile-resource-quota.md)).
+### `all.sh` 에 넣지 않은 단독 삭제 스크립트
+
+클러스터는 두고 일부만 걷어 낼 때 쓴다. 모두 클러스터 안에만 있는 것이라 클러스터 삭제(2번)와 함께 사라지므로 `all.sh` 에는 넣지 않았다.
+
+| 스크립트 | 지우는 것 | 시험 |
+|---|---|---|
+| `06-4-quotas.sh` | 프로필 ResourceQuota 만 (두 번째 사용자의 GPU 0 제한도 풀린다) | **실행해 본 적이 없다** (미검증, [ADR 0015](../../docs/decisions/0015-profile-resource-quota.md)) |
+| `09-2-opensearch-dashboards.sh` | Dashboards 릴리스와 계정 Secret (OpenSearch 와 색인은 그대로). `09-1` 이 네임스페이스째 지우면 함께 사라진다 | 이 문서에 실행 기록이 없다 (미확인) |
+| `09-5-opensearch-notebook-access.sh` | 프로필 네임스페이스의 Secret/PodDefault `opensearch-guest`. OpenSearch 의 guest-rw 계정은 지우지 않는다 | 이 문서에 실행 기록이 없다 (미확인) |
+| `10-2-postgres-notebook-access.sh` | 프로필 네임스페이스의 Secret/PodDefault `postgres-notebook`, `DatabaseRole notebook-rw`, DB 의 역할 `notebook_rw`. Cluster 와 데이터는 그대로. `.env` 의 `POSTGRES_NOTEBOOK_*` 는 지우지 않는다 | **실행해 본 적이 없다** (미검증, [ADR 0022](../../docs/decisions/0022-notebook-postgres-access.md)) |
 
 ## 지우지 않는 것
 

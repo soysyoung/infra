@@ -11,11 +11,27 @@
 | `05-1-kind-cluster.sh` | WSL | 노드 4개 Ready, GPU 노드 라벨/taint, 일반 파드가 GPU 노드를 피함 | `05-1-kind-cluster.sh` |
 | `05-2-gpu-node.sh` | WSL | GPU 노드 컨테이너에서 GPU 가 보이고 containerd 가 nvidia 런타임인가 | `05-2-gpu-node.sh` |
 | `05-3-device-plugin.sh` | WSL | **2차 관문**: GPU 파드가 GPU 노드에서 GPU 를 잡는가 | `05-3-device-plugin.sh` |
+| `05-4-helm.sh` | WSL | helm 이 `versions.env` 의 버전으로 설치되었는가 | `05-4-helm.sh` |
 | `06-kubeflow.sh` | WSL | 핵심 네임스페이스의 Deployment 가 Available 이고 로그인 흐름이 이어지는가 | `06-kubeflow.sh` |
+| `06-2-extra-user.sh` | WSL | 두 번째 사용자의 Dex 계정, Profile, 네임스페이스 권한 | `06-2-extra-user.sh` |
+| `06-3-poddefaults.sh` | WSL | PodDefault `gpu-toleration`, `access-ml-pipeline` 이 기본 사용자 네임스페이스에 있는가 | `06-3-poddefaults.sh` |
 | `06-4-quotas.sh` | WSL | 프로필 네임스페이스의 `kf-resource-quota` 가 `quotas.env` 와 같은가. `roundtrip` 모드는 갱신, 거부, `06-2` 재실행 뒤 복원을 시험 | `06-4-quotas.sh` |
+| `07-1-port-forward.sh` | WSL | `kubeflow-port-forward` 서비스가 실행 중이고 `127.0.0.1:8080` 이 로그인 흐름(Dex)으로 리다이렉트하는가 | `07-1-port-forward.sh` |
+| `07-2-nodeport.sh` | WSL | **쓰지 않음(시험 기록).** NodePort 방식 `<tailnet 주소>:30080` 으로 로그인 흐름이 응답하는가 | `07-2-nodeport.sh` |
+| `07-3-tailscale-serve.sh` | WSL | tailnet 의 HTTPS 주소로 로그인 흐름이 이어지고 리다이렉트가 `https://` 를 유지하는가 | `07-3-tailscale-serve.sh` |
+| `08-boot-resilience.sh` | WSL | 감시 서비스(`mlops-watchdog`)가 컨트롤 플레인 장애에서 스스로 복구하는가. **클러스터를 일부러 멈춘다**(복구까지 Kubeflow 가 2분에서 4분 끊긴다). 인자 `detach` 또는 `down` | `08-boot-resilience.sh` |
+| `08-reboot.sh` | WSL | 재부팅 뒤 `docker`, `tailscaled`, 노드, 파드, 접속이 돌아왔는가 (재부팅하고 몇 분 기다린 뒤 실행) | 재부팅 |
+| `09-1-opensearch.sh` | WSL | OpenSearch 파드 Ready, 클러스터 상태, k-NN 플러그인, 384차원 벡터 색인과 검색 | `09-1-opensearch.sh` |
+| `09-2-opensearch-dashboards.sh` | WSL | Dashboards 가 OpenSearch 에 로그인된 요청을 처리하고 `127.0.0.1:5601` 이 응답하는가 | `09-2-opensearch-dashboards.sh` |
+| `09-3-opensearch-guests.sh` | WSL | `guest-rw`, `guest-ro` 의 권한 분리가 기대대로인가 (12개 항목) | `09-3-opensearch-guests.sh` |
+| `09-4-dashboards-tailscale.sh` | WSL | tailnet 의 `:8443` 으로 Dashboards 가 HTTPS 로 응답하고 Kubeflow 의 443 설정이 그대로인가 | `09-4-dashboards-tailscale.sh` |
+| `09-5-opensearch-notebook-access.sh` | WSL | Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속 | `09-5-opensearch-notebook-access.sh` |
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
+| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. **아직 실행하지 않았다** | `10-2-postgres-notebook-access.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03`~`06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
+
+표의 `07-2`, `08-boot-resilience`, `09-1`, `05-4`, `06-2`, `06-3` 은 실제 출력을 이 문서에 싣지 않았다 (결과는 ADR 과 [todo.md](../../docs/todo.md) 에만 있거나 출력을 받지 못했다). 아래 절은 출력이 있는 것만 있다. `10-2` 는 아직 실행하지 않았다.
 
 ## 00-windows.ps1
 
@@ -377,3 +393,17 @@ NOTICE:  table "verify_pg" does not exist, skipping
 - 설치(`10-1`) 쪽 출력은 `Release "cnpg" does not exist. Installing it now.` 로 시작해 `deployment "cnpg-cloudnative-pg" successfully rolled out`, `secret/postgres-app-auth created`, `cluster.postgresql.cnpg.io/postgres created`, `condition met` 로 이어졌고 `==> 완료` 로 끝났다. 처음 실행이라 웹훅 거부로 인한 재시도 줄은 없었다.
 - 마지막 줄의 접속은 파드 안에서 `postgres-rw` 로 TCP 접속한 것이다. **Notebook 파드나 다른 네임스페이스에서의 접속은 이 스크립트가 확인하지 않는다** (미시험, [todo.md](../../docs/todo.md) 34번).
 - 이어서 읽기 전용으로 확인한 상태는 [ADR 0021](../../docs/decisions/0021-postgres-cloudnativepg.md) '적용 결과'. Secret 이 `postgres-app-auth` 등만 있고 `postgres-app`, `postgres-superuser` 는 없다는 것도 거기에 있다.
+
+## 10-2-postgres-notebook-access.sh (2026-10-30, 아직 실행하지 않음)
+
+```bash
+bash scripts/10-2-postgres-notebook-access.sh          # 설치
+bash scripts/verify/10-2-postgres-notebook-access.sh   # 검증
+```
+
+실행하면 이 절에 실제 출력을 넣는다. 스크립트가 확인하는 것과 판정:
+
+- 역할 `notebook_rw`: 로그인 가능, 슈퍼유저 아님, `pg_read_all_data` 와 `pg_write_all_data` 의 멤버 (DB 에서 직접 조회).
+- `postgres-rw` 로 접속해 `app` 이 만든 시험 테이블 `verify_nb` 를 읽고 쓰고 지울 수 있고, 테이블 생성은 거부되어야 한다 (시험 테이블은 끝에 지운다).
+- 대상 네임스페이스(기본 사용자, 공유용 계정)마다 Secret 이 `.env` 와 같고, 레이블을 단 파드에 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` 가 주입된다 (서버 쪽 dry-run).
+- 실행 중인 Notebook 이 있으면 그 파드 안에서 `postgres-rw.postgres.svc:5432` 에 접속한다. **이것이 가장 중요하다**: Istio 사이드카가 있는 Notebook 에서 `postgres` 네임스페이스로의 TCP 접속이 허용되는지는 시험한 적이 없다. Notebook 이미지에 `psycopg2` 가 없으면 TCP 연결까지만 확인하고 `주의:` 로 알린다 (그 경우 인증은 확인되지 않은 것이다). Notebook 이 없으면 건너뛰고 확인 방법을 안내한다.
