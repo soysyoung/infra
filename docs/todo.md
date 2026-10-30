@@ -65,7 +65,7 @@
 
 **OpenSearch Dashboards 와 게스트 계정** (2026-10-30 적용, 남은 시험)
 27. [x] guest-ro 의 Dashboards 화면 확인 (2026-10-30, [ADR 0018](decisions/0018-opensearch-guest-accounts.md)): `temp-*` 검색(Dev Tools GET) 200, 인덱스 패턴은 guest 가 못 만들어 admin 이 Global tenant 에서 만들었고(admin 은 `all_access` 로 tenant 쓰기 권한이 있다) guest-ro 가 API 로 읽는 것을 확인. 사용자가 guest-ro 로 화면을 확인했다고 보고했다 (Discover 결과의 내용은 받지 못했다). guest-rw 의 Dashboards 화면 제한은 확인하지 않았다
-28. [ ] 일부 완료 (2026-10-30): `09-4 public` 으로 공개 주소에 접속해 guest-ro 로그인, tenant 를 Global 로 고르면 Discover 에 `temp-*` 가 보인다 (사용자 보고, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)). 남은 것: 그 접속이 Tailscale 을 끈 기기였는지, `off` 뒤 외부에서 끊기는지, `serve status` 에 Funnel 표시가 없는지. (고친 `verify/09-4` 재실행은 통과했다: `443(Kubeflow) 항목도 그대로 있음`)
+28. [x] 완료, `public` 을 켜 둔 채로 쓰기로 했다 (2026-10-30 사용자 결정, ADR 0019 에 조건과 위험 기록): `09-4 public` 으로 공개 주소에 접속해 guest-ro 로그인, tenant 를 Global 로 고르면 Discover 에 `temp-*` 가 보인다 (사용자 보고, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)). `off` 뒤 외부에서 끊기는지는 시험하지 않았다 (`off` 단독 동작은 새 이름 쪽에서 확인). 그 접속이 Tailscale 을 끈 기기였는지는 모른다. (고친 `verify/09-4` 재실행은 통과했다: `443(Kubeflow) 항목도 그대로 있음`)
 29. [x] 고친 `verify/09-5` 재실행 통과 (2026-10-30): 서버 dry-run 이 환경변수 3개 주입을 보여 주고 Notebook 접속 200 (두 네임스페이스). 이전 실행은 `apply` 의 `generateName` 제약으로 dry-run 이 건너뛰어졌다
 30. [ ] 일부 완료 (2026-10-30): Dashboards 메모리 실측 약 376MiB / 한도 1Gi, 재시작 0 (가벼운 사용 기준, [ADR 0017](decisions/0017-opensearch-dashboards.md)). `.env` 의 admin 비밀번호 길이 18 (12 이상 조건 충족). `teardown/09-1` 로 OpenSearch 만 지우고 `09-1`~`09-5` 를 처음부터 다시 실행해 모든 `verify` 가 `==> OK` (2026-10-30, [teardown/README.md](../scripts/teardown/README.md)). 남은 것: 새 클러스터(Helm, Istio 가 처음 설치되는 환경)에서의 `09-1`~`09-5` 와 `all.sh` 전체 삭제 (다음 전체 재설치 때), 무거운 사용에서의 메모리
 

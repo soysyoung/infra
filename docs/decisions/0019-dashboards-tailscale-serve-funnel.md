@@ -15,6 +15,7 @@ Dashboards([ADR 0017](0017-opensearch-dashboards.md))는 이 PC 의 `http://loca
 ## 결정
 - Dashboards 는 **8443** 에 올린다. 443 은 Kubeflow 가 쓰므로 겹치지 않는다. 주소는 `https://<기기>.<tailnet>.ts.net:8443`. 대상은 `09-2` 의 port-forward 서비스가 여는 `http://127.0.0.1:5601` 이다.
 - 기본은 **tailnet 안에서만**(`private`, serve). 인터넷 공개(`public`, funnel)는 필요할 때만 켜고 끝나면 `off` 로 닫는다. 07-3, 07-4 와 같은 규칙이다.
+- **사용자 결정 (2026-10-30): `public` 을 켜 둔 채로 쓴다.** 접속하는 사람은 본인뿐이다. 켜 두는 동안의 조건: admin 비밀번호 12자 이상 유지(현재 18자), 다른 사람에게 알리는 계정은 guest-ro 만, 접속 기기를 모두 tailnet 에 넣을 수 있게 되면 `private` 으로 돌린다. 감수하는 위험: 로그인 화면이 인터넷에 공개돼 admin 로그인도 같은 주소에서 시도될 수 있고, 로그인 시도 횟수 제한이 있는지는 확인하지 못했다. 처음 접속한 주소에서는 사용자 메뉴의 Switch tenants 에서 Global 을 골라야 `temp-*` 가 보인다.
 - `public` 의 안전장치: `.env` 의 admin 비밀번호가 12자 이상이어야 하고, 읽기 전용 `guest-ro`(09-3)가 있어야 하며, 확인 입력('yes')을 받는다. 외부 사람에게는 `guest-ro` 만 알려 준다 ([ADR 0018](0018-opensearch-guest-accounts.md)). 공개되는 것은 로그인 화면 전체라 admin 로그인도 같은 주소에서 시도할 수 있다는 점은 그대로다.
 - `off` 는 먼저 serve 로 비공개로 돌린 뒤 8443 항목을 지운다 (문서의 "마지막이 serve 면 비공개" 규칙에 기댄다. `off` 단독의 동작은 시험 전이다).
 - 스크립트는 `serve reset` 을 쓰지 않는다. 443 의 Kubeflow 설정을 건드리지 않는다.
