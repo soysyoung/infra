@@ -531,3 +531,11 @@ PGPASSWORD: 없음
 
 - **확인된 것:** PodDefault 로 만든 Notebook 이 정상으로 뜬다. initContainer `postgres-pgpass-init` 이 exit 0 으로 끝났다 (`busybox:1.37.0` pull 과 root initContainer 가 통했다). password file 은 `0600`, 소유자 uid 1000 이고 Notebook 사용자(`uid=1000`)가 읽을 수 있다. 이는 PostgreSQL 공식 문서의 권한 규칙(그룹/전체 접근 불가)을 만족한다. `PGPASSFILE` 이 있고 `PGPASSWORD` 는 없다. 계정은 user 가 `app`, guest 가 `notebook_rw` 다. 파일 크기(55, 78바이트)는 줄 형식과 맞는다 (guest: 호스트 24 + `:5432:app:notebook_rw:` + 비밀번호 32).
 - **확인되지 않은 것:** libpq 가 이 파일로 **실제로 인증**하는지. 새 Notebook 에 `psycopg2` 도 `psql` 도 없어서 `tcp-only` 로 끝났다. `pip install --user psycopg2-binary` 를 하고 `verify/10-2` 를 다시 실행하면 `ok:...:passfile` 이 나와야 한다 (비밀번호 없이 파일만으로 접속하는 경로).
+- **이후 guest Notebook 확인 (사용자가 `psycopg2-binary` 설치, 읽기 전용 진단은 AI 가 실행).** `test-postgres-01-0` 에서 비밀번호를 주지 않고 `psycopg2.connect()` 만 호출(`PGHOST`, `PGUSER`, `PGDATABASE`, `PGPASSFILE` 환경변수만 사용)해 `select current_user` 를 실행했다.
+
+```text
+PGPASSFILE: /etc/postgres-notebook/pgpass | PGPASSWORD 환경변수: 없음
+접속 성공: current_user = notebook_rw
+```
+
+  libpq 가 initContainer 가 만든 password file 로 인증했다 (공식 권고 경로가 guest 에서 동작). user Notebook(`test-postgres-02-0`)은 `psycopg2` 가 없어 같은 진단이 `psycopg2 없음` 으로 끝났다: 아직 확인하지 못했다.
