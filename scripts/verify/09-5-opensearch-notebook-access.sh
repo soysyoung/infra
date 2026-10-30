@@ -18,7 +18,7 @@ pat=$(kubectl -n opensearch exec opensearch-cluster-master-0 -c opensearch -- sh
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["guest_rw"]["index_permissions"][0]["index_patterns"][0])') \
   || die "guest_rw 역할을 읽지 못했습니다 (09-3)."
 
-checked=0; skipped=0
+checked=0; skipped=0; inj_skipped=0
 while read -r ns _; do
   kubectl get ns "$ns" >/dev/null 2>&1 || { log "$ns 가 없어 건너뜁니다."; continue; }
   checked=$((checked + 1))
@@ -31,7 +31,7 @@ while read -r ns _; do
 
   # 2) PodDefault 와 주입 (서버 쪽 dry-run: 변경 웹훅이 돌아야 환경변수가 보인다)
   kubectl -n "$ns" get poddefault opensearch-guest >/dev/null 2>&1 || die "$ns 에 PodDefault opensearch-guest 가 없습니다 (09-5)."
-  if out=$(kubectl -n "$ns" apply --dry-run=server -o yaml -f - 2>&1 <<EOF
+  if out=$(kubectl -n "$ns" create --dry-run=server -o yaml -f - 2>&1 <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
@@ -50,6 +50,7 @@ EOF
     done
     log "$ns: 레이블을 단 파드에 환경변수 3개가 주입됨 (dry-run)"
   else
+    inj_skipped=$((inj_skipped + 1))
     log "$ns: 서버 dry-run 이 거부되어 주입 시험은 건너뜁니다: $(echo "$out" | tail -1)"
   fi
 
@@ -85,4 +86,5 @@ if [ "$skipped" -gt 0 ]; then
   log "접속 시험을 건너뛴 네임스페이스가 $skipped 개 있습니다. Notebook 을 만들 때 'OpenSearch guest-rw 접속 정보' 를 고르고 아래를 실행해 확인하세요:"
   echo '  import os, requests; print(requests.get(os.environ["OPENSEARCH_URL"] + "/temp-*/_search?size=0", auth=(os.environ["OPENSEARCH_USER"], os.environ["OPENSEARCH_PASSWORD"]), verify=False).status_code)'
 fi
+[ "$inj_skipped" -eq 0 ] || die "환경변수 주입 시험을 $inj_skipped 개 네임스페이스에서 건너뛰었습니다 (위 메시지). 주입은 확인되지 않았습니다."
 log "OK: Secret 과 PodDefault 가 맞고 환경변수가 주입된다 (접속 시험: 실행한 Notebook $((checked - skipped)) 개)"
