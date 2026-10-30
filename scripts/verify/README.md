@@ -27,7 +27,7 @@
 | `09-4-dashboards-tailscale.sh` | WSL | tailnet 의 `:8443` 으로 Dashboards 가 HTTPS 로 응답하고 Kubeflow 의 443 설정이 그대로인가 | `09-4-dashboards-tailscale.sh` |
 | `09-5-opensearch-notebook-access.sh` | WSL | Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속 | `09-5-opensearch-notebook-access.sh` |
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
-| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. **아직 실행하지 않았다** | `10-2-postgres-notebook-access.sh` |
+| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. **아직 실행하지 않았다** | `10-2-postgres-notebook-access.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03` ~ `06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
@@ -405,5 +405,5 @@ bash scripts/verify/10-2-postgres-notebook-access.sh   # 검증
 
 - 역할 `notebook_rw`: 로그인 가능, 슈퍼유저 아님, `pg_read_all_data` 와 `pg_write_all_data` 의 멤버 (DB 에서 직접 조회).
 - `postgres-rw` 로 접속해 `app` 이 만든 시험 테이블 `verify_nb` 를 읽고 쓰고 지울 수 있고, 테이블 생성은 거부되어야 한다 (시험 테이블은 끝에 지운다).
-- 대상 네임스페이스(기본 사용자, 공유용 계정)마다 Secret 이 `.env` 와 같고, 레이블을 단 파드에 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` 가 주입된다 (서버 쪽 dry-run).
+- 대상 네임스페이스마다 Secret 이 기대한 계정과 `.env` 의 비밀번호와 같고 (기본 사용자 네임스페이스는 `app`, 공유용 계정은 `notebook_rw`), 레이블을 단 파드에 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` 가 주입된다 (서버 쪽 dry-run).
 - 실행 중인 Notebook 이 있으면 그 파드 안에서 `postgres-rw.postgres.svc:5432` 에 접속한다. **이것이 가장 중요하다**: Istio 사이드카가 있는 Notebook 에서 `postgres` 네임스페이스로의 TCP 접속이 허용되는지는 시험한 적이 없다. Notebook 이미지에 `psycopg2` 가 없으면 TCP 연결까지만 확인하고 `주의:` 로 알린다 (그 경우 인증은 확인되지 않은 것이다). Notebook 이 없으면 건너뛰고 확인 방법을 안내한다.
