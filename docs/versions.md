@@ -19,6 +19,7 @@
 | kustomize | v5.8.1 | Kubeflow 26.03.1 공식 테스트 스크립트의 버전. 체크섬 검증 후 설치. | [0005](decisions/0005-kubeflow-26.03.1.md) |
 | OpenSearch (Helm 차트) | 3.8.0 (2026-08-05) | 직전 마이너 기준. 3.9.0(2026-09-29)은 한 달밖에 안 됐고 3.8 에는 패치 릴리스가 없다. 차트와 앱 버전이 같다. 보안 플러그인의 초기 관리자 비밀번호가 필수다. | [0014](decisions/0014-opensearch-single-node.md) |
 | OpenSearch Dashboards (Helm 차트) | 3.8.0 | OpenSearch 와 같은 버전으로 맞춘다 (차트 태그 `opensearch-dashboards-3.8.0` 의 Chart.yaml 로 확인). | [0017](decisions/0017-opensearch-dashboards.md) |
+| CloudNativePG (Helm 차트) | 0.29.1 (연산자 1.30.1) | 공식 Helm 차트의 현재 버전. 차트는 최신 패치만 지원한다. PostgreSQL 이미지는 연산자 기본값 18.6-system-trixie 를 고정. 릴리스 날짜는 확인하지 못했다. | [0021](decisions/0021-postgres-cloudnativepg.md) |
 | Helm | v4.2.4 (2026-08-13) | 4.3.0(2026-09-09)이 2주 넘게 지나서 직전 마이너 4.2 의 마지막 패치. 체크섬 검증 후 설치. | [0014](decisions/0014-opensearch-single-node.md) |
 
 ## 미검증 항목
