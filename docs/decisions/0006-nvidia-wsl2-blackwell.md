@@ -21,7 +21,7 @@ RTX 5080 Laptop (Blackwell, 16GB) 을 WSL2 의 컨테이너와 Kubeflow 에서 �
 
 ## 검증 상태
 - 1차 관문 **통과** (2026-10-23): `scripts/verify/04-gpu.sh` — Docker 컨테이너에서 RTX 5080, 드라이버 592.27.
-- 2차 관문 **통과** (2026-10-23): `scripts/verify/05-3-device-plugin.sh` — 4노드 클러스터를 지우고 `05-1`~`05-3` 으로 처음부터 만든 뒤, GPU 노드 컨테이너, 노드의 `allocatable nvidia.com/gpu: 1`, `nvidia.com/gpu: 1` 을 요청한 파드 모두에서 RTX 5080 확인. 출력은 [scripts/verify/README.md](../../scripts/verify/README.md).
+- 2차 관문 **통과** (2026-10-23): `scripts/verify/05-3-device-plugin.sh` — 4노드 클러스터를 지우고 `05-1` ~ `05-3` 으로 처음부터 만든 뒤, GPU 노드 컨테이너, 노드의 `allocatable nvidia.com/gpu: 1`, `nvidia.com/gpu: 1` 을 요청한 파드 모두에서 RTX 5080 확인. 출력은 [scripts/verify/README.md](../../scripts/verify/README.md).
 - Blackwell 전용 문제는 만나지 않았다. 단, 테스트 이미지는 `nvidia-smi -L` 만 실행한다. 실제 CUDA 연산(PyTorch 등)은 검증하지 않았다.
 
 ## 실패 시

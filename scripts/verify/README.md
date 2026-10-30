@@ -29,7 +29,7 @@
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
 | `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. **아직 실행하지 않았다** | `10-2-postgres-notebook-access.sh` |
 
-아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03`~`06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
+아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03` ~ `06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
 표의 `07-2`, `08-boot-resilience`, `09-1`, `05-4`, `06-2`, `06-3` 은 실제 출력을 이 문서에 싣지 않았다 (결과는 ADR 과 [todo.md](../../docs/todo.md) 에만 있거나 출력을 받지 못했다). 아래 절은 출력이 있는 것만 있다. `10-2` 는 아직 실행하지 않았다.
 

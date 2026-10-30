@@ -19,7 +19,7 @@ OpenSearch([ADR 0014](0014-opensearch-single-node.md))는 `kubectl port-forward`
 - 접속은 [ADR 0011](0011-no-nodeport-https-via-tailscale-serve.md) 의 원칙을 따른다: NodePort 와 Ingress 를 쓰지 않고 ClusterIP 에 port-forward 한다. 터미널을 닫으면 끊기는 것을 막으려고 `09-2` 가 systemd 서비스 `opensearch-dashboards-port-forward`(`127.0.0.1:5601`, `Restart=always`)를 만든다. `07-1` 과 같은 방식이고 2026-10-30 에 추가했다 (아직 실행 전이라 미시험). 이 PC 의 Windows 브라우저는 `http://localhost:5601`. 다른 tailnet 기기용 `tailscale serve` 는 만들지 않았다.
 - Dashboards 가 OpenSearch 에 로그인하는 계정은 **`admin`** (`.env` 의 `OPENSEARCH_ADMIN_PASSWORD`) 이다. 새 Secret `opensearch-dashboards-account` 에 `09-2` 가 만든다. `cookie` 는 32자 무작위로 만들고 다시 실행해도 유지한다.
   - 왜 admin 인가: 이미지 기본값은 데모 내부 사용자(`kibanaserver`)를 쓰는 것으로 알려져 있지만, 그 비밀번호가 이 설치에서 무엇인지 확인하지 못했다. 알려진 기본 비밀번호에 기대지 않으려고 이미 정한 관리자 비밀번호를 쓴다. 대가는 Dashboards 가 최고 권한으로 접속한다는 것이고, 전용 최소 권한 계정은 다음 과제다.
-- 리소스는 requests = limits 로 메모리 1Gi, CPU 250m~1 로 올린다 (기본 512M 이 부족할 것이라는 **추정**이다. 실측하지 않았다).
+- 리소스는 requests = limits 로 메모리 1Gi, CPU 250m ~ 1 로 올린다 (기본 512M 이 부족할 것이라는 **추정**이다. 실측하지 않았다).
 - 설정 파일(`config`)은 주지 않는다. 이미지 기본 설정을 쓴다. 자체 서명 인증서를 받아들이는지는 아래 미검증.
 
 ## 미검증 (적용 전)
@@ -38,4 +38,4 @@ OpenSearch([ADR 0014](0014-opensearch-single-node.md))는 `kubectl port-forward`
 ## 같은 날의 사고: 비밀번호를 바꾸려고 `.env` 만 고치고 재설치 (2026-10-28 ~ 10-30)
 - 비밀번호를 바꾸려고 `teardown/09-1` 후 `.env` 를 고쳐 `09-1` 을 다시 실행했다. 처음 값은 대문자가 없어서 OpenSearch 설치기가 `Password does not match validation regex` 로 거부했고, 파드가 `CrashLoopBackOff` 로 약 41시간 487회 재시작했다. 두 번째 값(특수문자 추가)도 대문자가 없어 같은 이유로 거부됐다. 원인은 로그의 거부 메시지와, Secret 과 `.env` 값의 문자 종류(값은 출력하지 않고 확인)로 찾았다.
 - 대문자를 포함한 값으로 `.env` 를 고치고 `09-1` 을 다시 실행한 뒤 파드를 지워 다시 띄우자 `1/1 Running`, 재시작 0, 새 비밀번호 인증 200, 틀린 비밀번호 401, 클러스터 green, `opensearch-knn` 있음 (읽기 전용으로 확인).
-- 교훈: `.env` 만 고쳐서는 이미 초기화된 클러스터의 비밀번호가 바뀌지 않는다 (공식 문서: 초기 비밀번호 변수는 처음 한 번만 읽는다). 바꾸려면 삭제 후 재설치한다. 값이 조건(대문자, 소문자, 숫자, 특수문자 각 1개 이상, 8~100자, zxcvbn strong)을 못 맞추면 파드가 끝없이 재시작하므로, 직접 정하지 않고 줄을 지워 `09-1` 이 만들게 하는 편이 안전하다.
+- 교훈: `.env` 만 고쳐서는 이미 초기화된 클러스터의 비밀번호가 바뀌지 않는다 (공식 문서: 초기 비밀번호 변수는 처음 한 번만 읽는다). 바꾸려면 삭제 후 재설치한다. 값이 조건(대문자, 소문자, 숫자, 특수문자 각 1개 이상, 8 ~ 100자, zxcvbn strong)을 못 맞추면 파드가 끝없이 재시작하므로, 직접 정하지 않고 줄을 지워 `09-1` 이 만들게 하는 편이 안전하다.

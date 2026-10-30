@@ -1,4 +1,4 @@
-> **아카이브** (2026-10-23 시점의 상세 기록). 현재 요약표는 [../troubleshooting.md](../troubleshooting.md) 이고, 번호(1~9)는 표와 같다.
+> **아카이브** (2026-10-23 시점의 상세 기록). 현재 요약표는 [../troubleshooting.md](../troubleshooting.md) 이고, 번호(1 ~ 9)는 표와 같다.
 > 이 파일은 수정하지 않는다. 새 항목은 표에 추가하고 필요하면 상세를 새 아카이브로 남긴다.
 
 # 문제 해결 기록
@@ -31,7 +31,7 @@
 
 ## 5. 오래된 Tailscale 장치
 
-- `tailscale status` 에 같은 계정의 offline 노드가 다수 남아 있다 (마지막 접속 248~335일 전). Tailscale SSH/ACL 적용 시 섞일 수 있어 관리 콘솔에서 정리가 필요하다.
+- `tailscale status` 에 같은 계정의 offline 노드가 다수 남아 있다 (마지막 접속 248 ~ 335일 전). Tailscale SSH/ACL 적용 시 섞일 수 있어 관리 콘솔에서 정리가 필요하다.
 
 ## 6. Codex 리뷰가 두 번 실패
 
@@ -47,7 +47,7 @@
 
 ## 8. kind 에서 GPU 가 광고되지 않음 (device plugin 이 NVML 을 못 찾음)
 
-- (당시에는 `05-kind.sh` 하나였고, 이후 `05-1`~`05-3` 으로 나눴다 — [0007](../decisions/0007-multi-node-kind.md))
+- (당시에는 `05-kind.sh` 하나였고, 이후 `05-1` ~ `05-3` 으로 나눴다 — [0007](../decisions/0007-multi-node-kind.md))
 - 증상: `verify/05-kind.sh` 가 `노드가 nvidia.com/gpu 를 광고하지 않습니다` 로 실패. 노드 컨테이너의 `nvidia-smi -L` 은 성공.
 - 진단: device plugin 파드가 `Error` 로 재시작을 반복하고, 로그에 `Failed to initialize NVML: ERROR_LIBRARY_NOT_FOUND`.
 - 원인: 호스트 Docker 의 nvidia 런타임은 **노드 컨테이너**에 GPU 를 주입하지만, 노드 안의 containerd 는 일반 runc 라서 **파드**에는 GPU 라이브러리를 넣지 못한다. Codex 의 레시피는 이 단계가 빠져 있었다("nvidia 가 기본 런타임이면 runtimeClassName 이 필요 없다"는 호스트 Docker 기준 설명이었다).

@@ -212,6 +212,6 @@ Error from server (NotFound): namespaces "opensearch" not found
 ```
 
 - Dashboards port-forward 서비스와 `opensearch` 네임스페이스가 사라졌다. Helm 은 `opensearch` 릴리스만 지웠고 `opensearch-dashboards` 릴리스는 네임스페이스와 함께 사라졌다 (릴리스 목록은 확인하지 않았다).
-- 이어서 `09-1`~`09-5` 와 각 `verify` 를 처음부터 실행하면 모두 `==> OK` 였다 (`09-1` 은 `Release "opensearch" does not exist. Installing it now`, 클러스터 green, k-NN 있음, 384차원 색인과 검색 동작). `.env` 의 비밀번호와 게스트 계정 값이 그대로 쓰였고 `verify/09-3` 의 12개 항목, `verify/09-5` 의 Notebook 접속 200(두 네임스페이스)이 다시 통과했다.
+- 이어서 `09-1` ~ `09-5` 와 각 `verify` 를 처음부터 실행하면 모두 `==> OK` 였다 (`09-1` 은 `Release "opensearch" does not exist. Installing it now`, 클러스터 green, k-NN 있음, 384차원 색인과 검색 동작). `.env` 의 비밀번호와 게스트 계정 값이 그대로 쓰였고 `verify/09-3` 의 12개 항목, `verify/09-5` 의 Notebook 접속 200(두 네임스페이스)이 다시 통과했다.
 - `09-5` 는 `unchanged` 였다: Secret 과 PodDefault 는 프로필 네임스페이스에 있어 OpenSearch 삭제로 지워지지 않는다.
 - 이 시험은 새 클러스터 설치(Helm 과 Istio 가 처음 설치되는 환경)와 `all.sh` 전체 삭제를 포함하지 않는다. 인덱스 패턴(Global tenant)은 PVC 와 함께 사라지므로 admin 이 다시 만들어야 한다.

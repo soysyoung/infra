@@ -20,7 +20,7 @@
 | GPU | 까다롭다 (WSL2 에서 더) | 호스트 containerd 에 nvidia 런타임만 설정 |
 
 ## 결과
-- 03 docker -> 04 nvidia-toolkit -> 05 kind(05-1~05-3) 순서. 노드 구성은 [0007](0007-multi-node-kind.md). `03-k3s.sh` 는 삭제했다.
+- 03 docker -> 04 nvidia-toolkit -> 05 kind(05-1 ~ 05-3) 순서. 노드 구성은 [0007](0007-multi-node-kind.md). `03-k3s.sh` 는 삭제했다.
 - `k8s/kind-config.yaml` 이 필요하다: 노드 이미지 digest, 원격 접속용 `certSANs`(tailnet 주소), `extraMounts`, 포트 매핑.
 - Tailscale(02)이 kind(05)보다 먼저여야 한다 (인증서 SAN).
 - 레지스트리는 필수가 아니다. 필요해지면 kind 공식 로컬 레지스트리 패턴으로 추가한다.

@@ -4,13 +4,13 @@
 - 이름 변경 (2026-10-28): 이 문서에서 `09`, `verify/09`, `teardown/09` 는 Dashboards(`09-2`)를 더하면서 `09-1-opensearch.sh`, `verify/09-1-opensearch.sh`, `teardown/09-1-opensearch.sh` 로 바뀌었다. 내용은 그대로다. 아래 본문은 당시 이름으로 둔다
 
 ## 상황
-워크로드가 벡터 약 10.5만 개 x 384차원(float32 기준 약 0.16GB, 그래프와 여유를 더해 약 0.2GB 로 본 값)을 k-NN 으로 검색해야 한다. 노드는 하나, replica 0, 힙 1~2GB, 파드 약 4Gi, PVC 수 GB 면 충분하다. 이 PC 의 WSL 은 24GB 이고 `vm.max_map_count` 는 이미 1048576 이다.
+워크로드가 벡터 약 10.5만 개 x 384차원(float32 기준 약 0.16GB, 그래프와 여유를 더해 약 0.2GB 로 본 값)을 k-NN 으로 검색해야 한다. 노드는 하나, replica 0, 힙 1 ~ 2GB, 파드 약 4Gi, PVC 수 GB 면 충분하다. 이 PC 의 WSL 은 24GB 이고 `vm.max_map_count` 는 이미 1048576 이다.
 
 ## 공식 문서가 말하는 것 (2026-10-28 확인)
 출처: [Installing OpenSearch using Helm](https://docs.opensearch.org/latest/install-and-configure/install-opensearch/helm/), [Setting up a security demo configuration](https://docs.opensearch.org/latest/security/configuration/demo-configuration/), 차트 `values.yaml` (tag `opensearch-3.9.0`).
 - 설치: `helm repo add opensearch https://opensearch-project.github.io/helm-charts/`, `helm install ... opensearch/opensearch -f values.yaml`. 기본은 3노드이며 차트에 `singleNode`, `replicas`, `opensearchJavaOpts`, `persistence.size`, `sysctlInit.enabled` 값이 있다.
 - **OpenSearch 2.12 이후는 `OPENSEARCH_INITIAL_ADMIN_PASSWORD` 가 없으면 시작하지 않는다.** `extraEnvs` 로 넣는다. `extraEnvs` 키가 둘이면 마지막만 적용돼 파드가 반복 재시작한다 (Common issues).
-- 비밀번호 요구: 8~100자, 대문자, 소문자, 숫자, 특수문자 각 1개 이상, zxcvbn 'strong' 이상, 사용자명 `admin` 과 비슷하지 않을 것. 문자 조건을 만족해도 zxcvbn 에서 거부될 수 있다.
+- 비밀번호 요구: 8 ~ 100자, 대문자, 소문자, 숫자, 특수문자 각 1개 이상, zxcvbn 'strong' 이상, 사용자명 `admin` 과 비슷하지 않을 것. 문자 조건을 만족해도 zxcvbn 에서 거부될 수 있다.
 - `helm uninstall` 은 PVC 를 지우지 않고, 남은 PVC 로 다시 설치하면 **처음 비밀번호가 그대로** 쓰인다.
 - `vm.max_map_count` 는 262144 이상이어야 하고, 부족하면 `sysctlInit.enabled` 로 특권 init 컨테이너를 쓴다.
 

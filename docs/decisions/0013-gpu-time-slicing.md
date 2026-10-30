@@ -22,7 +22,7 @@
 ## 결정
 - `nvidia.com/gpu` 이름은 그대로 두고(`renameByDefault` 끄기) **4개**로 광고한다 (`cluster.env` 의 `GPU_REPLICAS`). 이름을 바꾸면 기존 PodDefault([k8s/gpu-poddefault.yaml](../../k8s/gpu-poddefault.yaml))와 Notebook 의 GPU 요청을 모두 고쳐야 한다.
 - `failRequestsGreaterThanOne: true`: GPU 2개 요청이 "더 빠른 GPU" 로 오해되지 않게 한다.
-- 4 인 이유(제 판단, 문서 밖): 동시 사용처가 Notebook 1~2, 학습 또는 파이프라인 1, 추론 1 정도라서 넉넉히 잡은 값이다. VRAM 은 나뉘지 않으므로 개수를 늘려도 쓸 수 있는 메모리는 늘지 않는다. 부족하면 `GPU_REPLICAS` 만 바꿔 05-3 을 다시 실행한다 (클러스터 재생성 불필요).
+- 4 인 이유(제 판단, 문서 밖): 동시 사용처가 Notebook 1 ~ 2, 학습 또는 파이프라인 1, 추론 1 정도라서 넉넉히 잡은 값이다. VRAM 은 나뉘지 않으므로 개수를 늘려도 쓸 수 있는 메모리는 늘지 않는다. 부족하면 `GPU_REPLICAS` 만 바꿔 05-3 을 다시 실행한다 (클러스터 재생성 불필요).
 - 구현: ConfigMap(`k8s/device-plugin-config.yaml`)을 만들고 DaemonSet 에 `CONFIG_FILE` 과 마운트를 strategic merge 로 더한다. static 매니페스트는 그대로 쓴다 (helm 으로 바꾸는 것은 이번 범위 밖).
 
 ## 한계 (사용자가 알아야 하는 것)
