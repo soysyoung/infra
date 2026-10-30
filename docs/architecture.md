@@ -25,7 +25,7 @@
 +--------------------------------------------------------------------------+
 ```
 
-`[완료]`, `[예정]` 은 2026-10-30 기준이다. 02 ~ 10 은 각 단계의 `verify` 를 통과했다. 10-1(PostgreSQL)은 `verify` 만 통과했고 그 뒤의 시험(재시작, 재설치, 백업)은 남았다. 10-2(Notebook 접속)는 스크립트만 만들었고 아직 실행하지 않았다 ([todo.md](todo.md) 31 ~ 34번). 접속은 07 의 port-forward 와 `tailscale serve` 이고, OpenSearch Dashboards 는 `:8443` 으로 따로 연다 (09-4).
+`[완료]`, `[예정]` 은 2026-10-30 기준이다. 02 ~ 10 은 각 단계의 `verify` 를 통과했다. 10-1(PostgreSQL)은 `verify` 만 통과했고 그 뒤의 시험(재시작, 재설치, 백업)은 남았다. 10-2(Notebook 접속)는 `verify` 를 통과했으나 Notebook 안의 인증은 확인하지 못했다 ([todo.md](todo.md) 31 ~ 34번). 접속은 07 의 port-forward 와 `tailscale serve` 이고, OpenSearch Dashboards 는 `:8443` 으로 따로 연다 (09-4).
 
 ## 설계 원칙
 

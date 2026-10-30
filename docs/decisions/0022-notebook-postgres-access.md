@@ -1,6 +1,6 @@
 # 0022. Notebook 에서 PostgreSQL 접속 (읽기/쓰기 전용 계정 notebook_rw, 환경변수 주입)
 
-- 상태: 작성만 함 (2026-10-30). `10-2` 스크립트 3개와 매니페스트 2개를 만들고 문법만 확인했다. 이 PC 에서 실행하지 않았다. 아래 '공식 문서가 말한 것' 이외의 동작은 모두 미검증
+- 상태: 적용, 부분 검증 (2026-10-30). 사용자가 `10-2`, `verify/10-2` 를 실행해 통과했다. 다만 **Notebook 안에서의 인증과 PodDefault 로 주입된 실제 환경변수는 확인하지 못했다.** 아래 '적용 결과' 와 '미검증'
 
 ## 상황
 [ADR 0021](0021-postgres-cloudnativepg.md) 로 PostgreSQL 이 클러스터 안에 있다. Notebook 에서 이 DB 를 쓰고 싶다. 요구(사용자, 2026-10-30): **읽기/쓰기, DB 전체, 기본 사용자와 공유용(guest) 계정의 Notebook 모두.** OpenSearch 는 [ADR 0020](0020-notebook-opensearch-guest-env.md) 에서 제한된 계정 guest-rw 를 Secret 과 PodDefault 로 주입했다. 같은 방식을 쓴다.
@@ -17,11 +17,18 @@
 
 ## 공식 문서가 말한 것과 말하지 않은 것 (2026-10-30 확인)
 - 말한 것: 위 `DatabaseRole` 필드, `reload` 라벨, 같은 네임스페이스 제약, 다른 네임스페이스에서는 `서비스.네임스페이스` 로 접속, predefined role 의 권한.
-- 말하지 않은 것(미검증): Kubeflow 프로필 네임스페이스의 Notebook 파드(Istio 사이드카 있음)에서 사이드카가 없는 `postgres` 네임스페이스로의 TCP 접속이 허용되는지. 네트워크 정책이나 Istio 정책이 막을 수 있다. 이것이 `verify/10-2` 의 4번이다.
+- 말하지 않은 것: Kubeflow 프로필 네임스페이스의 Notebook 파드(Istio 사이드카 있음)에서 사이드카가 없는 `postgres` 네임스페이스로의 TCP 접속이 허용되는지. 네트워크 정책이나 Istio 정책이 막을 수 있었다. 실행해서 확인했다 (아래 '적용 결과').
+
+## 적용 결과 (2026-10-30, 사용자가 `10-2` 와 `verify/10-2` 를 실행, 출력은 [verify/README.md](../../scripts/verify/README.md))
+- `DatabaseRole notebook-rw` 가 만들어지고 DB 에 역할 `notebook_rw` 가 생겼다 (로그인 가능, 슈퍼유저 아님, `pg_read_all_data`, `pg_write_all_data` 멤버). `postgres-rw` 서비스로 접속해 읽기/쓰기가 되고 테이블 생성은 거부됨을 `app` 이 만든 시험 테이블로 확인했다.
+- 두 네임스페이스에 Secret 과 PodDefault 가 만들어졌다: `kubeflow-user-example-com` 은 `app`, `kubeflow-guest-example-com` 은 `notebook_rw`. 서버 쪽 dry-run 이 레이블을 단 파드에 환경변수 5개를 주입함을 보였다.
+- **Notebook 파드(Istio 사이드카 있음)에서 `postgres-rw.postgres.svc:5432` 로 TCP 가 닿았다** (`test-01-0`, `test-guest-01-0`). 네트워크 정책이나 Istio 가 막지 않는다.
+- 두 Notebook 모두 `psycopg2` 가 없어 TCP 까지만 확인했다. 이 Notebook 들은 PodDefault 없이 만든 것이라 환경변수가 들어 있지 않다. 계정과 비밀번호는 `verify` 가 표준입력으로 넘겼다.
 
 ## 미검증, 알려진 한계
-- 스크립트와 매니페스트를 이 PC 에서 실행하지 않았다. `DatabaseRole` 이 실제로 DB 에 역할을 만드는지, `inRoles` 에 predefined role 이 통하는지, `verify/10-2` 의 판정이 맞는지 모두 첫 실행에서 알게 된다.
-- Notebook 이미지에 `psycopg2` 가 있는지 모른다. 없으면 `verify/10-2` 는 TCP 연결까지만 확인하고 그렇다고 알린다. Notebook 에서는 `pip install psycopg2-binary` 가 필요할 수 있다.
+- **Notebook 안에서의 인증:** 시험한 Notebook 2개에 `psycopg2` 가 없어 확인하지 못했다. Notebook 에서 `pip install psycopg2-binary` 를 하고 `verify/10-2` 를 다시 실행하거나 셀에서 확인해야 한다. 다른 Notebook 이미지에는 있는지 모른다.
+- **PodDefault 로 주입된 실제 환경변수:** 'PostgreSQL 접속 정보' 를 골라 새로 만든 Notebook 의 `os.environ` 으로 확인한 적이 없다 (dry-run 만 했다).
+- `teardown/10-2` 는 실행하지 않았다. `DatabaseRole` 을 지워도 역할이 남는지(`retain`), `drop role` 이 되는지도 시험 전이다.
 - `.env` 의 비밀번호를 바꾼 뒤 `10-2` 를 다시 실행하면 DB 의 비밀번호가 따라 바뀌는지 시험하지 않았다. 이미 떠 있는 Notebook 은 재시작해야 새 환경변수를 받는다.
 - 모든 테이블을 읽으므로 `app` 에 민감한 데이터가 들어오면 모든 Notebook 사용자가 읽는다. 공유용 계정 사용자도 포함이다. 지금은 `app` 이 비어 있다. 범위를 좁히려면 스키마나 테이블 단위 GRANT 로 바꿔야 한다 (이 문서 범위 밖).
 - Notebook 의 모든 쿼리가 `postgres-rw`(primary)로 간다. 부하 분리는 하지 않았다.
