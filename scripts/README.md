@@ -62,6 +62,10 @@ bash scripts/09-2-opensearch-dashboards.sh   # (선택) 브라우저용 웹 UI. 
 bash scripts/verify/09-2-opensearch-dashboards.sh
 bash scripts/09-3-opensearch-guests.sh   # (선택) 게스트 계정 2개: guest-rw(temp-* 에 쓰기·읽기), guest-ro(읽기 전용). 이름과 비밀번호는 .env 의 OPENSEARCH_GUEST_*. ADR 0018
 bash scripts/verify/09-3-opensearch-guests.sh
+bash scripts/09-4-dashboards-tailscale.sh private   # (선택) Dashboards 를 tailnet 에서 https://<기기>.<tailnet>.ts.net:8443 으로 연다. public 은 인터넷 공개(필요할 때만), off 로 닫는다. ADR 0019
+bash scripts/verify/09-4-dashboards-tailscale.sh
+bash scripts/09-5-opensearch-notebook-access.sh   # (선택) Notebook 에 guest-rw 접속 정보를 환경변수로 주입 (Secret + PodDefault, 모든 사용자 네임스페이스). Notebook 만들 때 Configurations 에서 고른다. ADR 0020
+bash scripts/verify/09-5-opensearch-notebook-access.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).

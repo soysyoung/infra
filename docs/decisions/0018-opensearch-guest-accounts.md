@@ -25,7 +25,7 @@ Notebook(퍼널로 공유될 수 있는 계정 포함)과 Dashboards 공유에 a
 - `kibana_user` 매핑을 `PUT` 으로 덮어쓰면 기존 매핑이 지워질 수 있어서 쓰지 않는다. 데모 구성에서 이 역할이 백엔드 역할 `kibanauser` 에 매핑돼 있다고 알려져 있어서, guest-ro 에 그 백엔드 역할을 붙인다. **`09-3` 이 먼저 `GET` 으로 매핑에 `kibanauser` 가 있는지 확인하고 없으면 멈춘다** (이 가정은 문서로 확인하지 못했다).
 - 계정 이름과 비밀번호는 `.env` 의 `OPENSEARCH_GUEST_RW_USER`, `_PASSWORD`, `OPENSEARCH_GUEST_RO_USER`, `_PASSWORD`. 없으면 `09-3` 이 만들고(비밀번호는 09-1 과 같은 방식의 무작위 값), 직접 정하려면 실행 전에 `.env` 에 적는다. 다시 실행하면 `.env` 값으로 맞춰진다.
 - 비밀번호는 명령줄에 나오지 않게 표준입력(`--data-binary @-`, `curl -K -`)으로 넘긴다.
-- Notebook 에는 guest-rw 의 이름과 비밀번호만 준다 (Secret 과 PodDefault 로 넣는 일은 아직 만들지 않았다). Dashboards 를 외부에 보일 때는 guest-ro 를 쓴다.
+- Notebook 에는 guest-rw 의 이름과 비밀번호만 준다 (Secret 과 PodDefault 로 환경변수 주입, [ADR 0020](0020-notebook-opensearch-guest-env.md)). Dashboards 를 외부에 보일 때는 guest-ro 를 쓴다 ([ADR 0019](0019-dashboards-tailscale-serve-funnel.md)).
 
 ## 알려진 한계
 - 계정은 보안 인덱스(OpenSearch 의 PVC)에 있다. `teardown/09-1` 이나 admin 비밀번호 재설정 뒤에는 사라지거나 덮어써지므로 `09-3` 을 다시 실행한다. 공식 문서는 `securityadmin` 으로 반영하면 REST 로 만든 사용자가 덮어써진다고 경고한다.
