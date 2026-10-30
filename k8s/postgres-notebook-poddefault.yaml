@@ -1,0 +1,30 @@
+# Notebook 생성 화면의 Configurations 에서 'PostgreSQL 접속 정보 (notebook_rw)' 를 고르면 접속 환경변수가 파드에 들어간다.
+# PostgreSQL 표준 환경변수(PG*)라서 psql, psycopg2 등이 인자 없이 접속한다. 계정은 소유자 app 이 아니라 데이터 읽기/쓰기만 되는 notebook_rw 다 (docs/decisions/0022).
+# 적용: scripts/10-2-postgres-notebook-access.sh (프로필 네임스페이스마다 -n 으로 적용하므로 metadata.namespace 는 없다)
+# 환경변수는 파드가 만들어질 때 한 번 들어간다. 이미 떠 있는 Notebook 에는 반영되지 않는다 (새로 만들거나 재시작).
+apiVersion: kubeflow.org/v1alpha1
+kind: PodDefault
+metadata:
+  name: postgres-notebook
+spec:
+  desc: PostgreSQL 접속 정보 (notebook_rw)
+  selector:
+    matchLabels:
+      postgres-notebook: "true"
+  env:
+    - name: PGHOST
+      value: postgres-rw.postgres.svc
+    - name: PGPORT
+      value: "5432"
+    - name: PGDATABASE
+      value: app
+    - name: PGUSER
+      valueFrom:
+        secretKeyRef:
+          name: postgres-notebook
+          key: username
+    - name: PGPASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres-notebook
+          key: password
