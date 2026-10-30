@@ -32,7 +32,8 @@ OpenSearch([ADR 0014](0014-opensearch-single-node.md))는 `kubectl port-forward`
 
 ## 적용 결과 (2026-10-30)
 - 사용자 보고: `09-2` 실행 후 `http://localhost:5601` 에 `admin` 으로 로그인해 Dashboards 화면에 들어갔다 (Windows 브라우저, port-forward). 이로써 Secret 의 세 키로 파드가 시작했고, Dashboards 가 OpenSearch 의 자체 서명 인증서를 받아들여 연결하며, `localhost:5601` 이 Windows 에서 열린다는 점은 **보고로 확인**됐다 (파드 로그나 `verify/09-2` 출력은 보지 못했다).
-- 미해소: 메모리 1Gi 가 충분한지(실측 없음), 설치 뒤 WSL 메모리 변화, 파드 배치 노드, 읽기 전용 계정은 [ADR 0018](0018-opensearch-guest-accounts.md), tailnet 접속(`tailscale serve`)은 [ADR 0019](0019-dashboards-tailscale-serve-funnel.md) 에서 만들었다.
+- 메모리 실측 (2026-10-30, 읽기 전용 조회, 파드가 뜬 지 약 4시간, 그 사이 guest, admin 로그인과 Discover, 인덱스 패턴 생성을 했다): Dashboards cgroup `memory.current` 394,055,680 B(약 376MiB), `memory.peak` 395,292,672 B, 한도 `memory.max` 1,073,741,824 B(1Gi), 재시작 0, 마지막 종료 사유 없음(OOMKilled 아님). OpenSearch 파드는 1.6GB / 한도 4GB. WSL `free -m`: 합계 24,030MB, 사용 10,351MB, available 13,679MB (`.wslconfig` 24GB 안). 파드 배치: OpenSearch 는 `mlops-worker2`, Dashboards 는 `mlops-worker3`. 한계: 가벼운 사용(소수 계정, 짧은 시간)에서의 값이다. 무거운 대시보드와 동시 사용에서의 최댓값은 모른다. `kubectl top` 은 metrics-server 가 없어 쓸 수 없다 (`Metrics API not available`). 이 추정(기본 512M 이 부족)은 시험하지 않았다. 1Gi 는 이 부하에서 충분했다.
+- 미해소: 무거운 사용에서의 메모리, 설치 전후의 WSL 메모리 차이(설치 전 값이 없다), 읽기 전용 계정은 [ADR 0018](0018-opensearch-guest-accounts.md), tailnet 접속(`tailscale serve`)은 [ADR 0019](0019-dashboards-tailscale-serve-funnel.md) 에서 만들었다.
 
 ## 같은 날의 사고: 비밀번호를 바꾸려고 `.env` 만 고치고 재설치 (2026-10-28 ~ 10-30)
 - 비밀번호를 바꾸려고 `teardown/09-1` 후 `.env` 를 고쳐 `09-1` 을 다시 실행했다. 처음 값은 대문자가 없어서 OpenSearch 설치기가 `Password does not match validation regex` 로 거부했고, 파드가 `CrashLoopBackOff` 로 약 41시간 487회 재시작했다. 두 번째 값(특수문자 추가)도 대문자가 없어 같은 이유로 거부됐다. 원인은 로그의 거부 메시지와, Secret 과 `.env` 값의 문자 종류(값은 출력하지 않고 확인)로 찾았다.

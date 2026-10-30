@@ -67,7 +67,7 @@
 27. [x] guest-ro 의 Dashboards 화면 확인 (2026-10-30, [ADR 0018](decisions/0018-opensearch-guest-accounts.md)): `temp-*` 검색(Dev Tools GET) 200, 인덱스 패턴은 guest 가 못 만들어 admin 이 Global tenant 에서 만들었고(admin 은 `all_access` 로 tenant 쓰기 권한이 있다) guest-ro 가 API 로 읽는 것을 확인. 사용자가 guest-ro 로 화면을 확인했다고 보고했다 (Discover 결과의 내용은 받지 못했다). guest-rw 의 Dashboards 화면 제한은 확인하지 않았다
 28. [ ] `09-4 public` 을 Tailscale 을 끈 기기에서 시험하고 `off` 로 닫는다 (이름 변경 뒤 실제로 외부에서 열리는지 미확인, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)). (고친 `verify/09-4` 재실행은 통과했다: `443(Kubeflow) 항목도 그대로 있음`)
 29. [x] 고친 `verify/09-5` 재실행 통과 (2026-10-30): 서버 dry-run 이 환경변수 3개 주입을 보여 주고 Notebook 접속 200 (두 네임스페이스). 이전 실행은 `apply` 의 `generateName` 제약으로 dry-run 이 건너뛰어졌다
-30. [ ] Dashboards 메모리 1Gi 가 충분한지(실측 없음), `.env` 의 admin 비밀번호 12자 이상 유지 (`09-4 public` 의 조건). 전체 재설치 경로에서 `09-1`~`09-5` 가 처음부터 도는지
+30. [ ] 일부 완료 (2026-10-30): Dashboards 메모리 실측 약 376MiB / 한도 1Gi, 재시작 0 (가벼운 사용 기준, [ADR 0017](decisions/0017-opensearch-dashboards.md)). `.env` 의 admin 비밀번호 길이 18 (12 이상 조건 충족). 남은 것: 전체 재설치 경로에서 `09-1`~`09-5` 가 처음부터 도는지 (다음 전체 재설치 때), 무거운 사용에서의 메모리
 
 **큰 일**
 13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
