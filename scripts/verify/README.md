@@ -27,7 +27,7 @@
 | `09-4-dashboards-tailscale.sh` | WSL | tailnet 의 `:8443` 으로 Dashboards 가 HTTPS 로 응답하고 Kubeflow 의 443 설정이 그대로인가 | `09-4-dashboards-tailscale.sh` |
 | `09-5-opensearch-notebook-access.sh` | WSL | Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속 | `09-5-opensearch-notebook-access.sh` |
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
-| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. 2026-10-30 통과 (`verify` 시점의 Notebook 에는 `psycopg2` 가 없어 인증 미확인, 이후 셀에서 guest 쪽 확인) | `10-2-postgres-notebook-access.sh` |
+| `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. 2026-10-30 통과 (`verify` 시점의 Notebook 에는 `psycopg2` 가 없어 인증 미확인, 이후 셀에서 user, guest 모두 확인) | `10-2-postgres-notebook-access.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03` ~ `06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
@@ -452,4 +452,4 @@ Successfully installed psycopg2-binary-2.9.13
 ('notebook_rw',)
 ```
 
-  환경변수 주입과 `notebook_rw` 로그인이 Notebook 안에서 확인됐다. `PGUSER` 가 `notebook_rw` 라서 guest 네임스페이스의 Notebook 으로 보이지만 사용자가 어느 네임스페이스인지 밝히지는 않았다. user 네임스페이스(`app`)는 확인하지 않았다. 기본 Notebook 이미지(`/opt/conda`, Python 3.12)에는 `psycopg2` 가 없어서 `pip install psycopg2-binary` 가 필요했고 설치는 됐다.
+  환경변수 주입과 `notebook_rw` 로그인이 Notebook 안에서 확인됐다. `PGUSER` 가 `notebook_rw` 라서 guest 네임스페이스의 Notebook 으로 보인다 (사용자가 네임스페이스를 밝히지는 않았다). user 네임스페이스의 Notebook 에서도 같은 셀이 `'PGUSER': 'app'` 과 `('app',)` 를 돌려줬다 (사용자 보고, 출력 형식은 위와 같다). 기본 Notebook 이미지(`/opt/conda`, Python 3.12)에는 `psycopg2` 가 없어서 `pip install psycopg2-binary` 가 필요했고 설치는 됐다.
