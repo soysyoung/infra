@@ -1,8 +1,12 @@
-# Notebook 생성 화면의 Configurations 에서 'PostgreSQL 접속 정보' 를 고르면 접속 환경변수가 파드에 들어간다.
-# PostgreSQL 표준 환경변수(PG*)라서 psql, psycopg2 등이 인자 없이 접속한다.
-# 계정은 네임스페이스의 Secret postgres-notebook 이 정한다: 기본 사용자 네임스페이스는 소유자 app, 공유용 등 그 밖은 데이터 읽기/쓰기만 되는 notebook_rw (docs/decisions/0022).
+# Notebook 생성 화면의 Configurations 에서 'PostgreSQL 접속 정보' 를 고르면 접속 정보가 파드에 들어간다.
+# 비밀번호는 환경변수(PGPASSWORD)가 아니라 password file 로 넣는다: PostgreSQL 공식 문서(libpq 환경변수)는 PGPASSWORD 가 `ps` 로 보일 수 있다며 권하지 않고
+# password file 을 권한다. password file 은 권한이 그룹/전체에 열려 있으면 무시된다(32.16). 그런데 Notebook 파드에는 fsGroup 100 이 걸려 있어
+# Secret 을 직접 마운트하면 파일에 그룹 읽기 권한이 붙는 것으로 알고 있다 (미확인). 그래서 initContainer 가 Secret 의 내용을 메모리 emptyDir 에 복사해
+# Notebook 사용자(uid 1000)의 0600 파일로 만들고 PGPASSFILE 이 그것을 가리킨다. psql, psycopg2 등 libpq 를 쓰는 도구가 인자 없이 접속한다.
+# 계정은 네임스페이스의 Secret postgres-notebook(username, password, pgpass)이 정한다: 기본 사용자 네임스페이스는 소유자 app, 공유용 등 그 밖은 데이터 읽기/쓰기만 되는 notebook_rw (docs/decisions/0022).
 # 적용: scripts/10-2-postgres-notebook-access.sh (프로필 네임스페이스마다 -n 으로 적용하므로 metadata.namespace 는 없다)
-# 환경변수는 파드가 만들어질 때 한 번 들어간다. 이미 떠 있는 Notebook 에는 반영되지 않는다 (새로 만들거나 재시작).
+# 환경변수와 볼륨은 파드가 만들어질 때 한 번 들어간다. 이미 떠 있는 Notebook 에는 반영되지 않는다 (새로 만들거나 재시작).
+# 미검증: busybox 이미지 pull, 이 PodDefault 웹훅의 initContainers 처리, 프로필 네임스페이스의 보안 정책에서 root initContainer 허용 여부.
 apiVersion: kubeflow.org/v1alpha1
 kind: PodDefault
 metadata:
@@ -24,8 +28,31 @@ spec:
         secretKeyRef:
           name: postgres-notebook
           key: username
-    - name: PGPASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: postgres-notebook
-          key: password
+    - name: PGPASSFILE
+      value: /etc/postgres-notebook/pgpass
+  volumes:
+    - name: postgres-pgpass-src
+      secret:
+        secretName: postgres-notebook
+        items:
+          - key: pgpass
+            path: pgpass
+    - name: postgres-pgpass
+      emptyDir:
+        medium: Memory
+  volumeMounts:
+    - name: postgres-pgpass
+      mountPath: /etc/postgres-notebook
+  initContainers:
+    - name: postgres-pgpass-init
+      image: busybox:1.37.0
+      command:
+        - sh
+        - -c
+        - cp /src/pgpass /etc/postgres-notebook/pgpass && chown 1000 /etc/postgres-notebook/pgpass && chmod 0600 /etc/postgres-notebook/pgpass
+      volumeMounts:
+        - name: postgres-pgpass-src
+          mountPath: /src
+          readOnly: true
+        - name: postgres-pgpass
+          mountPath: /etc/postgres-notebook

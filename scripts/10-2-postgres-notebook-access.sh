@@ -10,7 +10,8 @@
 #   3) 대상 네임스페이스마다 (06-4 와 같은 목록: 기본 사용자, .env 에 EXTRA_USER_EMAIL 이 있으면 두 번째 사용자)
 #      Secret postgres-notebook 과 PodDefault postgres-notebook (k8s/postgres-notebook-poddefault.yaml) 을 적용한다
 # 쓰는 법: Notebook 을 만들 때 Configurations 에서 'PostgreSQL 접속 정보' 를 고른다. 파드에 PGHOST, PGPORT, PGDATABASE,
-#   PGUSER, PGPASSWORD 가 들어간다. 이미 떠 있는 Notebook 은 재시작해야 반영된다.
+#   PGUSER, PGPASSFILE 이 들어가고, 비밀번호는 환경변수가 아니라 password file 로 들어간다 (PostgreSQL 공식 문서는 PGPASSWORD 를 권하지 않는다).
+#   이미 떠 있는 Notebook 은 재시작이 아니라 라벨이 없어서 안 들어간다: Notebook 을 새로 만들 때 고른다.
 # 권한: app = DB 소유자(전부). notebook_rw = DB 안 모든 테이블의 데이터 읽기/쓰기만, 테이블 생성/삭제는 안 된다.
 # 비밀번호를 바꾸려면 .env 를 고치고 이 스크립트를 다시 실행한다. Secret 라벨(cnpg.io/reload)이 있으면 바뀐 값이 DB 에 바로 반영된다고 공식 문서에 있으나 시험하지 않았다.
 #
@@ -61,8 +62,10 @@ while read -r ns _; do
     continue
   fi
   if [ "$ns" = "$USER_PROFILE" ]; then u=app; p=$app_pw; else u=$ROLE; p=$pw; fi
+  # password file 한 줄: 호스트:포트:DB:사용자:비밀번호. 값 안의 ':' 와 '\' 는 '\' 로 이스케이프한다 (PostgreSQL 문서 32.16)
+  pgpass="postgres-rw.postgres.svc:5432:app:$u:$(printf '%s' "$p" | sed 's/[\\:]/\\&/g')"
   kubectl -n "$ns" create secret generic postgres-notebook \
-    --from-literal=username="$u" --from-literal=password="$p" --dry-run=client -o yaml | kubectl apply -f -
+    --from-literal=username="$u" --from-literal=password="$p" --from-literal=pgpass="$pgpass" --dry-run=client -o yaml | kubectl apply -f -
   kubectl -n "$ns" apply -f "$ROOT/k8s/postgres-notebook-poddefault.yaml"
   log "$ns: 계정 $u"
   n=$((n + 1))

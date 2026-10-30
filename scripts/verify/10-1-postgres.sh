@@ -17,8 +17,13 @@ sql 'drop table if exists verify_pg; create table verify_pg(id int primary key, 
 sql 'drop table verify_pg' >/dev/null
 log "쓰기/읽기: 동작"
 
-# 서비스(postgres-rw)를 거친 TCP 접속. 비밀번호는 Secret(postgres-app-auth)에서 파드 안 환경변수로만 넘긴다.
+# 서비스(postgres-rw)를 거친 TCP 접속. PostgreSQL 공식 문서는 PGPASSWORD 를 권하지 않으므로 password file 을 쓴다:
+# 표준입력으로 DB 파드 안 /run 에 0600 파일을 만들고(비밀번호가 명령줄에 나오지 않는다) PGPASSFILE 로 가리킨 뒤 지운다.
+pf=/run/pgpass_verify
+trap 'kubectl -n "$NS" exec "$POD" -c postgres -- rm -f "$pf" >/dev/null 2>&1 || true' EXIT
 pw=$(kubectl -n "$NS" get secret postgres-app-auth -o jsonpath='{.data.password}' | base64 -d)
-kubectl -n "$NS" exec "$POD" -c postgres -- env PGPASSWORD="$pw" psql -h postgres-rw -U app -d app -Atc 'select 1' | grep -qx 1 \
+printf '%s\n' "postgres-rw:5432:app:app:$(printf '%s' "$pw" | sed 's/[\\:]/\\&/g')" \
+  | kubectl -n "$NS" exec -i "$POD" -c postgres -- sh -c "umask 077; cat > $pf"
+kubectl -n "$NS" exec "$POD" -c postgres -- env PGPASSFILE="$pf" psql -h postgres-rw -U app -d app -Atc 'select 1' | grep -qx 1 \
   || die "postgres-rw 서비스로 app 계정 접속에 실패했습니다."
 log "OK: postgres-rw 서비스에서 app 계정 접속 동작"
