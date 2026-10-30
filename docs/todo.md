@@ -13,12 +13,13 @@
 - 문서 배치: 근거는 ADR, 사용법은 README, 실제 출력은 verify/teardown README, 막힌 곳은 troubleshooting. 저장소는 공개이므로 **tailnet 이름, 기기 모델, 사설 IP 는 쓰지 않는다** (`<기기>.<tailnet>.ts.net`).
 - 도구 함정: `wsl.exe -- bash -c "..."` 로 넘긴 명령의 `$` 는 한 번 더 해석된다. 복잡한 명령은 스크립트를 표준입력으로 넘긴다 (`cat <<'EOF' | wsl.exe -- bash -s`). 문서를 파이썬으로 쓸 때 Windows 경로의 백슬래시가 이스케이프로 해석되어 파일이 깨진다 ([troubleshooting.md](troubleshooting.md) 18번). 쓴 뒤 제어문자와 탭을 검사한다.
 
-## 현재 환경 (2026-10-26 기준, WSL 줄은 2026-10-27 갱신)
+## 현재 환경 (2026-10-26 기준, WSL 줄은 2026-10-27, OpenSearch 와 접속 줄은 2026-10-30 갱신)
 
 - **Windows**: 예약 작업 `wsl-keepalive`(부팅 때 WSL 을 띄움, 로그온 없이), AC 절전과 최대 절전 끔, 덮개 닫기 '아무 것도 안 함'. Windows 에는 Tailscale 이 없다 (WSL 안에만 있다).
 - **WSL**: `docker`, `tailscaled`, `kubeflow-port-forward`(`127.0.0.1:8080`) active. `tailscale serve` 가 HTTPS 로 `127.0.0.1:8080` 을 tailnet 에 연다 (tailnet only). **`08-boot-resilience.sh` 이전 버전이 적용돼 있음 (2026-10-27)**: `docker.service` 시작 전 `tailscale wait --timeout=60s`, `kubeflow-port-forward` 가 전용 kubeconfig(`~/.kube/mlops-local.config`)로 API 서버를 컨트롤 플레인 컨테이너 IP(`172.18.0.4`)로 부름, `mlops-watchdog.timer` 가 1분마다 실행. 저장소의 `08` 은 이미 새 버전(감시 서비스만, API 서버는 `127.0.0.1`)으로 바뀌었고 이 PC 에는 재설치로 적용한다. 근거와 시험 결과는 [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록'. 컨트롤 플레인 IP 는 `/etc/mlops/cp-ip` 에 고정하고 클러스터를 다시 만들면 `08` 을 다시 실행한다. 일부러 `docker stop` 해 둔 클러스터는 감시가 다시 시작하니, 멈추려면 `sudo systemctl stop mlops-watchdog.timer` 부터 한다.
 - **클러스터**: kind `mlops` 4노드 Ready (control-plane 1, GPU 워커 `mlops-worker`, CPU 워커 2), GPU 1장을 4개로 광고(time-slicing, 2026-10-28, [ADR 0013](decisions/0013-gpu-time-slicing.md)), OpenSearch 단일 노드 Running(네임스페이스 `opensearch`, [ADR 0014](decisions/0014-opensearch-single-node.md)), 프로필 ResourceQuota 적용(`06-4`, 기본 사용자 GPU 3 / 공유용 계정 GPU 0, 2026-10-28, [ADR 0015](decisions/0015-profile-resource-quota.md)), 비정상 파드 0 (2026-10-26 확인). Kubeflow 26.03.1. 로그인 `user@example.com`, 비밀번호는 저장소 루트 `.env` 의 `KUBEFLOW_PASSWORD`. Notebook `test01`, `test03`(CPU) 이 Running (`test02-gpu` 는 중지). 공유용 계정 `guest@example.com`(네임스페이스 `kubeflow-guest-example-com`, GPU 0)이 있고 비밀번호는 `.env` 의 `EXTRA_USER_PASSWORD`. Funnel 은 평소 꺼 둔다 (`07-4 off` 상태가 기본, 공유할 때만 `on`).
 - **접속**: 이 PC 는 `http://localhost:8080` (https 아님). 핸드폰 등 tailnet 기기는 `https://<기기>.<tailnet>.ts.net`. 이 PC 의 Windows 브라우저로는 `.ts.net` 주소가 해석되지 않는다.
+- **OpenSearch** (2026-10-30, `09-1`~`09-5`): 3.8.0 단일 노드(`09-1`), Dashboards(`09-2`, systemd 서비스 `opensearch-dashboards-port-forward` 가 `127.0.0.1:5601` 을 항상 열어 둔다, [ADR 0017](decisions/0017-opensearch-dashboards.md)), 게스트 계정 2개(`09-3`: guest-rw 는 `temp-*` 읽기·쓰기, guest-ro 는 `temp-*` 읽기 전용, 계정은 `.env` 의 `OPENSEARCH_GUEST_*`, [ADR 0018](decisions/0018-opensearch-guest-accounts.md)), tailnet 에서 `https://<기기>.<tailnet>.ts.net:8443` 으로 Dashboards(`09-4 private`, 평소 상태. `public` 은 외부에 보일 때만, 끝나면 `off`, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)), 모든 사용자 네임스페이스의 Notebook 에 guest-rw 를 환경변수로 주입(`09-5`, Notebook 을 만들 때 Configurations 에서 'OpenSearch guest-rw 접속 정보' 선택, [ADR 0020](decisions/0020-notebook-opensearch-guest-env.md)). admin 비밀번호는 `.env` 의 `OPENSEARCH_ADMIN_PASSWORD` 이고 이미 초기화된 클러스터에서는 `.env` 만 고쳐서는 바뀌지 않는다 (ADR 0017). **기기 이름을 바꾸면 옛 이름의 serve, funnel 설정이 남는다**: `sudo tailscale serve reset` 후 `07-3`, `09-4 private` 를 다시 실행 ([troubleshooting.md](troubleshooting.md) 30번).
 - **남겨 둔 NodePort 흔적**: `07-2` 스크립트들 (시험 기록). `kind-config.yaml` 의 30080 매핑은 2026-10-27 에 제거했다 (이 PC 의 현재 클러스터에는 재설치 전까지 남아 있다). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
 - **git**: `dev` 에 작업, `main` 은 README 한 파일(작성자 `soysyoung@gmail.com`). `dev` 의 기존 커밋 48개는 작성자 이메일이 `dangim.co.kr` 이다 (히스토리를 다시 쓰지 않기로 했다).
 
@@ -61,6 +62,12 @@
 24. [ ] OpenSearch 에 실제 벡터(약 10.5만 x 384차원)를 넣은 뒤의 메모리 확인, 파드 재시작과 WSL 재부팅 뒤 색인 보존, 전체 재설치 경로(`05-4`, `09` 포함)에서의 동작
 25. [ ] `scripts/06-3-poddefaults.sh` 와 `verify/06-3-poddefaults.sh` 실행 확인 (2026-10-28 작성, 미시험). 지금 클러스터에는 PodDefault 두 개가 이미 있어 `unchanged` 가 나와야 하고, 재설치 경로에서 처음부터 만들어지는지는 24번의 전체 재설치 때 확인한다
 26. [ ] OpenSearch GPU 원격 인덱스 빌드 go/no-go 실험 (조사 기록은 [ADR 0016](decisions/0016-opensearch-remote-gpu-index-build.md), 근거가 `latest` 문서라 **OpenSearch 3.8.0 지원 여부는 미검증**). 켜기 전에 확인: 3.8.0 지원 여부, 빌더 소스에서 S3 커스텀 엔드포인트(MinIO) 지원 여부, 빌더 이미지 digest 고정, 빌드 중 `nvidia-smi` 로 VRAM 측정. 안 되면 CPU 빌드로 둔다. GPU 슬라이스 1개를 미배정으로 남겨 둔다 (22번 배분). 워크로드 쪽에는 "GPU 빌드를 쓰려면 faiss hnsw" 를 문서로만 알린다
+
+**OpenSearch Dashboards 와 게스트 계정** (2026-10-30 적용, 남은 시험)
+27. [ ] guest-ro 로 브라우저에서 Dashboards 에 로그인해 `temp-*` 만 보이는지, guest-rw 는 `kibana_user` 가 없어 화면 일부가 제한되는지 확인 ([ADR 0018](decisions/0018-opensearch-guest-accounts.md) 미해소)
+28. [ ] `09-4 public` 을 Tailscale 을 끈 기기에서 시험하고 `off` 로 닫는다 (이름 변경 뒤 실제로 외부에서 열리는지 미확인, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)). 고친 `verify/09-4` 를 다시 실행해 `443(Kubeflow) 항목도 그대로 있음` 이 나오는지 본다
+29. [ ] `verify/09-5` 의 출력을 받아 기록한다. 두 번째 사용자(guest)의 Notebook 에서 `temp-*` 쓰기와 범위 밖 403 은 사용자 확인으로 기록했다
+30. [ ] Dashboards 메모리 1Gi 가 충분한지(실측 없음), `.env` 의 admin 비밀번호 12자 이상 유지 (`09-4 public` 의 조건). 전체 재설치 경로에서 `09-1`~`09-5` 가 처음부터 도는지
 
 **큰 일**
 13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
@@ -106,4 +113,5 @@
 | 2026-10-28 | GPU 1장을 4개로 광고(time-slicing). 노드 광고 4, 스모크 파드 통과, 재시작한 Notebook 의 `nvidia-smi` 가 같은 GPU. 동시 실행은 미시험 (위 23번) | [ADR 0013](decisions/0013-gpu-time-slicing.md) |
 | 2026-10-28 | OpenSearch 3.8.0 단일 노드 (Helm 4.2.4). `verify/09` 통과, 클러스터 green, `opensearch-knn` 있음, 파드 4Gi, WSL 사용 9.0GB 로 `.wslconfig` 24GB 유지 | [ADR 0014](decisions/0014-opensearch-single-node.md) |
 | 2026-10-28 | 프로필 ResourceQuota (`06-4`, `quotas.env`): 기본 사용자 GPU 3, 공유용 계정 파드 20 / 20Gi / GPU 0. 갱신, 비운 키 제거, 한도 초과 거부(서버 dry-run), `06-2` 재실행 뒤 복원을 `roundtrip` 으로 확인. `06` 전체 재실행은 미시험 | [ADR 0015](decisions/0015-profile-resource-quota.md), [verify/README.md](../scripts/verify/README.md) |
+| 2026-10-30 | OpenSearch Dashboards(`09-2`), 게스트 계정 2개와 권한 분리(`09-3`), Dashboards 의 tailnet/Funnel 노출(`09-4`), Notebook 용 guest-rw 환경변수 주입(`09-5`). `verify/09-2`, `09-3`(12개 항목), `09-4` 통과, Notebook 에서 `temp-*` 쓰기 201 과 범위 밖 403 확인. 기기 이름 변경 뒤 옛 serve 설정이 남아 `serve reset` 으로 정리 | [ADR 0017](decisions/0017-opensearch-dashboards.md)~[0020](decisions/0020-notebook-opensearch-guest-env.md), [verify/README.md](../scripts/verify/README.md), [troubleshooting.md](troubleshooting.md) 30번 |
 | 2026-10-27 | 컨트롤 플레인이 kind 네트워크에서 떨어져 8080 이 막힌 사고를 복구하고 `08-boot-resilience.sh` 를 적용. 대기(`tailscale wait`)가 `tailscale0` 준비를 기다림, 오프라인 부팅에서도 8080 이 NIC 없이 열림, 실행 중 전환 2건에서 port-forward 가 죽지 않음을 확인. 같은 날 감시 서비스 복구 경로(`detach`, `down`)도 통과. 60초 시간 초과 등은 미시험 (위 16번) | [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록', [troubleshooting.md](troubleshooting.md) 27번 |

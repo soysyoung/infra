@@ -1,6 +1,6 @@
 # 0017. OpenSearch Dashboards (Helm 공식 차트, 같은 네임스페이스)
 
-- 상태: 적용 (2026-10-30). 사용자가 `09-2` 를 실행하고 브라우저로 로그인했다고 보고했다. `verify/09-2` 의 출력은 받지 못했다. 아래 '미검증' 중 해소된 것은 '적용 결과' 에 적었다
+- 상태: 적용 (2026-10-30). 사용자가 `09-2` 를 실행하고 브라우저로 로그인했다고 보고했다. `verify/09-2` 도 통과했다(저장 객체 조회 200, 127.0.0.1:5601 302, [verify/README.md](../../scripts/verify/README.md)). 아래 '미검증' 중 해소된 것은 '적용 결과' 에 적었다
 
 ## 상황
 OpenSearch([ADR 0014](0014-opensearch-single-node.md))는 `kubectl port-forward` 후 `https://localhost:9200` 으로 접속되고, 브라우저에서는 JSON 만 보인다 (2026-10-28 사용자가 확인: 3.8.0 응답). 인덱스와 k-NN 쿼리를 살펴볼 웹 UI 가 없다.
@@ -32,7 +32,7 @@ OpenSearch([ADR 0014](0014-opensearch-single-node.md))는 `kubectl port-forward`
 
 ## 적용 결과 (2026-10-30)
 - 사용자 보고: `09-2` 실행 후 `http://localhost:5601` 에 `admin` 으로 로그인해 Dashboards 화면에 들어갔다 (Windows 브라우저, port-forward). 이로써 Secret 의 세 키로 파드가 시작했고, Dashboards 가 OpenSearch 의 자체 서명 인증서를 받아들여 연결하며, `localhost:5601` 이 Windows 에서 열린다는 점은 **보고로 확인**됐다 (파드 로그나 `verify/09-2` 출력은 보지 못했다).
-- 미해소: 메모리 1Gi 가 충분한지(실측 없음), 설치 뒤 WSL 메모리 변화, 파드 배치 노드, 읽기 전용 계정과 tailnet 접속(`tailscale serve`)은 아직 만들지 않았다.
+- 미해소: 메모리 1Gi 가 충분한지(실측 없음), 설치 뒤 WSL 메모리 변화, 파드 배치 노드, 읽기 전용 계정은 [ADR 0018](0018-opensearch-guest-accounts.md), tailnet 접속(`tailscale serve`)은 [ADR 0019](0019-dashboards-tailscale-serve-funnel.md) 에서 만들었다.
 
 ## 같은 날의 사고: 비밀번호를 바꾸려고 `.env` 만 고치고 재설치 (2026-10-28 ~ 10-30)
 - 비밀번호를 바꾸려고 `teardown/09-1` 후 `.env` 를 고쳐 `09-1` 을 다시 실행했다. 처음 값은 대문자가 없어서 OpenSearch 설치기가 `Password does not match validation regex` 로 거부했고, 파드가 `CrashLoopBackOff` 로 약 41시간 487회 재시작했다. 두 번째 값(특수문자 추가)도 대문자가 없어 같은 이유로 거부됐다. 원인은 로그의 거부 메시지와, Secret 과 `.env` 값의 문자 종류(값은 출력하지 않고 확인)로 찾았다.

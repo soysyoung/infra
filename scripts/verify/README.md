@@ -271,3 +271,50 @@ node/mlops-worker3 condition met
 ```
 
 Ready 시각(UTC): oauth2-proxy 01:28:04, istio 게이트웨이와 dex 01:28:43. 노드 컨테이너 StartedAt 01:27:52 (KST 10:27:52). 타임라인과 한계는 [ADR 0010](../../docs/decisions/0010-reboot-recovery.md).
+
+## 09-2, 09-3, 09-4 (2026-10-30, 사용자 실행)
+
+```bash
+bash scripts/verify/09-2-opensearch-dashboards.sh
+bash scripts/verify/09-3-opensearch-guests.sh
+bash scripts/verify/09-4-dashboards-tailscale.sh
+```
+
+```text
+# 09-2
+deployment "opensearch-dashboards" successfully rolled out
+==> 저장 객체 조회 응답 코드: 200
+==> 127.0.0.1:5601 응답 코드: 302
+==> OK: Dashboards 가 OpenSearch 에 연결되어 로그인된 요청을 처리하고, 127.0.0.1:5601 port-forward 서비스가 응답
+
+# 09-3
+==> 인덱스 패턴 temp-*, 시험 인덱스 temp-verify-guest, 범위 밖 인덱스 verify-outside-guest
+==> OK    guest-rw 가 인덱스를 만든다 (200)
+==> OK    guest-rw 가 문서를 색인한다 (201)
+==> OK    guest-rw 가 bulk 로 색인한다 (200)
+==> OK    guest-rw 가 k-NN 검색한다 (200)
+==> OK    guest-rw 가 범위 밖 인덱스를 만들지 못한다 (403)
+==> OK    guest-rw 가 시스템 인덱스를 읽지 못한다 (403)
+==> OK    guest-ro 가 k-NN 검색한다 (200)
+==> OK    guest-ro 가 문서를 쓰지 못한다 (403)
+==> OK    guest-ro 가 인덱스를 지우지 못한다 (403)
+==> OK    guest-ro 가 범위 밖 인덱스를 읽지 못한다 (403)
+==> OK    guest-ro 가 클러스터 설정을 읽지 못한다 (403)
+==> OK    guest-rw 가 인덱스를 지운다 (200)
+==> OK: 게스트 권한 분리가 기대대로 동작 (Dashboards 로그인은 브라우저로 확인)
+
+# 09-4 (private, 기기 이름 변경과 serve reset 뒤)
+==> serve 목록에 8443 있음
+==> https://<기기>.<tailnet>.ts.net:8443/ 응답: 302 -> https://<기기>.<tailnet>.ts.net:8443/app/login
+==> 주의: serve 목록에 443 항목이 없습니다 (Kubeflow 를 07-3 으로 열지 않았다면 정상).   <- 아래 목록에는 443 이 있다 (버그, 아래 설명)
+https://<기기>.<tailnet>.ts.net (tailnet only)
+|-- / proxy http://127.0.0.1:8080
+
+https://<기기>.<tailnet>.ts.net:8443 (tailnet only)
+|-- / proxy http://127.0.0.1:5601
+==> OK: https://<기기>.<tailnet>.ts.net:8443 로 Dashboards 가 HTTPS 로 응답함 (로그인은 브라우저로 확인)
+```
+
+- 09-3 의 응답 코드(201, 403 등)가 이 클러스터에서 처음으로 실측됐다. 위 12개 모두 기대와 같았고 k-NN 검색은 `read` 권한만으로 되었다.
+- 09-4 출력의 `443 항목이 없습니다` 는 검사의 버그였다: 기본 포트 443 은 `serve status` 에 `:443` 이 붙지 않는데 `:443` 을 찾았다. `https://<이름> (` 을 찾도록 고쳤고 (예시 출력으로 확인, 이 PC 에서 다시 실행하지는 않았다), 고친 뒤에는 `443(Kubeflow) 항목도 그대로 있음` 이 나와야 한다.
+- 출력의 기기 이름과 tailnet 이름은 `<기기>`, `<tailnet>` 으로 바꿨다. 줄 끝의 화살표 설명은 출력이 아니라 기록자가 덧붙인 것이다.
