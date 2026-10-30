@@ -2,7 +2,8 @@
 # 10-2 검증:
 #   1) DB 의 역할 notebook_rw: 로그인 가능, 슈퍼유저 아님, pg_read_all_data + pg_write_all_data 멤버
 #   2) postgres-rw 서비스로 notebook_rw 접속: app 이 만든 시험 테이블을 읽고 쓰고 지울 수 있고, 테이블 생성은 거부된다 (시험 테이블은 지운다)
-#   3) 대상 네임스페이스마다 Secret 이 .env 와 같고, PodDefault 가 있고, 레이블을 단 파드에 환경변수 5개가 주입된다 (서버 쪽 dry-run)
+#   3) 대상 네임스페이스마다 Secret 이 기대한 계정과 .env 의 비밀번호와 같고 (기본 사용자 네임스페이스는 app, 그 밖은 notebook_rw),
+#      PodDefault 가 있고, 레이블을 단 파드에 환경변수 5개가 주입된다 (서버 쪽 dry-run)
 #   4) 실행 중인 Notebook 이 있으면 그 파드 안에서 postgres-rw 에 접속한다 (Istio 사이드카 경로 포함). Notebook 이미지에 psycopg2 가 없으면 TCP 연결까지만 본다
 # 4번이 가장 중요하지만 Notebook 이 떠 있어야 한다. 없으면 건너뛰고 안내만 한다.
 set -euo pipefail
@@ -13,6 +14,8 @@ NS=postgres
 env_get() { sed -n "s/^$1=//p" "$ROOT/.env" 2>/dev/null | tr -d '\r' | tail -1; }
 pw=$(env_get POSTGRES_NOTEBOOK_PASSWORD); user=notebook_rw
 [ -n "$pw" ] || die ".env 에 POSTGRES_NOTEBOOK_PASSWORD 가 없습니다 (scripts/10-2-postgres-notebook-access.sh)."
+app_pw=$(env_get POSTGRES_APP_PASSWORD)
+[ -n "$app_pw" ] || die ".env 에 POSTGRES_APP_PASSWORD 가 없습니다 (scripts/10-1-postgres.sh)."
 
 kubectl -n "$NS" wait --for=condition=Ready cluster/postgres --timeout=120s
 POD=$(kubectl -n "$NS" get pod -l cnpg.io/cluster=postgres,cnpg.io/instanceRole=primary -o jsonpath='{.items[0].metadata.name}')
@@ -64,11 +67,13 @@ checked=0; skipped=0; auth_skipped=0; inj_skipped=0
 while read -r ns _; do
   kubectl get ns "$ns" >/dev/null 2>&1 || { log "$ns 가 없어 건너뜁니다."; continue; }
   checked=$((checked + 1))
+  # 기대하는 계정: 기본 사용자 네임스페이스는 소유자 app, 그 밖은 notebook_rw
+  if [ "$ns" = "$USER_PROFILE" ]; then eu=app; ep=$app_pw; else eu=$user; ep=$pw; fi
 
   su=$(kubectl -n "$ns" get secret postgres-notebook -o jsonpath='{.data.username}' 2>/dev/null | base64 -d) || die "$ns 에 Secret postgres-notebook 이 없습니다 (10-2)."
   sp=$(kubectl -n "$ns" get secret postgres-notebook -o jsonpath='{.data.password}' | base64 -d)
-  [ "$su" = "$user" ] && [ "$sp" = "$pw" ] || die "$ns 의 Secret 이 .env 와 다릅니다 (10-2 를 다시 실행)."
-  log "$ns: Secret 이 .env 의 $user 와 같음"
+  [ "$su" = "$eu" ] && [ "$sp" = "$ep" ] || die "$ns 의 Secret 이 기대한 계정($eu)과 .env 의 비밀번호와 다릅니다 (10-2 를 다시 실행)."
+  log "$ns: Secret 이 .env 의 $eu 와 같음"
 
   kubectl -n "$ns" get poddefault postgres-notebook >/dev/null 2>&1 || die "$ns 에 PodDefault postgres-notebook 이 없습니다 (10-2)."
   # 서버 쪽 dry-run: 변경 웹훅이 돌아야 환경변수가 보인다. generateName 은 apply 가 아니라 create 로만 쓸 수 있다.
@@ -88,19 +93,19 @@ while read -r ns _; do
   if [ -z "$pod" ]; then
     skipped=$((skipped + 1)); log "$ns: 실행 중인 Notebook 이 없어 접속 시험을 건너뜁니다."; continue
   fi
-  res=$(printf '%s\n%s\n' "$user" "$pw" | kubectl -n "$ns" exec -i "$pod" -c "${pod%-0}" -- python3 -c "$PYCHECK" 2>/dev/null || echo "exec 실패")
+  res=$(printf '%s\n%s\n' "$eu" "$ep" | kubectl -n "$ns" exec -i "$pod" -c "${pod%-0}" -- python3 -c "$PYCHECK" 2>/dev/null || echo "exec 실패")
   log "$ns: Notebook $pod 에서 postgres-rw 접속: $res"
   case "$res" in
-    "ok:$user") ;;
+    "ok:$eu") ;;
     tcp-only) auth_skipped=$((auth_skipped + 1));;
-    auth-error:*) die "$ns: 인증 실패. .env 와 DB 의 $user 비밀번호가 다릅니다 (10-2 다시 실행).";;
+    auth-error:*) die "$ns: 인증 실패. .env 와 DB 의 $eu 비밀번호가 다릅니다 (10-2 다시 실행).";;
     *) die "$ns: Notebook 에서 postgres-rw:5432 에 닿지 못합니다 ($res). Istio 사이드카나 네트워크 정책을 확인하세요 (docs/decisions/0022).";;
   esac
 done < <(quota_targets)
 
 [ "$checked" -gt 0 ] || die "대상 네임스페이스가 없습니다."
 if [ "$skipped" -gt 0 ]; then
-  log "접속 시험을 건너뛴 네임스페이스가 $skipped 개 있습니다. Notebook 을 만들 때 'PostgreSQL 접속 정보 (notebook_rw)' 를 고르고 다시 실행하거나, Notebook 셀에서 확인하세요:"
+  log "접속 시험을 건너뛴 네임스페이스가 $skipped 개 있습니다. Notebook 을 만들 때 'PostgreSQL 접속 정보' 를 고르고 다시 실행하거나, Notebook 셀에서 확인하세요:"
   echo '  import psycopg2; cur = psycopg2.connect("").cursor(); cur.execute("select current_user"); print(cur.fetchone())   # 설정은 PG* 환경변수에서 읽는다'
 fi
 [ "$inj_skipped" -eq 0 ] || die "환경변수 주입 시험을 $inj_skipped 개 네임스페이스에서 건너뛰었습니다 (위 메시지). 주입은 확인되지 않았습니다."

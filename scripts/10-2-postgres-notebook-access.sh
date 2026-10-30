@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# 10-2. Notebook 에 PostgreSQL 접속 정보를 환경변수로 넣는다 (계정 notebook_rw + Secret + PodDefault, 프로필 네임스페이스마다)
+# 10-2. Notebook 에 PostgreSQL 접속 정보를 환경변수로 넣는다 (Secret + PodDefault, 프로필 네임스페이스마다). 계정은 네임스페이스마다 다르다:
+#   기본 사용자 네임스페이스(lib/quotas.sh 의 USER_PROFILE) -> 소유자 app (모든 권한)
+#   그 밖(공유용 guest 등) -> notebook_rw (데이터 읽기/쓰기만, 테이블 생성/삭제 불가)
 #
-# 왜: Notebook 에 DB 소유자(app) 비밀번호를 두지 않으려고. 설계와 근거는 docs/decisions/0022.
+# 왜: 공유용 계정의 Notebook 에 DB 소유자(app) 비밀번호를 두지 않으려고. 설계와 근거는 docs/decisions/0022.
 # 하는 일 (여러 번 실행해도 안전):
 #   1) 비밀번호가 .env 에 없으면 만들어서 추가 (POSTGRES_NOTEBOOK_USER=notebook_rw, POSTGRES_NOTEBOOK_PASSWORD)
 #   2) 네임스페이스 postgres 에 Secret postgres-notebook-rw 와 DatabaseRole notebook-rw (k8s/postgres-notebook-role.yaml) 를 적용하고 DB 에 역할이 생길 때까지 기다린다
 #   3) 대상 네임스페이스마다 (06-4 와 같은 목록: 기본 사용자, .env 에 EXTRA_USER_EMAIL 이 있으면 두 번째 사용자)
 #      Secret postgres-notebook 과 PodDefault postgres-notebook (k8s/postgres-notebook-poddefault.yaml) 을 적용한다
-# 쓰는 법: Notebook 을 만들 때 Configurations 에서 'PostgreSQL 접속 정보 (notebook_rw)' 를 고른다. 파드에 PGHOST, PGPORT, PGDATABASE,
+# 쓰는 법: Notebook 을 만들 때 Configurations 에서 'PostgreSQL 접속 정보' 를 고른다. 파드에 PGHOST, PGPORT, PGDATABASE,
 #   PGUSER, PGPASSWORD 가 들어간다. 이미 떠 있는 Notebook 은 재시작해야 반영된다.
-# 권한: DB 안 모든 테이블의 데이터 읽기/쓰기. 테이블 생성/삭제는 안 된다.
+# 권한: app = DB 소유자(전부). notebook_rw = DB 안 모든 테이블의 데이터 읽기/쓰기만, 테이블 생성/삭제는 안 된다.
 # 비밀번호를 바꾸려면 .env 를 고치고 이 스크립트를 다시 실행한다. Secret 라벨(cnpg.io/reload)이 있으면 바뀐 값이 DB 에 바로 반영된다고 공식 문서에 있으나 시험하지 않았다.
 #
 # 선행: 10-1 (Cluster), 06 (프로필 네임스페이스). 두 번째 사용자는 06-2. 검증: scripts/verify/10-2-postgres-notebook-access.sh
@@ -24,6 +26,8 @@ ENV_FILE="$ROOT/.env"
 env_get() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tr -d '\r' | tail -1; }
 
 kubectl -n "$NS" get cluster postgres >/dev/null 2>&1 || die "Cluster postgres 가 없습니다. scripts/10-1-postgres.sh 를 먼저 실행하세요."
+app_pw=$(env_get POSTGRES_APP_PASSWORD)   # 기본 사용자 네임스페이스에 주입할 소유자 app 의 비밀번호 (10-1 이 만든다)
+[ -n "$app_pw" ] || die ".env 에 POSTGRES_APP_PASSWORD 가 없습니다. scripts/10-1-postgres.sh 를 먼저 실행하세요."
 
 # 무작위 32자 (영숫자만). 이미 .env 에 있으면 그대로 쓴다.
 pw=$(env_get POSTGRES_NOTEBOOK_PASSWORD)
@@ -56,12 +60,14 @@ while read -r ns _; do
     log "네임스페이스 $ns 가 아직 없어 건너뜁니다 (두 번째 사용자는 06-2-extra-user.sh 를 먼저 실행)."
     continue
   fi
+  if [ "$ns" = "$USER_PROFILE" ]; then u=app; p=$app_pw; else u=$ROLE; p=$pw; fi
   kubectl -n "$ns" create secret generic postgres-notebook \
-    --from-literal=username="$ROLE" --from-literal=password="$pw" --dry-run=client -o yaml | kubectl apply -f -
+    --from-literal=username="$u" --from-literal=password="$p" --dry-run=client -o yaml | kubectl apply -f -
   kubectl -n "$ns" apply -f "$ROOT/k8s/postgres-notebook-poddefault.yaml"
+  log "$ns: 계정 $u"
   n=$((n + 1))
 done < <(quota_targets)
 [ "$n" -gt 0 ] || die "대상 네임스페이스가 하나도 없습니다. 06-kubeflow.sh 가 끝났는지 확인하세요."
 
 log "완료 ($n 개 네임스페이스). 검증: scripts/verify/10-2-postgres-notebook-access.sh"
-log "Notebook 을 만들 때 Configurations 에서 'PostgreSQL 접속 정보 (notebook_rw)' 를 고르세요. 떠 있는 Notebook 은 재시작해야 반영됩니다."
+log "Notebook 을 만들 때 Configurations 에서 'PostgreSQL 접속 정보' 를 고르세요. 떠 있는 Notebook 은 재시작해야 반영됩니다."
