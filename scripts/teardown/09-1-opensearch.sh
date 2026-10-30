@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 삭제 09. OpenSearch 릴리스와 PVC(색인 데이터), 비밀번호 Secret, 네임스페이스
+# 삭제 09-1. OpenSearch 릴리스와 PVC(색인 데이터), 비밀번호 Secret, 네임스페이스
 #
 # helm uninstall 은 PVC 를 지우지 않고, 남은 PVC 로 다시 설치하면 처음 관리자 비밀번호가 그대로 쓰인다 (공식 문서).
 # .env 의 OPENSEARCH_ADMIN_PASSWORD 는 지우지 않는다 (직접 지운다). 삭제 05(클러스터 삭제)가 이 모두를 포함하므로

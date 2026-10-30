@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# 09. OpenSearch 단일 노드 설치 (Helm 공식 차트, k-NN 벡터 검색용)
+# 09-1. OpenSearch 단일 노드 설치 (Helm 공식 차트, k-NN 벡터 검색용)
 #
 # 왜: 추천 서비스의 벡터 검색(약 10.5만 x 384차원)을 클러스터 안에서 제공한다. 설정과 근거는 docs/decisions/0014.
 # 하는 일:
 #   1) 관리자 비밀번호가 .env 에 없으면 만들어서 추가 (OpenSearch 2.12+ 는 초기 비밀번호가 필수)
 #   2) 네임스페이스 opensearch 에 Secret 과 차트를 설치 (k8s/opensearch-values.yaml)
-# 주의: 릴리스를 지워도 PVC 는 남고, 다시 설치하면 처음 비밀번호가 그대로 쓰인다 (teardown/09 가 PVC 도 지운다).
+# 주의: 릴리스를 지워도 PVC 는 남고, 다시 설치하면 처음 비밀번호가 그대로 쓰인다 (teardown/09-1 이 PVC 도 지운다).
 #
-# 선행: 06-kubeflow.sh 까지 (StorageClass 와 노드), 05-4-helm.sh. 검증: scripts/verify/09-opensearch.sh
+# 선행: 06-kubeflow.sh 까지 (StorageClass 와 노드), 05-4-helm.sh. 검증: scripts/verify/09-1-opensearch.sh
 #
 # 참고 (공식 문서):
 #   - https://docs.opensearch.org/latest/install-and-configure/install-opensearch/helm/
@@ -45,4 +45,4 @@ helm --kube-context "kind-$CLUSTER" upgrade --install "$RELEASE" opensearch/open
 
 kubectl -n "$NS" rollout status sts/opensearch-cluster-master --timeout=600s
 
-log "완료. 검증: scripts/verify/09-opensearch.sh  (접속: kubectl -n $NS port-forward svc/opensearch-cluster-master 9200:9200)"
+log "완료. 검증: scripts/verify/09-1-opensearch.sh (접속: kubectl -n $NS port-forward svc/opensearch-cluster-master 9200:9200)"

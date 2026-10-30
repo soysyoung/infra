@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 09 검증: 파드 Ready -> 클러스터 상태 -> k-NN 플러그인 -> 384차원 벡터 색인과 검색 (시험 인덱스는 지운다)
+# 09-1 검증: 파드 Ready -> 클러스터 상태 -> k-NN 플러그인 -> 384차원 벡터 색인과 검색 (시험 인덱스는 지운다)
 # curl 은 파드 안에서 실행한다 (파드의 OPENSEARCH_INITIAL_ADMIN_PASSWORD 를 쓰므로 비밀번호가 명령줄에 나오지 않는다).
 set -euo pipefail
 source "$(dirname "$0")/../lib/common.sh"

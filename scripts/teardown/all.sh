@@ -23,7 +23,7 @@ confirm "되돌릴 수 없습니다."
 
 export ASSUME_YES=1
 [ "${DRY_RUN:-}" = 1 ] || sudo -v   # sudo 비밀번호를 한 번만 묻는다
-for s in 09-opensearch 08-boot-resilience 07-1-port-forward 06-kubeflow 05-4-helm 05-kind-cluster 04-nvidia-toolkit 03-docker 02-tailscale; do
+for s in 09-1-opensearch 08-boot-resilience 07-1-port-forward 06-kubeflow 05-4-helm 05-kind-cluster 04-nvidia-toolkit 03-docker 02-tailscale; do
   log "삭제 $s"
   bash "$(dirname "$0")/$s.sh"
 done

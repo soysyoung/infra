@@ -1,4 +1,4 @@
-# OpenSearch Helm 차트 값 (단일 노드). 09-opensearch.sh 가 -f 로 넘긴다. 근거: docs/decisions/0014
+# OpenSearch Helm 차트 값 (단일 노드). 09-1-opensearch.sh 가 -f 로 넘긴다. 근거: docs/decisions/0014
 # 관리자 비밀번호는 여기에 쓰지 않는다. 09 가 Secret 을 만들고 extraEnvs 를 --set 으로 더한다.
 clusterName: opensearch-cluster
 nodeGroup: master
