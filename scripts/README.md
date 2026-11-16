@@ -86,13 +86,18 @@ CloudNativePG 연산자를 Helm 으로 설치하고 `Cluster` 하나(단일 인�
 grep '^POSTGRES_APP_' .env    # 계정 이름과 비밀번호
 ```
 
-## 백업과 복원 (11-1, PostgreSQL)
+## 백업과 복원 (11-1 PostgreSQL, 11-2 OpenSearch)
 
-kind 의 PV 는 클러스터를 지우면 사라지므로 DB `app` 을 클러스터 밖으로 받는다 ([ADR 0023](../docs/decisions/0023-backup-location.md)). **작성만 했고 아직 실행하지 않았다.**
+kind 의 PV 는 클러스터를 지우면 사라지므로 DB `app` 과 OpenSearch 색인을 클러스터 밖으로 받는다 ([ADR 0023](../docs/decisions/0023-backup-location.md)). **둘 다 작성만 했고 아직 실행하지 않았다.**
 
 ```bash
 bash scripts/11-1-postgres-backup.sh            # 저장소 옆 backups/infra/postgres/app-<날짜시각>.dump (+ .sha256)
 bash scripts/verify/11-1-postgres-backup.sh     # 시험 표를 넣고 백업 -> 임시 DB 에 복원 -> 값과 소유자 확인, 끝나면 모두 지움
+
+# OpenSearch: 먼저 09-1 을 다시 실행해 path.repo 와 볼륨을 적용한다 (OpenSearch 가 재시작된다)
+bash scripts/09-1-opensearch.sh
+bash scripts/verify/11-2-opensearch-backup.sh   # 시험 인덱스를 스냅샷 -> tar 로 꺼냄 -> 다른 저장소로 풀어 복원 -> 값 확인, 끝나면 모두 지움
+bash scripts/11-2-opensearch-backup.sh          # backups/infra/opensearch/os-<날짜시각>.tar (+ .sha256)
 ```
 
 저장 위치는 `BACKUP_DIR` 로 바꿀 수 있다. 오래된 백업은 지우지 않는다. 받는 것은 DB `app` 하나뿐이고 역할은 받지 않는다.
@@ -105,6 +110,19 @@ kubectl -n postgres exec -i "$POD" -c postgres -- pg_restore -d app --no-owner -
 ```
 
 `--role=app` 이 없으면 표의 소유자가 `postgres` 가 되어 `app` 계정이 쓰지 못한다.
+
+OpenSearch 복원 (새 클러스터에 `09-1` 까지 설치한 뒤. 스냅샷에는 `.` 으로 시작하는 시스템 인덱스, Dashboards 저장 객체, 보안 설정이 없다):
+
+```bash
+# 1) tar 를 파드의 저장소 디렉터리에 푼다
+kubectl -n opensearch exec -i opensearch-cluster-master-0 -c opensearch -- tar -C /mnt/snapshots -xf - < <tar 파일>
+# 2) 저장소 등록, 스냅샷 목록 확인, 복원은 파드 안에서 (admin 비밀번호는 파드의 환경변수를 쓴다)
+kubectl -n opensearch exec opensearch-cluster-master-0 -c opensearch -- sh -c '
+  curl -sk -u "admin:$OPENSEARCH_INITIAL_ADMIN_PASSWORD" -H "Content-Type: application/json" -X PUT https://localhost:9200/_snapshot/local-fs -d "{\"type\":\"fs\",\"settings\":{\"location\":\"/mnt/snapshots/repo\"}}"
+  curl -sk -u "admin:$OPENSEARCH_INITIAL_ADMIN_PASSWORD" https://localhost:9200/_snapshot/local-fs/_all?pretty'
+# 3) 이름을 골라 복원 (같은 이름의 색인이 있으면 먼저 지우거나 rename_pattern 을 쓴다)
+#    POST /_snapshot/local-fs/<스냅샷 이름>/_restore  {"indices":"<색인>","include_global_state":false}
+```
 
 ## Kubeflow 접속
 
