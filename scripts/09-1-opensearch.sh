@@ -43,7 +43,9 @@ helm --kube-context "kind-$CLUSTER" upgrade --install "$RELEASE" opensearch/open
   --version "$OPENSEARCH_CHART_VERSION" -n "$NS" -f "$ROOT/k8s/opensearch-values.yaml" \
   --set 'extraEnvs[0].name=OPENSEARCH_INITIAL_ADMIN_PASSWORD' \
   --set 'extraEnvs[0].valueFrom.secretKeyRef.name=opensearch-admin' \
-  --set 'extraEnvs[0].valueFrom.secretKeyRef.key=password'
+  --set 'extraEnvs[0].valueFrom.secretKeyRef.key=password' \
+  --set 'extraEnvs[1].name=path.repo' \
+  --set 'extraEnvs[1].value=/mnt/snapshots'   # 백업용 fs 스냅샷 저장소 (11-2, ADR 0023). 이미지가 점이 든 환경변수를 설정으로 읽는지는 verify/11-2 가 확인한다
 
 kubectl -n "$NS" rollout status sts/opensearch-cluster-master --timeout=600s
 
