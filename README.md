@@ -32,7 +32,7 @@
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | 구성도와 설계 원칙 |
 | [docs/versions.md](docs/versions.md) | 버전 표와 선택 근거, 미검증 항목 |
-| [docs/decisions/](docs/decisions/) | 결정 기록 (ADR 0001 ~ 0022) |
+| [docs/decisions/](docs/decisions/) | 결정 기록 (ADR 0001 ~ 0023) |
 | [docs/todo.md](docs/todo.md) | 앞으로 할 일과 시험 순서 |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | 막힌 곳과 해결 (표). 상세 기록은 [docs/archive/](docs/archive/) |
 | [docs/ai-usage.md](docs/ai-usage.md) | 생성형 AI 사용 기록, AI 의 판단을 바로잡은 사례 |

@@ -86,6 +86,26 @@ CloudNativePG 연산자를 Helm 으로 설치하고 `Cluster` 하나(단일 인�
 grep '^POSTGRES_APP_' .env    # 계정 이름과 비밀번호
 ```
 
+## 백업과 복원 (11-1, PostgreSQL)
+
+kind 의 PV 는 클러스터를 지우면 사라지므로 DB `app` 을 클러스터 밖으로 받는다 ([ADR 0023](../docs/decisions/0023-backup-location.md)). **작성만 했고 아직 실행하지 않았다.**
+
+```bash
+bash scripts/11-1-postgres-backup.sh            # 저장소 옆 backups/infra/postgres/app-<날짜시각>.dump (+ .sha256)
+bash scripts/verify/11-1-postgres-backup.sh     # 시험 표를 넣고 백업 -> 임시 DB 에 복원 -> 값과 소유자 확인, 끝나면 모두 지움
+```
+
+저장 위치는 `BACKUP_DIR` 로 바꿀 수 있다. 오래된 백업은 지우지 않는다. 받는 것은 DB `app` 하나뿐이고 역할은 받지 않는다.
+
+복원 (새 클러스터에 `10-1` 까지 설치한 뒤. 덤프에 `notebook_rw` 권한이 들어 있으면 `10-2` 를 먼저 실행한다):
+
+```bash
+POD=$(kubectl -n postgres get pod -l cnpg.io/cluster=postgres,cnpg.io/instanceRole=primary -o name)
+kubectl -n postgres exec -i "$POD" -c postgres -- pg_restore -d app --no-owner --role=app --clean --if-exists < <백업 파일>
+```
+
+`--role=app` 이 없으면 표의 소유자가 `postgres` 가 되어 `app` 계정이 쓰지 못한다.
+
 ## Kubeflow 접속
 
 ```bash
