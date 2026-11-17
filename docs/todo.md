@@ -21,7 +21,7 @@
 - **접속**: 이 PC 는 `http://localhost:8080` (https 아님). 핸드폰 등 tailnet 기기는 `https://<기기>.<tailnet>.ts.net`. 이 PC 의 Windows 브라우저로는 `.ts.net` 주소가 해석되지 않는다.
 - **OpenSearch** (2026-10-30, `09-1` ~ `09-5`): 3.8.0 단일 노드(`09-1`), Dashboards(`09-2`, systemd 서비스 `opensearch-dashboards-port-forward` 가 `127.0.0.1:5601` 을 항상 열어 둔다, [ADR 0017](decisions/0017-opensearch-dashboards.md)), 게스트 계정 2개(`09-3`: guest-rw 는 `temp-*` 읽기·쓰기, guest-ro 는 `temp-*` 읽기 전용, 계정은 `.env` 의 `OPENSEARCH_GUEST_*`, [ADR 0018](decisions/0018-opensearch-guest-accounts.md)), tailnet 에서 `https://<기기>.<tailnet>.ts.net:8443` 으로 Dashboards(`09-4 private`, 평소 상태. `public` 은 외부에 보일 때만, 끝나면 `off`, [ADR 0019](decisions/0019-dashboards-tailscale-serve-funnel.md)), 모든 사용자 네임스페이스의 Notebook 에 guest-rw 를 환경변수로 주입(`09-5`, Notebook 을 만들 때 Configurations 에서 'OpenSearch guest-rw 접속 정보' 선택, [ADR 0020](decisions/0020-notebook-opensearch-guest-env.md)). admin 비밀번호는 `.env` 의 `OPENSEARCH_ADMIN_PASSWORD` 이고 이미 초기화된 클러스터에서는 `.env` 만 고쳐서는 바뀌지 않는다 (ADR 0017). **기기 이름을 바꾸면 옛 이름의 serve, funnel 설정이 남는다**: `sudo tailscale serve reset` 후 `07-3`, `09-4 private` 를 다시 실행 ([troubleshooting.md](troubleshooting.md) 30번).
 - **남겨 둔 NodePort 흔적**: `07-2` 스크립트들 (시험 기록). `kind-config.yaml` 의 30080 매핑은 2026-10-27 에 제거했다 (이 PC 의 현재 클러스터에는 재설치 전까지 남아 있다). 게이트웨이 Service 는 ClusterIP 로 돌아왔다. NetworkPolicy `allow-ingress-to-gateway-nodeport` 는 없다 (`NotFound` 확인).
-- **git**: `dev` 에 작업, `main` 은 README 한 파일(작성자 `soysyoung@gmail.com`). `dev` 의 기존 커밋 48개는 작성자 이메일이 `dangim.co.kr` 이다 (히스토리를 다시 쓰지 않기로 했다).
+- **git**: `dev` 에 작업, `main` 에는 `dev` 를 PR #1 로 병합했다 (2026-11-17, 병합 커밋 `ed5f413`). `dev` 의 기존 커밋 48개는 작성자 이메일이 `dangim.co.kr` 이다 (히스토리를 다시 쓰지 않기로 했다).
 
 ## 남은 일 (우선순위 순)
 
@@ -79,7 +79,7 @@
 36. [x] psycopg2 는 문서화만 한다 (2026-10-30 사용자 결정): `pip install psycopg2-binary` 또는 `--user`(PVC 인 `/home/jovyan` 에 설치, 남는지는 미검증). 이미지 빌드는 하지 않는다. 안내는 [scripts/README.md](../scripts/README.md) 와 ADR 0022 에 있다
 
 **큰 일**
-13. [ ] `dev` -> `main` PR (보류 중. `main` 의 README 는 `dev` 를 가리키는 임시 링크가 있어 충돌하면 `dev` 쪽을 택한다)
+13. [x] `dev` -> `main` PR: PR #1 을 병합 커밋으로 병합 (2026-11-17, `ed5f413`). README 충돌은 `dev` 쪽을 택했다. 이후에도 `dev` 에서 작업하고 `main` 은 PR 로 올린다
 14. [ ] IaC (Terraform, 나중에): Funnel 사용자를 제한 (6443 은 `127.0.0.1` 로 바뀌어 ACL 제한이 필요 없다, ADR 0010), authkey, 클러스터 플랫폼 구성, ArgoCD 로 Kubeflow 배포 ([architecture.md](architecture.md), [ADR 0012](decisions/0012-official-doc-recheck.md) 발견 1)
 
 ## 2026-10-26 에 끝낸 일의 상세
@@ -124,3 +124,4 @@
 | 2026-10-28 | 프로필 ResourceQuota (`06-4`, `quotas.env`): 기본 사용자 GPU 3, 공유용 계정 파드 20 / 20Gi / GPU 0. 갱신, 비운 키 제거, 한도 초과 거부(서버 dry-run), `06-2` 재실행 뒤 복원을 `roundtrip` 으로 확인. `06` 전체 재실행은 미시험 | [ADR 0015](decisions/0015-profile-resource-quota.md), [verify/README.md](../scripts/verify/README.md) |
 | 2026-10-30 | OpenSearch Dashboards(`09-2`), 게스트 계정 2개와 권한 분리(`09-3`), Dashboards 의 tailnet/Funnel 노출(`09-4`), Notebook 용 guest-rw 환경변수 주입(`09-5`). `verify/09-2`, `09-3`(12개 항목), `09-4` 통과, Notebook 에서 `temp-*` 쓰기 201 과 범위 밖 403 확인. 기기 이름 변경 뒤 옛 serve 설정이 남아 `serve reset` 으로 정리 | [ADR 0017](decisions/0017-opensearch-dashboards.md) ~ [0020](decisions/0020-notebook-opensearch-guest-env.md), [verify/README.md](../scripts/verify/README.md), [troubleshooting.md](troubleshooting.md) 30번 |
 | 2026-10-27 | 컨트롤 플레인이 kind 네트워크에서 떨어져 8080 이 막힌 사고를 복구하고 `08-boot-resilience.sh` 를 적용. 대기(`tailscale wait`)가 `tailscale0` 준비를 기다림, 오프라인 부팅에서도 8080 이 NIC 없이 열림, 실행 중 전환 2건에서 port-forward 가 죽지 않음을 확인. 같은 날 감시 서비스 복구 경로(`detach`, `down`)도 통과. 60초 시간 초과 등은 미시험 (위 16번) | [ADR 0010](decisions/0010-reboot-recovery.md) '사고 기록', [troubleshooting.md](troubleshooting.md) 27번 |
+| 2026-11-17 | `dev` -> `main` PR #1 병합 (병합 커밋 `ed5f413`, 병합 방식 merge commit, `dev` 브랜치 유지). 시험하지 못한 것은 PR 본문에 적은 대로 전체 삭제 후 재설치(2번)와 새 클러스터에서의 백업 복원 | [PR #1](https://github.com/soysyoung/infra/pull/1) |
