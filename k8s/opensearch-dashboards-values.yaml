@@ -1,0 +1,13 @@
+# OpenSearch Dashboards Helm 차트 값. 09-2-opensearch-dashboards.sh 가 -f 로 넘긴다. 근거: docs/decisions/0017
+# OpenSearch 와 같은 네임스페이스(opensearch)에 설치하므로 기본 호스트 이름이 그대로 맞다.
+fullnameOverride: opensearch-dashboards   # Service 와 Deployment 이름을 고정한다 (verify 와 port-forward 가 쓴다)
+opensearchHosts: "https://opensearch-cluster-master:9200"
+
+# 차트는 이 Secret 의 username, password, cookie 세 키를 모두 읽는다 (없으면 파드가 시작하지 않는다). 09-2 가 만든다.
+opensearchAccount:
+  secret: opensearch-dashboards-account
+
+# 차트 기본값(100m, 512M)은 Dashboards 에 빠듯해서 올린다. 실측값이 아니라 추정이다 (ADR 0017 미검증).
+resources:
+  requests: {cpu: 250m, memory: 1Gi}
+  limits: {cpu: "1", memory: 1Gi}

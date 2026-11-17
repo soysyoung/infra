@@ -1,0 +1,26 @@
+# PostgreSQL 단일 인스턴스 (CloudNativePG Cluster). 10-1-postgres.sh 가 __POSTGRES_IMAGE__ 를 versions.env 의 값으로 바꿔 적용한다. 근거: docs/decisions/0021
+# 앱 계정(app) 비밀번호: 공식 기본값(연산자가 무작위 생성)이 아니라 .env 의 POSTGRES_APP_PASSWORD 로 만든 Secret 을 쓴다 (이유는 ADR 0021).
+# 접속 Service 는 postgres-rw (읽기/쓰기, 포트 5432).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+  namespace: postgres
+spec:
+  instances: 1
+  imageName: __POSTGRES_IMAGE__
+  storage:
+    size: 10Gi
+  # requests = limits (Guaranteed). shared_buffers 는 메모리의 1/4 안팎.
+  resources:
+    requests: {cpu: 500m, memory: 2Gi}
+    limits: {cpu: "2", memory: 2Gi}
+  postgresql:
+    parameters:
+      shared_buffers: "512MB"
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+      secret:
+        name: postgres-app-auth   # kubernetes.io/basic-auth (username=app, password). 10-1-postgres.sh 가 만든다

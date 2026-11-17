@@ -1,0 +1,16 @@
+# GPU time-slicing 설정. 05-3-device-plugin.sh 가 envsubst 로 ${GPU_REPLICAS} 를 채워서 적용한다.
+# 형식 출처: NVIDIA/k8s-device-plugin v0.20.1 README 'Shared Access to GPUs'. 근거: docs/decisions/0013
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nvidia-device-plugin-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    version: v1
+    sharing:
+      timeSlicing:
+        failRequestsGreaterThanOne: true
+        resources:
+        - name: nvidia.com/gpu
+          replicas: ${GPU_REPLICAS}

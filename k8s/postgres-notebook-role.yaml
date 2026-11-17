@@ -1,0 +1,21 @@
+# Notebook 용 PostgreSQL 계정 notebook_rw (CloudNativePG DatabaseRole). 10-2-postgres-notebook-access.sh 가 적용한다. 근거: docs/decisions/0022
+# DB 안의 모든 테이블에 데이터 읽기/쓰기만 되고 (pg_read_all_data + pg_write_all_data, 이후 생기는 객체 포함), 테이블 생성/삭제(DDL)는 안 된다.
+# 비밀번호는 같은 네임스페이스의 Secret postgres-notebook-rw (kubernetes.io/basic-auth, cnpg.io/reload 라벨)에서 읽는다.
+# 삭제 시 역할을 남기는 retain(기본값)으로 둔다: delete 는 Cluster 와 같이 지워질 때 DROP ROLE 이 막혀 Terminating 에 걸릴 수 있다고 보고 피했다 (추정).
+apiVersion: postgresql.cnpg.io/v1
+kind: DatabaseRole
+metadata:
+  name: notebook-rw
+  namespace: postgres
+spec:
+  cluster:
+    name: postgres
+  name: notebook_rw
+  comment: Notebook 용 데이터 읽기/쓰기 (DDL 불가)
+  login: true
+  superuser: false
+  inRoles:
+    - pg_read_all_data
+    - pg_write_all_data
+  passwordSecret:
+    name: postgres-notebook-rw

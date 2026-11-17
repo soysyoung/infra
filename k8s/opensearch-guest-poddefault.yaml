@@ -1,0 +1,27 @@
+# Notebook 생성 화면의 Configurations 에서 'OpenSearch guest-rw 접속 정보' 를 고르면 OpenSearch 접속 환경변수가 파드에 들어간다.
+# 계정은 admin 이 아니라 temp-* 인덱스에만 쓰기·읽기가 되는 guest-rw 다 (docs/decisions/0018, 0020).
+# 적용: scripts/09-5-opensearch-notebook-access.sh (프로필 네임스페이스마다 -n 으로 적용하므로 metadata.namespace 는 없다)
+# 환경변수는 파드가 만들어질 때 한 번 들어간다. 이미 떠 있는 Notebook 에는 반영되지 않는다 (새로 만들거나 재시작).
+# OpenSearch 는 자체 서명 인증서를 쓴다. 클라이언트에서 인증서 검증을 끄거나 CA 를 지정해야 한다 (예: opensearch-py 의 verify_certs=False).
+apiVersion: kubeflow.org/v1alpha1
+kind: PodDefault
+metadata:
+  name: opensearch-guest
+spec:
+  desc: OpenSearch guest-rw 접속 정보
+  selector:
+    matchLabels:
+      opensearch-guest: "true"
+  env:
+    - name: OPENSEARCH_URL
+      value: https://opensearch-cluster-master.opensearch.svc:9200
+    - name: OPENSEARCH_USER
+      valueFrom:
+        secretKeyRef:
+          name: opensearch-guest
+          key: username
+    - name: OPENSEARCH_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: opensearch-guest
+          key: password
