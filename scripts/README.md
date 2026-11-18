@@ -70,6 +70,8 @@ bash scripts/10-1-postgres.sh        # (선택) PostgreSQL 단일 인스턴스 (
 bash scripts/verify/10-1-postgres.sh
 bash scripts/10-2-postgres-notebook-access.sh   # (선택) Notebook 에 PostgreSQL 접속 정보를 환경변수로 주입. 기본 사용자 네임스페이스에는 소유자 app(모든 권한), 공유용(guest) 네임스페이스에는 데이터 읽기/쓰기 전용 계정 notebook_rw(DDL 불가)의 Secret + PodDefault 를 둔다. .env 의 POSTGRES_APP_PASSWORD, POSTGRES_NOTEBOOK_PASSWORD. ADR 0022
 bash scripts/verify/10-2-postgres-notebook-access.sh
+bash scripts/10-3-postgres-pgvector.sh          # (선택) app 데이터베이스에 pgvector(vector 확장)를 켠다. CloudNativePG Database 리소스(k8s/postgres-database-app.yaml)가 CREATE EXTENSION 을 하므로 superuser 비밀번호를 다루지 않는다. 이미지에 패키지는 이미 있다. 계정(app, notebook_rw)과 상관없이 DB 에 설치된다. 선행 10-1. ADR 0024
+bash scripts/verify/10-3-postgres-pgvector.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).

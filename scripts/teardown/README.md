@@ -42,6 +42,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\teardown\00-windows-wsl.ps1
 | `09-2-opensearch-dashboards.sh` | Dashboards 릴리스와 계정 Secret (OpenSearch 와 색인은 그대로). `09-1` 이 네임스페이스째 지우면 함께 사라진다 | 이 문서에 실행 기록이 없다 (미확인) |
 | `09-5-opensearch-notebook-access.sh` | 프로필 네임스페이스의 Secret/PodDefault `opensearch-guest`. OpenSearch 의 guest-rw 계정은 지우지 않는다 | 이 문서에 실행 기록이 없다 (미확인) |
 | `10-2-postgres-notebook-access.sh` | 프로필 네임스페이스의 Secret/PodDefault `postgres-notebook`, `DatabaseRole notebook-rw`, DB 의 역할 `notebook_rw`. Cluster 와 데이터는 그대로. `.env` 의 `POSTGRES_NOTEBOOK_*` 는 지우지 않는다 | **실행해 본 적이 없다** (미검증, [ADR 0022](../../docs/decisions/0022-notebook-postgres-access.md)) |
+| `10-3-postgres-pgvector.sh` | `Database` 리소스 `postgres-database-app` 만. DB `app` 과 확장 `vector` 는 `retain` 이라 남는다 (확장까지 지우려면 `drop extension vector` 를 직접) | 2026-11-18 사용자 실행: `deleted` 로 끝났고 이어서 `10-3` 이 `created` 로 다시 만들어졌다. 지운 직후 조회에서 `Database` 는 없고 DB 에는 `vector|0.8.7|public` 이 남아 있음을 확인했다 (같은 날 두 번째 실행) ([ADR 0024](../../docs/decisions/0024-postgres-pgvector.md)) |
 
 ## 지우지 않는 것
 

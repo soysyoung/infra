@@ -28,6 +28,7 @@
 | `09-5-opensearch-notebook-access.sh` | WSL | Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속 | `09-5-opensearch-notebook-access.sh` |
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
 | `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. 2026-10-30 통과했으나 이후 password file 로 바꿔 **다시 실행해야 한다** (이전 실행의 `verify` 시점의 Notebook 에는 `psycopg2` 가 없어 인증 미확인, 이후 셀에서 user, guest 모두 확인) | `10-2-postgres-notebook-access.sh` |
+| `10-3-postgres-pgvector.sh` | WSL | `Database` 리소스 적용, `app` 에 `vector` 설치, `app` 이 `vector(3)` 테이블을 만들고 `<->` 거리순 조회, `notebook_rw` 가 `vector` 값 쓰기와 조회. 2026-11-18 통과 (마지막 절) | `10-3-postgres-pgvector.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03` ~ `06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).
 
@@ -539,3 +540,47 @@ PGPASSFILE: /etc/postgres-notebook/pgpass | PGPASSWORD 환경변수: 없음
 ```
 
   libpq 가 initContainer 가 만든 password file 로 인증했다 (공식 권고 경로가 guest 에서 동작). user Notebook(`test-postgres-02-0`)은 `psycopg2` 가 없어 같은 진단이 `psycopg2 없음` 으로 끝났다: 아직 확인하지 못했다.
+
+## 10-3-postgres-pgvector.sh (2026-11-18, 사용자 실행)
+
+`app` 데이터베이스에서 pgvector 를 쓸 수 있는지 본다. 설치는 [ADR 0024](../../docs/decisions/0024-postgres-pgvector.md) 의 CloudNativePG `Database` 리소스다.
+
+```bash
+bash scripts/10-3-postgres-pgvector.sh          # 적용
+bash scripts/verify/10-3-postgres-pgvector.sh   # 검증
+```
+
+처음 실행한 `verify/10-3` 은 실패했다. 시험 테이블을 DB 파드 안의 슈퍼유저(`postgres`)로 만들어 `app` 계정이 `permission denied for table verify_vec` 을 받았다. 이는 스크립트의 버그이고 pgvector 와 무관하다 (같은 출력에 `Database 적용됨, app 에 vector 0.8.7` 이 먼저 나왔다). 시험 테이블을 `app` 이 만들도록 고친 뒤 통과했다.
+
+실제 출력 (고친 `verify/10-3`):
+
+```text
+cluster.postgresql.cnpg.io/postgres condition met
+==> Database 적용됨, app 에 vector 0.8.7
+NOTICE:  table "verify_vec" does not exist, skipping
+==> app: vector 컬럼 테이블 생성, 삽입, '<->' 거리순 조회 동작
+==> notebook_rw: vector 값 쓰기와 '<->' 조회 동작
+==> OK: pgvector 사용 가능
+```
+
+이어서 `10-3` 재실행, `teardown/10-3`, `10-3` 재적용, `verify/10-3` 을 차례로 실행했다 (같은 날 사용자 실행):
+
+```text
+# 10-3 (재실행)
+database.postgresql.cnpg.io/postgres-database-app unchanged
+database.postgresql.cnpg.io/postgres-database-app condition met
+==> app 에 vector 0.8.7 설치됨
+
+# teardown/10-3
+database.postgresql.cnpg.io "postgres-database-app" deleted from postgres namespace
+==> 완료. 확장 vector 는 DB 에 남아 있습니다.
+
+# 10-3 (다시 적용)
+database.postgresql.cnpg.io/postgres-database-app created
+database.postgresql.cnpg.io/postgres-database-app condition met
+==> app 에 vector 0.8.7 설치됨
+```
+
+- **확인된 것:** `Database` 리소스가 `initdb` 로 만든 `app` 에 적용되고 `vector 0.8.7` 이 설치된다 (`version` 생략). `app` 과 `notebook_rw` 모두 `vector` 컬럼을 쓰고 `<->` 로 조회한다. `10-3` 재실행은 `unchanged`. 리소스를 지운 뒤 다시 적용하면 `created` 로 만들어지고 `status.applied` 가 `true` 가 된다 (`kubectl wait --for=jsonpath` 가 이 kubectl 에서 동작).
+- **이후 확인 (같은 날, 사용자 실행):** `teardown/10-3` 직후 `kubectl get databases.postgresql.cnpg.io` 는 `No resources found`, 확장 조회는 `vector|0.8.7|public` 이었다. 리소스를 지워도 확장은 남고 스키마는 `public` 이다.
+- **확인되지 않은 것:** `notebook_rw` 가 테이블을 만들 수 없는 것은 이 스크립트에서 다시 확인하지 않았다. 백업(`11-1`)과 복원에서 `vector` 컬럼이 살아남는지.

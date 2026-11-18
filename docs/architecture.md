@@ -55,6 +55,7 @@
 | 09-1 ~ 09-5 | WSL | OpenSearch 3.8.0 단일 노드(k-NN), Dashboards, 게스트 계정, Dashboards tailnet/Funnel 노출, Notebook 용 접속 정보 주입 |
 | 10-1 | WSL | PostgreSQL 단일 인스턴스: CloudNativePG 연산자(Helm) + Cluster. 클러스터 안에서만 접근, 비밀번호는 `.env` ([ADR 0021](decisions/0021-postgres-cloudnativepg.md)) |
 | 10-2 | WSL | Notebook 에서 PostgreSQL 접속: Secret + PodDefault 를 기본 사용자(소유자 `app`)와 공유용(데이터 읽기/쓰기 전용 `notebook_rw`) 네임스페이스에 둔다 ([ADR 0022](decisions/0022-notebook-postgres-access.md)) |
+| 10-3 | WSL | `app` 데이터베이스에 pgvector 켜기: CloudNativePG `Database` 리소스의 `spec.extensions` ([ADR 0024](decisions/0024-postgres-pgvector.md)) |
 
 ## IaC 전환 계획 (설치 완료 후)
 
