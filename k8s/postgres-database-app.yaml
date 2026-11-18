@@ -1,0 +1,17 @@
+# app 데이터베이스에 pgvector(vector 확장)를 켠다 (CloudNativePG Database). 10-3-postgres-pgvector.sh 가 적용한다. 근거: docs/decisions/0024
+# app 은 10-1 의 initdb 가 이미 만들었다. 기존 DB 에는 ALTER DATABASE 가 쓰인다고 공식 문서에 있다 (이 클러스터에서 실제 동작은 10-3 이 확인한다).
+# 확장은 연산자가 설치하므로 superuser 비밀번호를 다루지 않는다. 버전은 이미지가 가진 기본 버전이다 (version 을 적지 않았다).
+# 삭제 시 DB 를 남기는 retain(기본값)이다. databaseReclaimPolicy: delete 로 바꾸지 말 것 (app 의 데이터가 지워진다).
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-database-app
+  namespace: postgres
+spec:
+  cluster:
+    name: postgres
+  name: app
+  owner: app
+  extensions:
+    - name: vector
+      ensure: present
