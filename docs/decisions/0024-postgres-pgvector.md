@@ -33,9 +33,9 @@
 - **`verify/10-3` 의 첫 실행은 실패했다.** 시험 테이블을 DB 파드 안 슈퍼유저로 만들어 `app` 이 `permission denied for table verify_vec` 을 받았다. 스크립트 버그였고 pgvector 와 무관하다 (같은 실행에서 설치 확인은 통과). 테이블을 `app` 이 만들도록 고친 뒤 통과했다. `verify/10-2` 는 읽는 쪽이 `pg_read_all_data` 멤버라 소유자와 상관없이 읽혀서 같은 가정이 통했던 것이다.
 
 - **teardown 직후 조회 (2026-11-18, 사용자 실행).** `teardown/10-3` 을 실행하고 곧바로 조회했다: `kubectl get databases.postgresql.cnpg.io` 는 `No resources found`, DB 에서 `select extname, extversion, extnamespace::regnamespace from pg_extension where extname='vector'` 는 `vector|0.8.7|public`. 리소스를 지워도 확장은 DB 에 남고(`retain`), 확장은 스키마 `public` 에 설치된다. 이 뒤에는 `10-3` 으로 다시 적용하지 않은 상태다.
+- **Notebook 에서 확인 (2026-11-18, 사용자 실행, 셀 출력).** guest 네임스페이스 Notebook(`PGUSER=notebook_rw`): `select current_user` → `('notebook_rw',)`, `select '[1,2,3]'::vector <-> '[1,1,1]'::vector` → `(2.23606797749979,)` (√5, L2 거리 맞음). 같은 Notebook 에서 `create table nb_vec_test(...)` 는 `InsufficientPrivilege: permission denied for schema public` 으로 거부됐다 (ADR 0022 의 'DDL 불가'가 Notebook 에서도 확인됨, `vector` 컬럼 때문이 아니다). user 네임스페이스 Notebook(`app`): 시험 테이블 `nb_vec_test` 를 만들고 지우는 순서를 실행했고 마지막 `select to_regclass('public.nb_vec_test')` 가 `(None,)` 이라 시험 테이블이 남지 않았다. **그 앞 단계의 출력(계정 `app`, 확장 조회, `<->` 정렬 결과)은 받지 못했다.** `notebook_rw` 로 `vector` 컬럼에 쓰고 조회하는 것은 Notebook 에서 하지 않았고 `verify/10-3` 의 DB 파드 안 시험으로만 확인했다. 코사인(`<=>`) 연산자는 Notebook 에서 확인하지 않았다.
 
 ## 미검증, 알려진 한계 (2026-11-18 적용 뒤에도 남은 것)
-- `notebook_rw` 가 테이블을 만들 수 없는 것(10-2 결정)은 `verify/10-3` 에서 다시 확인하지 않았다.
 - `ALTER DATABASE` 에 다른 부작용이 없는지는 DB 설정을 전후로 비교하지 않았다 (적용과 `verify` 는 통과).
 - CloudNativePG 가 `ensure: absent` 에서 `DROP EXTENSION` 에 `CASCADE` 를 쓰는지 (문서에 없음). teardown 에서 쓰지 않으므로 지금은 영향이 없다.
 - `Database` 리소스가 `postgres` 네임스페이스와 함께 지워질 때 finalizer 로 막히지 않는지. teardown 10-1 은 연산자가 살아 있는 동안 네임스페이스를 지우므로 문제가 없을 것으로 보지만 시험하지 않았다. 전체 재설치 경로에서 `10-3` 도 시험하지 않았다.

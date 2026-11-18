@@ -583,4 +583,5 @@ database.postgresql.cnpg.io/postgres-database-app condition met
 
 - **확인된 것:** `Database` 리소스가 `initdb` 로 만든 `app` 에 적용되고 `vector 0.8.7` 이 설치된다 (`version` 생략). `app` 과 `notebook_rw` 모두 `vector` 컬럼을 쓰고 `<->` 로 조회한다. `10-3` 재실행은 `unchanged`. 리소스를 지운 뒤 다시 적용하면 `created` 로 만들어지고 `status.applied` 가 `true` 가 된다 (`kubectl wait --for=jsonpath` 가 이 kubectl 에서 동작).
 - **이후 확인 (같은 날, 사용자 실행):** `teardown/10-3` 직후 `kubectl get databases.postgresql.cnpg.io` 는 `No resources found`, 확장 조회는 `vector|0.8.7|public` 이었다. 리소스를 지워도 확장은 남고 스키마는 `public` 이다.
+- **Notebook 에서 확인 (같은 날, 사용자 셀 출력):** guest 의 `notebook_rw` 는 `select '[1,2,3]'::vector <-> '[1,1,1]'::vector` 가 `(2.23606797749979,)`, 테이블 생성은 `InsufficientPrivilege: permission denied for schema public`. user 의 `app` 은 시험 테이블 생성과 삭제 순서를 실행했고 마지막 `to_regclass` 가 `(None,)` (앞 단계 출력은 받지 못했다).
 - **확인되지 않은 것:** `notebook_rw` 가 테이블을 만들 수 없는 것은 이 스크립트에서 다시 확인하지 않았다. 백업(`11-1`)과 복원에서 `vector` 컬럼이 살아남는지.
