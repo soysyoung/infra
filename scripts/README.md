@@ -72,6 +72,8 @@ bash scripts/10-2-postgres-notebook-access.sh   # (선택) Notebook 에 PostgreS
 bash scripts/verify/10-2-postgres-notebook-access.sh
 bash scripts/10-3-postgres-pgvector.sh          # (선택) app 데이터베이스에 pgvector(vector 확장)를 켠다. CloudNativePG Database 리소스(k8s/postgres-database-app.yaml)가 CREATE EXTENSION 을 하므로 superuser 비밀번호를 다루지 않는다. 이미지에 패키지는 이미 있다. 계정(app, notebook_rw)과 상관없이 DB 에 설치된다. 선행 10-1. ADR 0024
 bash scripts/verify/10-3-postgres-pgvector.sh
+bash scripts/10-4-postgres-databases.sh         # (선택) 실습용 데이터베이스(knowledge_lab, report_agent_lab)를 소유자 notebook_rw 로 만든다 (Database 리소스 k8s/postgres-databases.yaml, vector 확장 포함). notebook_rw 가 이 DB 에서 스키마와 테이블을 만들 수 있고 app DB 는 그대로다. Notebook 의 PGDATABASE 는 바꾸지 않으므로 PGDATABASE=knowledge_lab 을 직접 지정해 접속한다. 선행 10-1, 10-2. ADR 0025
+bash scripts/verify/10-4-postgres-databases.sh
 ```
 
 단계마다 짝이 되는 검증이 `scripts/verify/` 에 있다. 사용법과 실제 출력은 [verify/README.md](verify/README.md).

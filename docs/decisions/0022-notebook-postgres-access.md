@@ -7,7 +7,7 @@
 
 ## 결정
 - **네임스페이스마다 주입하는 계정이 다르다 (2026-10-30 사용자 결정).** 기본 사용자 네임스페이스(`kubeflow-user-example-com`)에는 소유자 `app`(모든 권한)을, 공유용(guest) 네임스페이스에는 별도 계정 `notebook_rw` 를 준다. `app` 은 테이블을 만들고 지우고 스키마를 바꿀 수 있는 소유자라서 공유용 계정에는 주면 안 된다. 대가: 기본 사용자 네임스페이스의 모든 Notebook 은 DB 전체를 지울 수 있다. 처음 설계는 둘 다 `notebook_rw` 였고 같은 날 이렇게 바꿨다.
-- `notebook_rw` 는 `pg_read_all_data` + `pg_write_all_data` 의 멤버다. 공식 문서([Predefined Roles](https://www.postgresql.org/docs/current/predefined-roles.html))에 따르면 이 역할은 모든 테이블, 뷰, 시퀀스에 대해 각각 SELECT, INSERT·UPDATE·DELETE 권한과 모든 스키마의 USAGE 를 준다. 행 수준 보안(RLS)은 우회하지 못한다. **DDL(테이블 생성, 삭제)은 안 된다.** 쓰기 역할만 있으면 UPDATE 의 조건을 읽지 못하므로 둘 다 필요하다.
+- `notebook_rw` 는 `pg_read_all_data` + `pg_write_all_data` 의 멤버다. 공식 문서([Predefined Roles](https://www.postgresql.org/docs/current/predefined-roles.html))에 따르면 이 역할은 모든 테이블, 뷰, 시퀀스에 대해 각각 SELECT, INSERT·UPDATE·DELETE 권한과 모든 스키마의 USAGE 를 준다. 행 수준 보안(RLS)은 우회하지 못한다. **DDL(테이블 생성, 삭제)은 안 된다.** (`app` DB 에서만이다. 스키마를 만들어야 하는 예제를 위해 `notebook_rw` 가 소유하는 DB `knowledge_lab` 을 따로 만들었다: [ADR 0025](0025-postgres-databases.md).) 쓰기 역할만 있으면 UPDATE 의 조건을 읽지 못하므로 둘 다 필요하다.
 - "DB 전체": `app` 데이터베이스의 모든 스키마와 테이블이다. 역할은 클러스터 전역 객체라서 같은 Cluster 의 다른 데이터베이스에도 접속을 시도할 수 있다 (PostgreSQL 의 기본 CONNECT 권한에 대한 기억이고 이 문서에서 확인하지 않았다). 지금 Cluster 에는 `app` 만 있다.
 - 계정은 CloudNativePG 의 `DatabaseRole` 리소스([Role management](https://cloudnative-pg.io/docs/1.30/declarative_role_management/), 1.30 에서 권장)로 선언한다 (`k8s/postgres-notebook-role.yaml`). `passwordSecret` 은 `kubernetes.io/basic-auth` 이고 `cnpg.io/reload: "true"` 라벨을 붙이면 비밀번호 변경이 즉시 반영된다고 문서에 있다. 리소스, `Cluster`, Secret 은 같은 네임스페이스(`postgres`)여야 한다.
 - 비밀번호는 `.env` 의 `POSTGRES_NOTEBOOK_PASSWORD` (없으면 `10-2` 가 만든다). ADR 0021 의 앱 계정과 같은 이유로 `.env` 를 쓴다.

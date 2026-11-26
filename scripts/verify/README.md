@@ -28,6 +28,7 @@
 | `09-5-opensearch-notebook-access.sh` | WSL | Notebook 용 Secret, PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속 | `09-5-opensearch-notebook-access.sh` |
 | `10-1-postgres.sh` | WSL | 연산자와 `Cluster` 가 Ready 인가, 쓰기/읽기가 되는가, `postgres-rw` 서비스로 `app` 계정이 접속되는가 | `10-1-postgres.sh` |
 | `10-2-postgres-notebook-access.sh` | WSL | 역할 `notebook_rw` 의 권한(읽기/쓰기 되고 테이블 생성은 거부), 네임스페이스별 Secret 의 계정(기본 사용자 `app`, 그 밖 `notebook_rw`), PodDefault, 환경변수 주입, 실행 중인 Notebook 에서 접속. 2026-10-30 통과했으나 이후 password file 로 바꿔 **다시 실행해야 한다** (이전 실행의 `verify` 시점의 Notebook 에는 `psycopg2` 가 없어 인증 미확인, 이후 셀에서 user, guest 모두 확인) | `10-2-postgres-notebook-access.sh` |
+| `10-4-postgres-databases.sh` | WSL | `Database` 리소스 적용, `knowledge_lab`, `report_agent_lab` 의 소유자 `notebook_rw` 와 `vector` 설치, `notebook_rw` 가 각 DB 에서 스키마와 `vector` 테이블을 만들고 읽기, `app` DB 에서는 스키마 생성이 거부됨. 2026-11-26 통과 (사용자 실행: 두 DB 모두 소유자 `notebook_rw`, `vector 0.8.7`, 스키마와 테이블 생성과 읽기/쓰기, `app` 에서는 거부) ([ADR 0025](../../docs/decisions/0025-postgres-databases.md)) | `10-4-postgres-databases.sh` |
 | `10-3-postgres-pgvector.sh` | WSL | `Database` 리소스 적용, `app` 에 `vector` 설치, `app` 이 `vector(3)` 테이블을 만들고 `<->` 거리순 조회, `notebook_rw` 가 `vector` 값 쓰기와 조회. 2026-11-18 통과 (마지막 절) | `10-3-postgres-pgvector.sh` |
 
 아래 출력은 모두 이 저장소의 실제 환경(Windows 11 Home, WSL2 Ubuntu 24.04, RTX 5080 Laptop)에서 2026-10-23 에 실행한 결과다. 2026-10-26 에 `03` ~ `06` 을 같은 클러스터에서 다시 실행해 모두 `==> OK` 로 끝났고 출력 형식은 같았다 (`nvidia-smi` 의 온도/전력, 노드 AGE, 일반 파드가 배치된 노드 이름만 다르다).

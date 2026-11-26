@@ -56,6 +56,7 @@
 | 10-1 | WSL | PostgreSQL 단일 인스턴스: CloudNativePG 연산자(Helm) + Cluster. 클러스터 안에서만 접근, 비밀번호는 `.env` ([ADR 0021](decisions/0021-postgres-cloudnativepg.md)) |
 | 10-2 | WSL | Notebook 에서 PostgreSQL 접속: Secret + PodDefault 를 기본 사용자(소유자 `app`)와 공유용(데이터 읽기/쓰기 전용 `notebook_rw`) 네임스페이스에 둔다 ([ADR 0022](decisions/0022-notebook-postgres-access.md)) |
 | 10-3 | WSL | `app` 데이터베이스에 pgvector 켜기: CloudNativePG `Database` 리소스의 `spec.extensions` ([ADR 0024](decisions/0024-postgres-pgvector.md)) |
+| 10-4 | WSL | 실습용 DB `knowledge_lab` 만들기: `Database` 리소스, 소유자 `notebook_rw` (스키마 생성용, `app` DB 는 그대로). 2026-11-26 `verify` 통과 ([ADR 0025](decisions/0025-postgres-databases.md)) |
 
 ## IaC 전환 계획 (설치 완료 후)
 
