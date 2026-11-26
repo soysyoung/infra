@@ -16,4 +16,12 @@ for _ in $(seq 30); do kubectl get ns "$NS" >/dev/null 2>&1 && break; sleep 2; d
 kubectl get ns "$NS" >/dev/null 2>&1 || die "네임스페이스 $NS 가 없습니다. 06-kubeflow.sh 가 끝났는지 확인하세요."
 
 kubectl apply -f "$ROOT/k8s/gpu-poddefault.yaml" -f "$ROOT/k8s/access-ml-pipeline-poddefault.yaml"
+
+# guest 프로필(06-2)에도 gpu-toleration 만 넣는다. 매니페스트의 네임스페이스만 바꿔서 적용한다.
+GUEST_NS=kubeflow-guest-example-com
+if kubectl get ns "$GUEST_NS" >/dev/null 2>&1; then
+  sed "s/namespace: $NS/namespace: $GUEST_NS/" "$ROOT/k8s/gpu-poddefault.yaml" | kubectl apply -f -
+else
+  log "$GUEST_NS 가 없어 guest 의 gpu-toleration 은 건너뜁니다 (06-2-extra-user.sh 후 다시 실행)."
+fi
 log "완료. 검증: scripts/verify/06-3-poddefaults.sh"
