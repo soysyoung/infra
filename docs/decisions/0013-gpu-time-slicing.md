@@ -29,12 +29,13 @@
 - **VRAM 은 격리되지 않는다.** 한 파드가 GPU 메모리를 다 쓰면 다른 파드가 OOM 이 난다. 4개로 광고돼도 메모리는 노트북 GPU 하나다. 워크로드 쪽에서 프레임워크 메모리 상한(예: PyTorch `set_per_process_memory_fraction`)을 걸어야 한다.
 - 한 파드의 GPU 오류가 같은 GPU 의 다른 파드를 함께 죽일 수 있다.
 - 연산은 시간 분할이라 동시에 돌리면 각자 느려진다.
-- 공유용 계정(`guest`)의 GPU 할당량은 0 으로 유지한다 (todo 5번).
+- 공유용 계정(`guest`)의 GPU 할당량은 처음에 0 이었으나 2026-11-26 에 1 로 올렸다 (todo 39번의 시험, [ADR 0015](0015-profile-resource-quota.md)).
 
 ## 적용 결과 (2026-10-28, 사용자가 실행한 출력)
 - `05-3-device-plugin.sh`: ConfigMap 생성, DaemonSet 패치와 재시작, `successfully rolled out`. 클러스터를 다시 만들지 않고 기존 클러스터에 적용됐다.
 - `verify/05-3-device-plugin.sh`: `mlops-worker` 가 광고하는 GPU 4 (기대 4), 스모크 파드가 `NVIDIA GeForce RTX 5080 Laptop GPU` 를 보고 `OK`.
 - 적용 뒤 Notebook `test-gpu-01` 을 다시 켰더니 `mlops-worker` 에서 2/2 Running, limits `nvidia.com/gpu: 1`, 노드 광고 4, 컨테이너 안 `nvidia-smi` 가 적용 전과 같은 GPU (VRAM 16303MiB, 사용 0MiB)를 보여 줬다.
+- 실제 모델의 VRAM 측정 (2026-11-26, [todo 39번](../todo.md), 단일 파드): `multilingual-e5-small` 과 `bge-reranker-v2-m3` 를 fp32 로 `cuda` 에 올리면 `memory_allocated` 2624 MiB, 최대 2635 MiB, `nvidia-smi` 2918 MiB / 16303 MiB (짧은 문장 32개 배치). 다른 파드와 동시에 돌렸을 때의 점유와 속도는 여전히 시험하지 않았다 (todo 23번).
 - 적용 전 Notebook 은 중지해 둔 상태였다. 실행 중인 GPU 파드가 있을 때 광고가 1 에서 4 로 바뀌면 어떻게 되는지는 시험하지 않았다.
 
 ## 미검증

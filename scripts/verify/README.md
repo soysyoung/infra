@@ -14,7 +14,7 @@
 | `05-4-helm.sh` | WSL | helm 이 `versions.env` 의 버전으로 설치되었는가 | `05-4-helm.sh` |
 | `06-kubeflow.sh` | WSL | 핵심 네임스페이스의 Deployment 가 Available 이고 로그인 흐름이 이어지는가 | `06-kubeflow.sh` |
 | `06-2-extra-user.sh` | WSL | 두 번째 사용자의 Dex 계정, Profile, 네임스페이스 권한 | `06-2-extra-user.sh` |
-| `06-3-poddefaults.sh` | WSL | PodDefault `gpu-toleration`, `access-ml-pipeline` 이 기본 사용자 네임스페이스에 있는가 | `06-3-poddefaults.sh` |
+| `06-3-poddefaults.sh` | WSL | PodDefault `gpu-toleration`, `access-ml-pipeline` 이 기본 사용자 네임스페이스에 있는가 (guest 네임스페이스가 있으면 거기의 `gpu-toleration` 도) | `06-3-poddefaults.sh` |
 | `06-4-quotas.sh` | WSL | 프로필 네임스페이스의 `kf-resource-quota` 가 `quotas.env` 와 같은가. `roundtrip` 모드는 갱신, 거부, `06-2` 재실행 뒤 복원을 시험 | `06-4-quotas.sh` |
 | `07-1-port-forward.sh` | WSL | `kubeflow-port-forward` 서비스가 실행 중이고 `127.0.0.1:8080` 이 로그인 흐름(Dex)으로 리다이렉트하는가 | `07-1-port-forward.sh` |
 | `07-2-nodeport.sh` | WSL | **쓰지 않음(시험 기록).** NodePort 방식 `<tailnet 주소>:30080` 으로 로그인 흐름이 응답하는가 | `07-2-nodeport.sh` |

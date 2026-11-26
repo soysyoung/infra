@@ -21,7 +21,7 @@ OpenSearch([ADR 0014](0014-opensearch-single-node.md))의 벡터 인덱스 빌�
 - 요구 사항(3.0 부터, faiss `hnsw`, 64차원 이상 등)도 `latest` 기준이다. 3.8.0 에서 같은지는 미확인이다.
 
 ## 비용
-- **GPU 조각 1개를 점유한다.** 빌더 Deployment 는 `nvidia.com/gpu: 1` 을 요청하므로 time-slicing 으로 광고한 4개 중 1개를 쓴다. 그래서 [ADR 0015](0015-profile-resource-quota.md) 의 `quotas.env` 에서 `QUOTA_GPU_RESERVED=1` 로 프로필 배분 밖에 비워 둔다 (기본 사용자 3 + 두 번째 사용자 0 + 예약 1 = 4). 이 예약은 쿼터로 걸리지 않는다. `opensearch` 네임스페이스에는 쿼터를 두지 않는다.
+- **GPU 조각 1개를 점유한다.** 빌더 Deployment 는 `nvidia.com/gpu: 1` 을 요청하므로 time-slicing 으로 광고한 4개 중 1개를 쓴다. 그래서 [ADR 0015](0015-profile-resource-quota.md) 의 `quotas.env` 에서 `QUOTA_GPU_RESERVED=1` 로 프로필 배분 밖에 비워 둔다 (처음 배분은 기본 사용자 3 + 두 번째 사용자 0 + 예약 1 = 4. 2026-11-26 에 두 번째 사용자를 1 로 올려 합계 5 가 되었다, [ADR 0015](0015-profile-resource-quota.md)). 이 예약은 쿼터로 걸리지 않는다. `opensearch` 네임스페이스에는 쿼터를 두지 않는다.
 - **VRAM 은 나뉘지 않는다** ([ADR 0013](0013-gpu-time-slicing.md)). 빌드 중 VRAM 사용량이 다른 GPU 파드(Notebook 등)의 OOM 위험이 된다. 사용량을 모른다 (위 미확인 2).
 - 빌더 Deployment, S3 호환 저장소(MinIO) 설치와 운영, 메모리 추가. 메모리는 측정하지 않았다.
 - 이득은 불확실하다: 데이터가 약 161MB 규모라 CPU 빌드보다 빠른지 모른다 (위 미확인 4).
