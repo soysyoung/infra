@@ -1,0 +1,33 @@
+# 실습용 데이터베이스 knowledge_lab, report_agent_lab (CloudNativePG Database). 10-4-postgres-databases.sh 가 적용한다. 근거: docs/decisions/0025
+# 소유자는 notebook_rw (10-2 가 만든 역할). 소유자는 이 DB 안에서 스키마와 테이블을 만들 수 있다. app DB 의 권한은 그대로다.
+# vector 확장은 10-3 과 같은 방식으로 연산자가 설치한다 (superuser 비밀번호를 다루지 않는다).
+# 삭제 시 DB 를 남기는 retain(기본값)이다. databaseReclaimPolicy: delete 로 바꾸지 말 것 (DB 안의 데이터가 지워진다).
+# 리소스 이름은 postgres-database-<DB 이름의 _ 를 - 로>. DB 를 더하려면 아래에 Database 를 추가하고 10-4 를 다시 실행한다 (10-4, verify, teardown 이 이 파일에서 목록을 읽는다).
+# 스크립트가 이름을 읽는 규칙: 들여쓰기 2칸 'name:' 줄 중 postgres-database- 로 시작하지 않는 것이 DB 이름이다. 이 들여쓰기를 바꾸지 말 것.
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-database-knowledge-lab
+  namespace: postgres
+spec:
+  cluster:
+    name: postgres
+  name: knowledge_lab
+  owner: notebook_rw
+  extensions:
+    - name: vector
+      ensure: present
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgres-database-report-agent-lab
+  namespace: postgres
+spec:
+  cluster:
+    name: postgres
+  name: report_agent_lab
+  owner: notebook_rw
+  extensions:
+    - name: vector
+      ensure: present
